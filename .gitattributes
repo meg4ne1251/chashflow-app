@@ -1,0 +1,39 @@
+# Auto detect text files and normalize line endings
+* text=auto
+
+# Explicitly declare text files
+*.kt text diff=kotlin
+*.kts text diff=kotlin
+*.ts text diff=typescript
+*.tsx text diff=typescript
+*.json text
+*.md text
+*.xml text
+*.yml text
+*.yaml text
+*.conf text
+*.properties text
+*.sql text
+*.html text
+*.css text
+
+# Declare binary files
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+
+# Shell scripts should retain LF
+*.sh text eol=lf
+gradlew text eol=lf
+
+# Windows batch files should retain CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
