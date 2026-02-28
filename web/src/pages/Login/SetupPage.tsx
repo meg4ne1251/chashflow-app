@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import PasswordRequirements from '@/components/PasswordRequirements';
 import {
   Box,
   Card,
@@ -27,13 +26,10 @@ export default function SetupPage() {
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
   } = useForm<SetupFormData>({
     resolver: zodResolver(setupSchema),
   });
-
-  const watchedPassword = watch('password', '');
 
   const onSubmit = async (data: SetupFormData) => {
     setError(null);
@@ -101,10 +97,9 @@ export default function SetupPage() {
               autoComplete="new-password"
               {...register('password')}
               error={!!errors.password}
-              helperText={errors.password?.message}
-              sx={{ mb: 0.5 }}
+              helperText={errors.password?.message || '8文字以上、英大文字・小文字・数字を各1文字以上'}
+              sx={{ mb: 2 }}
             />
-            <PasswordRequirements password={watchedPassword} />
             <TextField
               fullWidth
               label="パスワード（確認）"

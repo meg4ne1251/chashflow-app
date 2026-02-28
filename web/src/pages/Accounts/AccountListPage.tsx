@@ -8,8 +8,8 @@ import {
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { accountSchema, type AccountFormData } from '@/validation/schemas';
+import { zodFormResolver } from '@/validation/resolver';
 import { accountApi } from '@/api/accounts';
 import { accountTypeLabels, formatCurrency } from '@/utils/format';
 import type { AccountResponse } from '@/types';
@@ -28,7 +28,7 @@ export default function AccountListPage() {
   });
 
   const form = useForm<AccountFormData>({
-    resolver: zodResolver(accountSchema) as never,
+    resolver: zodFormResolver(accountSchema),
     defaultValues: { name: '', type: 'cash', initial_balance: 0, currency: 'JPY', sort_order: 0 },
   });
 
@@ -113,7 +113,7 @@ export default function AccountListPage() {
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'アカウントの編集' : 'アカウントの追加'}</DialogTitle>
         <DialogContent>
-          <Box component="form" id="account-form" onSubmit={form.handleSubmit(onSubmit as never)} noValidate sx={{ pt: 1 }}>
+          <Box component="form" id="account-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
             <Stack spacing={2}>
               <TextField fullWidth label="アカウント名" {...form.register('name')} error={!!form.formState.errors.name} helperText={form.formState.errors.name?.message} />
               <Controller name="type" control={form.control} render={({ field }) => (

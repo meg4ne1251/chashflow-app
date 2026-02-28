@@ -41,8 +41,7 @@ import { tagApi } from '@/api/tags';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { useUndoStore } from '@/stores/undoStore';
 import type { TransactionResponse } from '@/types';
-
-const PAGE_SIZE = 50;
+import { DEBOUNCE_DELAY_MS, DEFAULT_PAGE_SIZE, UNDO_TIMEOUT_MS } from '@/constants';
 
 export default function TransactionListPage() {
   const navigate = useNavigate();
@@ -67,7 +66,7 @@ export default function TransactionListPage() {
   const handleKeywordChange = useCallback((value: string) => {
     setKeyword(value);
     if (keywordTimerRef.current) clearTimeout(keywordTimerRef.current);
-    keywordTimerRef.current = setTimeout(() => setDebouncedKeyword(value), 300);
+    keywordTimerRef.current = setTimeout(() => setDebouncedKeyword(value), DEBOUNCE_DELAY_MS);
   }, []);
 
   // Undo
@@ -106,7 +105,7 @@ export default function TransactionListPage() {
     queryFn: ({ pageParam }) =>
       transactionApi.list({
         cursor: pageParam as string | undefined,
-        size: PAGE_SIZE,
+        size: DEFAULT_PAGE_SIZE,
         keyword: debouncedKeyword || undefined,
         type: typeFilter || undefined,
         category_id: categoryFilter || undefined,
@@ -169,7 +168,7 @@ export default function TransactionListPage() {
     undoTimerRef.current = setTimeout(() => {
       clearUndo();
       setSnackOpen(false);
-    }, 5000);
+    }, UNDO_TIMEOUT_MS);
   };
 
   const handleUndo = async () => {
@@ -180,7 +179,9 @@ export default function TransactionListPage() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch {
-      // Undo failed silently
+      setSnackOpen(false);
+      // Re-display as error to inform user
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     }
     clearUndo();
     setSnackOpen(false);

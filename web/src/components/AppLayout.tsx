@@ -81,10 +81,7 @@ export default function AppLayout() {
   const { logout, username } = useAuthStore();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const allNavItems = useMemo(
-    () => [...mainNavItems, ...masterNavItems, ...analysisNavItems, ...settingsNavItems],
-    []
-  );
+  const allNavItems = [...mainNavItems, ...masterNavItems, ...analysisNavItems, ...settingsNavItems];
 
   const pageTitle = useMemo(
     () => allNavItems.find((i) => i.path === location.pathname)?.label ?? '家計簿',

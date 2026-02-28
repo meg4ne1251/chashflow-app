@@ -9,8 +9,8 @@ import {
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { recurringTransactionSchema, type RecurringTransactionFormData } from '@/validation/schemas';
+import { zodFormResolver } from '@/validation/resolver';
 import { recurringTransactionApi } from '@/api/recurringTransactions';
 import { categoryApi } from '@/api/categories';
 import { accountApi } from '@/api/accounts';
@@ -35,7 +35,7 @@ export default function RecurringTransactionListPage() {
   const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: () => accountApi.list(), select: (r) => r.data.filter((a) => !a.deleted_at) });
 
   const form = useForm<RecurringTransactionFormData>({
-    resolver: zodResolver(recurringTransactionSchema) as never,
+    resolver: zodFormResolver(recurringTransactionSchema),
     defaultValues: { type: 'expense', amount: undefined as unknown as number, category_id: '', account_id: '', memo: '', frequency: 'monthly', interval: 1, day_of_month: 1, day_of_week: undefined, start_date: '', end_date: '', is_active: true },
   });
 
@@ -155,7 +155,7 @@ export default function RecurringTransactionListPage() {
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? '定期取引の編集' : '新規定期取引'}</DialogTitle>
         <DialogContent>
-          <Box component="form" id="recurring-form" onSubmit={form.handleSubmit(onSubmit as never)} noValidate sx={{ pt: 1 }}>
+          <Box component="form" id="recurring-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
             <Stack spacing={2}>
               <Controller name="type" control={form.control} render={({ field }) => (
                 <FormControl fullWidth>

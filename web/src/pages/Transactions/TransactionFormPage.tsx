@@ -20,14 +20,15 @@ import {
   Autocomplete,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { transactionSchema, type TransactionFormData } from '@/validation/schemas';
+import { zodFormResolver } from '@/validation/resolver';
 import { transactionApi } from '@/api/transactions';
 import { categoryApi } from '@/api/categories';
 import { accountApi } from '@/api/accounts';
 import { tagApi } from '@/api/tags';
 import { suggestionApi } from '@/api/suggestions';
 import { getToday } from '@/utils/format';
+import { DEBOUNCE_DELAY_MS, AUTO_COMPLETE_CONFIDENCE_THRESHOLD, MEMO_SUGGESTION_MIN_LENGTH } from '@/constants';
 
 export default function TransactionFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -79,7 +80,7 @@ export default function TransactionFormPage() {
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<TransactionFormData>({
-    resolver: zodResolver(transactionSchema) as never,
+    resolver: zodFormResolver(transactionSchema),
     defaultValues: {
       type: 'expense',
       amount: undefined,
@@ -113,7 +114,7 @@ export default function TransactionFormPage() {
   // Memo auto-complete (debounced)
   const handleMemoChange = (value: string) => {
     if (memoDebounceRef.current) clearTimeout(memoDebounceRef.current);
-    if (value.length < 2) {
+    if (value.length < MEMO_SUGGESTION_MIN_LENGTH) {
       setMemoSuggestions([]);
       return;
     }
@@ -128,16 +129,16 @@ export default function TransactionFormPage() {
       // Auto-complete category/account
       try {
         const res = await suggestionApi.autoComplete(value);
-        if (res.data.category_id && res.data.confidence > 0.5) {
+        if (res.data.category_id && res.data.confidence > AUTO_COMPLETE_CONFIDENCE_THRESHOLD) {
           setValue('category_id', res.data.category_id);
         }
-        if (res.data.account_id && res.data.confidence > 0.5) {
+        if (res.data.account_id && res.data.confidence > AUTO_COMPLETE_CONFIDENCE_THRESHOLD) {
           setValue('account_id', res.data.account_id);
         }
       } catch {
         // Ignore
       }
-    }, 300);
+    }, DEBOUNCE_DELAY_MS);
   };
 
   const createMutation = useMutation({
@@ -197,7 +198,7 @@ export default function TransactionFormPage() {
 
       <Card>
         <CardContent>
-          <Box component="form" onSubmit={handleSubmit(onSubmit as never)} noValidate>
+          <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
             <Stack spacing={2.5}>
               <Controller
                 name="type"

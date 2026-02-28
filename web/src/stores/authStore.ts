@@ -15,7 +15,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      isAuthenticated: !!localStorage.getItem('access_token'),
+      isAuthenticated: false,
       username: null,
 
       login: async (username: string, password: string) => {
@@ -57,6 +57,11 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       partialize: (state) => ({ username: state.username }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isAuthenticated = !!localStorage.getItem('access_token');
+        }
+      },
     }
   )
 );

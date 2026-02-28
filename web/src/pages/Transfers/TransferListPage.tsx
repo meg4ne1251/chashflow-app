@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Button, IconButton, Table, TableBody, TableCell, TableContainer,
@@ -9,13 +8,14 @@ import {
 } from '@mui/material';
 import { Add, Edit, Delete, SwapHoriz } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { transferSchema, type TransferFormData } from '@/validation/schemas';
+import { zodFormResolver } from '@/validation/resolver';
 import { transferApi } from '@/api/transfers';
 import { accountApi } from '@/api/accounts';
 import { formatCurrency, formatDate, getToday } from '@/utils/format';
 import { useUndoStore } from '@/stores/undoStore';
 import type { TransferResponse } from '@/types';
+import { UNDO_TIMEOUT_MS } from '@/constants';
 
 export default function TransferListPage() {
   const queryClient = useQueryClient();
@@ -46,7 +46,7 @@ export default function TransferListPage() {
   });
 
   const form = useForm<TransferFormData>({
-    resolver: zodResolver(transferSchema) as never,
+    resolver: zodFormResolver(transferSchema),
     defaultValues: { from_account_id: '', to_account_id: '', amount: undefined as unknown as number, date: getToday(), memo: '', currency: 'JPY' },
   });
 
@@ -80,7 +80,7 @@ export default function TransferListPage() {
     deleteMutation.mutate(t);
     setPendingUndo({ type: 'transfer', data: t, deletedAt: Date.now() });
     setSnackOpen(true);
-    undoTimerRef.current = setTimeout(() => { clearUndo(); setSnackOpen(false); }, 5000);
+    undoTimerRef.current = setTimeout(() => { clearUndo(); setSnackOpen(false); }, UNDO_TIMEOUT_MS);
   };
 
   const handleUndo = async () => {
@@ -91,7 +91,8 @@ export default function TransferListPage() {
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
     } catch {
-      // Undo failed silently
+      // Notify user by refreshing list to show the item hasn't been restored
+      queryClient.invalidateQueries({ queryKey: ['transfers'] });
     }
     clearUndo();
     setSnackOpen(false);
@@ -146,7 +147,7 @@ export default function TransferListPage() {
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? '振替の編集' : '新規振替'}</DialogTitle>
         <DialogContent>
-          <Box component="form" id="transfer-form" onSubmit={form.handleSubmit(onSubmit as never)} noValidate sx={{ pt: 1 }}>
+          <Box component="form" id="transfer-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
             <Stack spacing={2}>
               <Controller name="from_account_id" control={form.control} render={({ field }) => (
                 <FormControl fullWidth error={!!form.formState.errors.from_account_id}>

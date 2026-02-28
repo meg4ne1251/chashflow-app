@@ -3,8 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   Dialog,
   DialogActions,
@@ -30,8 +28,8 @@ import {
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { categorySchema, type CategoryFormData } from '@/validation/schemas';
+import { zodFormResolver } from '@/validation/resolver';
 import { categoryApi } from '@/api/categories';
 import type { CategoryResponse } from '@/types';
 
@@ -49,7 +47,7 @@ export default function CategoryListPage() {
   });
 
   const form = useForm<CategoryFormData>({
-    resolver: zodResolver(categorySchema) as never,
+    resolver: zodFormResolver(categorySchema),
     defaultValues: { name: '', type: 'expense', icon: '', color: '', sort_order: 0 },
   });
 
@@ -143,7 +141,7 @@ export default function CategoryListPage() {
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'カテゴリの編集' : 'カテゴリの追加'}</DialogTitle>
         <DialogContent>
-          <Box component="form" id="category-form" onSubmit={form.handleSubmit(onSubmit as never)} noValidate sx={{ pt: 1 }}>
+          <Box component="form" id="category-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
             <Stack spacing={2}>
               <TextField fullWidth label="カテゴリ名" {...form.register('name')} error={!!form.formState.errors.name} helperText={form.formState.errors.name?.message} />
               <Controller name="type" control={form.control} render={({ field }) => (

@@ -12,8 +12,7 @@ import {
 import { analyticsApi } from '@/api/analytics';
 import { formatCurrency, getCurrentYearMonth, getCurrentYear } from '@/utils/format';
 import type { CategoryBreakdownItem, MonthlySummaryItem } from '@/types';
-
-const COLORS = ['#2196F3', '#F44336', '#4CAF50', '#FF9800', '#9C27B0', '#00BCD4', '#E91E63', '#8BC34A', '#FF5722', '#607D8B', '#795548', '#CDDC39'];
+import { CHART_COLORS } from '@/constants';
 
 type ViewMode = 'monthly' | 'yearly' | 'comparison';
 
@@ -91,7 +90,7 @@ export default function AnalysisPage() {
             <PieChart>
               <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}
                 label={({ name, percentage }: { name?: string; percentage?: number }) => `${name ?? ''} ${(Number(percentage) || 0).toFixed(1)}%`}>
-                {data.map((_: unknown, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                {data.map((entry: { name: string }, i: number) => <Cell key={entry.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
               </Pie>
               <Tooltip formatter={(v: unknown) => formatCurrency(Number(v))} />
             </PieChart>
@@ -99,7 +98,7 @@ export default function AnalysisPage() {
           <Box sx={{ minWidth: 180 }}>
             {data.map((d, i) => (
               <Box key={d.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS[i % COLORS.length], flexShrink: 0 }} />
+                <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: CHART_COLORS[i % CHART_COLORS.length], flexShrink: 0 }} />
                 <Typography variant="body2" noWrap sx={{ flex: 1 }}>{d.name}</Typography>
                 <Typography variant="body2" fontWeight={600}>{formatCurrency(d.value)}</Typography>
               </Box>

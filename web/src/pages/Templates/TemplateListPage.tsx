@@ -8,8 +8,8 @@ import {
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { templateSchema, type TemplateFormData } from '@/validation/schemas';
+import { zodFormResolver } from '@/validation/resolver';
 import { templateApi } from '@/api/templates';
 import { categoryApi } from '@/api/categories';
 import { accountApi } from '@/api/accounts';
@@ -35,7 +35,7 @@ export default function TemplateListPage() {
   const { data: tags } = useQuery({ queryKey: ['tags'], queryFn: () => tagApi.list(), select: (r) => r.data.filter((t) => !t.deleted_at) });
 
   const form = useForm<TemplateFormData>({
-    resolver: zodResolver(templateSchema) as never,
+    resolver: zodFormResolver(templateSchema),
     defaultValues: { name: '', type: 'expense', amount: undefined, currency: 'JPY', category_id: '', account_id: '', memo: '', tag_ids: [] },
   });
 
@@ -112,7 +112,7 @@ export default function TemplateListPage() {
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'テンプレートの編集' : 'テンプレートの追加'}</DialogTitle>
         <DialogContent>
-          <Box component="form" id="template-form" onSubmit={form.handleSubmit(onSubmit as never)} noValidate sx={{ pt: 1 }}>
+          <Box component="form" id="template-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
             <Stack spacing={2}>
               <TextField fullWidth label="テンプレート名" {...form.register('name')} error={!!form.formState.errors.name} helperText={form.formState.errors.name?.message} />
               <Controller name="type" control={form.control} render={({ field }) => (

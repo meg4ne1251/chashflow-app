@@ -8,8 +8,8 @@ import {
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { budgetSchema, type BudgetFormData } from '@/validation/schemas';
+import { zodFormResolver } from '@/validation/resolver';
 import { budgetApi } from '@/api/budgets';
 import { categoryApi } from '@/api/categories';
 import { analyticsApi } from '@/api/analytics';
@@ -53,7 +53,7 @@ export default function BudgetPage() {
   }, [expenseBreakdown]);
 
   const form = useForm<BudgetFormData>({
-    resolver: zodResolver(budgetSchema) as never,
+    resolver: zodFormResolver(budgetSchema),
     defaultValues: { category_id: '', amount: undefined as unknown as number, year_month: yearMonth },
   });
 
@@ -174,7 +174,7 @@ export default function BudgetPage() {
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>{editing ? '予算の編集' : '予算の設定'}</DialogTitle>
         <DialogContent>
-          <Box component="form" id="budget-form" onSubmit={form.handleSubmit(onSubmit as never)} noValidate sx={{ pt: 1 }}>
+          <Box component="form" id="budget-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
             <Stack spacing={2}>
               <Controller name="category_id" control={form.control} render={({ field }) => (
                 <FormControl fullWidth error={!!form.formState.errors.category_id} disabled={!!editing}>
