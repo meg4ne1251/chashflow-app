@@ -1,0 +1,12 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^source \"/home/megane/\\.sdkman/bin/sdkman-init\\.sh\" && cd /home/megane/dev/cashflow-app && gradle wrapper --gradle-version=8\\.10 --stacktrace 2>&1 \\| tail -40$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /home/megane/dev/cashflow-app/web && npm install 2>&1 \\| tail -5$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
