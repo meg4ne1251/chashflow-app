@@ -52,6 +52,8 @@ export default function TransactionListPage() {
 
   // Filters
   const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const keywordTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [accountFilter, setAccountFilter] = useState('');
@@ -60,6 +62,13 @@ export default function TransactionListPage() {
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [sortValue, setSortValue] = useState('date,desc');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Debounce keyword search
+  const handleKeywordChange = useCallback((value: string) => {
+    setKeyword(value);
+    if (keywordTimerRef.current) clearTimeout(keywordTimerRef.current);
+    keywordTimerRef.current = setTimeout(() => setDebouncedKeyword(value), 300);
+  }, []);
 
   // Undo
   const { pendingUndo, setPendingUndo, clearUndo } = useUndoStore();
@@ -93,12 +102,12 @@ export default function TransactionListPage() {
     isLoading,
     error,
   } = useInfiniteQuery({
-    queryKey: ['transactions', { keyword, typeFilter, categoryFilter, accountFilter, dateFrom, dateTo, tagFilter, sortValue }],
+    queryKey: ['transactions', { keyword: debouncedKeyword, typeFilter, categoryFilter, accountFilter, dateFrom, dateTo, tagFilter, sortValue }],
     queryFn: ({ pageParam }) =>
       transactionApi.list({
         cursor: pageParam as string | undefined,
         size: PAGE_SIZE,
-        keyword: keyword || undefined,
+        keyword: debouncedKeyword || undefined,
         type: typeFilter || undefined,
         category_id: categoryFilter || undefined,
         account_id: accountFilter || undefined,
@@ -134,10 +143,11 @@ export default function TransactionListPage() {
     return () => observer.disconnect();
   }, [handleObserver]);
 
-  // Cleanup undo timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      if (keywordTimerRef.current) clearTimeout(keywordTimerRef.current);
     };
   }, []);
 
@@ -200,7 +210,7 @@ export default function TransactionListPage() {
               size="small"
               placeholder="メモ検索..."
               value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              onChange={(e) => handleKeywordChange(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">

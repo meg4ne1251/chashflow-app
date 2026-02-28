@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -81,6 +81,16 @@ export default function AppLayout() {
   const { logout, username } = useAuthStore();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
+  const allNavItems = useMemo(
+    () => [...mainNavItems, ...masterNavItems, ...analysisNavItems, ...settingsNavItems],
+    []
+  );
+
+  const pageTitle = useMemo(
+    () => allNavItems.find((i) => i.path === location.pathname)?.label ?? '家計簿',
+    [allNavItems, location.pathname]
+  );
+
   const handleNavClick = (path: string) => {
     navigate(path);
     if (isMobile) setSidebarOpen(false);
@@ -161,11 +171,7 @@ export default function AppLayout() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
-            {mainNavItems.find((i) => i.path === location.pathname)?.label
-              || masterNavItems.find((i) => i.path === location.pathname)?.label
-              || analysisNavItems.find((i) => i.path === location.pathname)?.label
-              || settingsNavItems.find((i) => i.path === location.pathname)?.label
-              || '家計簿'}
+            {pageTitle}
           </Typography>
           <IconButton onClick={cycleTheme} title={`テーマ: ${themeMode}`}>
             {themeIcon}

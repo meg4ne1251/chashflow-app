@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import { analyticsApi } from '@/api/analytics';
 import { formatCurrency, getCurrentYearMonth, getCurrentYear } from '@/utils/format';
-import type { CategoryBreakdownItem, MonthlySummaryItem, ComparisonResponse } from '@/types';
+import type { CategoryBreakdownItem, MonthlySummaryItem } from '@/types';
 
 const COLORS = ['#2196F3', '#F44336', '#4CAF50', '#FF9800', '#9C27B0', '#00BCD4', '#E91E63', '#8BC34A', '#FF5722', '#607D8B', '#795548', '#CDDC39'];
 
@@ -78,8 +78,6 @@ export default function AnalysisPage() {
       };
     });
   }, [yearlyQ.data]);
-
-  const fmtTooltip = (v: number | undefined) => v != null ? formatCurrency(v) : '';
 
   const renderPie = (data: { name: string; value: number; percentage: number }[], title: string, total?: number) => (
     <Paper sx={{ p: 2, height: '100%' }}>

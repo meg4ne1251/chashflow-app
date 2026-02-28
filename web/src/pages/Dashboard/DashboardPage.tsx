@@ -50,9 +50,9 @@ export default function DashboardPage() {
               </Box>
               {isLoading ? (
                 <Skeleton width="60%" height={40} />
-              ) : (
+              ) : data && (
                 <Typography variant="h4" fontWeight={700} color="success.main">
-                  {formatCurrency(data!.income_total)}
+                  {formatCurrency(data.income_total)}
                 </Typography>
               )}
               {data && data.month_over_month.income_change_rate != null && (
@@ -73,9 +73,9 @@ export default function DashboardPage() {
               </Box>
               {isLoading ? (
                 <Skeleton width="60%" height={40} />
-              ) : (
+              ) : data && (
                 <Typography variant="h4" fontWeight={700} color="error.main">
-                  {formatCurrency(data!.expense_total)}
+                  {formatCurrency(data.expense_total)}
                 </Typography>
               )}
               {data && data.month_over_month.expense_change_rate != null && (
@@ -96,13 +96,13 @@ export default function DashboardPage() {
               </Box>
               {isLoading ? (
                 <Skeleton width="60%" height={40} />
-              ) : (
+              ) : data && (
                 <Typography
                   variant="h4"
                   fontWeight={700}
-                  color={data!.balance >= 0 ? 'success.main' : 'error.main'}
+                  color={data.balance >= 0 ? 'success.main' : 'error.main'}
                 >
-                  {formatCurrency(data!.balance)}
+                  {formatCurrency(data.balance)}
                 </Typography>
               )}
             </CardContent>

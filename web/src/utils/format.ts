@@ -1,3 +1,5 @@
+import type { AccountType, Frequency } from '@/types';
+
 /**
  * Format a number as Japanese Yen currency display
  */
@@ -76,7 +78,7 @@ export function formatPercent(value: number | null | undefined): string {
 /**
  * Account type labels
  */
-export const accountTypeLabels: Record<string, string> = {
+export const accountTypeLabels: Record<AccountType, string> = {
   cash: '現金',
   bank: '銀行口座',
   credit_card: 'クレジットカード',
@@ -87,7 +89,7 @@ export const accountTypeLabels: Record<string, string> = {
 /**
  * Frequency labels
  */
-export const frequencyLabels: Record<string, string> = {
+export const frequencyLabels: Record<Frequency, string> = {
   daily: '毎日',
   weekly: '毎週',
   monthly: '毎月',
@@ -118,5 +120,6 @@ export function downloadBlob(blob: Blob, filename: string) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Delay revocation to ensure the browser has started the download
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

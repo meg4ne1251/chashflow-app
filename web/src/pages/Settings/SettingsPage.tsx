@@ -12,11 +12,12 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { passwordChangeSchema, type PasswordChangeFormData } from '@/validation/schemas';
+import PasswordRequirements from '@/components/PasswordRequirements';
 import { authApi } from '@/api/auth';
-import { importExportApi } from '@/api/importExport';
-import { notificationSettingApi } from '@/api/importExport';
+import { importExportApi, notificationSettingApi } from '@/api/importExport';
 import { clearAuthTokens } from '@/api/client';
 import { downloadBlob } from '@/utils/format';
+import type { ImportResultResponse } from '@/types';
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
@@ -30,6 +31,7 @@ export default function SettingsPage() {
 
   // === Password Change ===
   const pwForm = useForm<PasswordChangeFormData>({ resolver: zodResolver(passwordChangeSchema) });
+  const watchedNewPassword = pwForm.watch('new_password', '');
   const pwMutation = useMutation({
     mutationFn: (data: PasswordChangeFormData) => authApi.changePassword({ current_password: data.current_password, new_password: data.new_password }),
     onSuccess: () => {
@@ -74,7 +76,8 @@ export default function SettingsPage() {
     mutationFn: (file: File) => importExportApi.importExcel(file, {}),
     onSuccess: (resp) => {
       queryClient.invalidateQueries();
-      setSnackMsg(`インポート完了: ${(resp.data as { imported_count?: number }).imported_count ?? 0}件`);
+      const result = resp.data as ImportResultResponse;
+      setSnackMsg(`インポート完了: ${result.imported_count}件`);
     },
     onError: () => setError('インポートに失敗しました。ファイル形式を確認してください。'),
   });
@@ -165,6 +168,7 @@ export default function SettingsPage() {
               error={!!pwForm.formState.errors.new_password}
               helperText={pwForm.formState.errors.new_password?.message}
             />
+            <PasswordRequirements password={watchedNewPassword} />
             <TextField
               fullWidth label="新しいパスワード（確認）" type="password"
               {...pwForm.register('confirm_password')}

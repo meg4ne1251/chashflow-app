@@ -1,0 +1,29 @@
+# ===== Version Control =====
+.git
+.gitignore
+
+# ===== IDE =====
+.idea
+.vscode
+*.iml
+
+# ===== Build outputs =====
+backend/build
+shared/build
+web/dist
+web/node_modules
+
+# ===== Docker (compose files only) =====
+docker-compose.yml
+docker-compose.*.yml
+
+# ===== Environment =====
+.env
+.env.*
+!.env.example
+
+# ===== Docs / Misc =====
+*.md
+LICENSE
+logs/
+backend/logs/

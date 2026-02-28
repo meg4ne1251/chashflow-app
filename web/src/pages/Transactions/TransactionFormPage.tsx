@@ -28,7 +28,6 @@ import { accountApi } from '@/api/accounts';
 import { tagApi } from '@/api/tags';
 import { suggestionApi } from '@/api/suggestions';
 import { getToday } from '@/utils/format';
-import type { TransactionResponse } from '@/types';
 
 export default function TransactionFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -160,7 +159,7 @@ export default function TransactionFormPage() {
       transactionApi.update(id!, {
         ...data,
         memo: data.memo || undefined,
-        version: (existingTx as TransactionResponse).version,
+        version: existingTx!.version,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
