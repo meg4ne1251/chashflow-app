@@ -101,10 +101,25 @@ fun Application.module() {
 
     val allowedOrigins = environment.config.property("cors.allowedOrigins").getString()
     install(CORS) {
-        allowedOrigins.split(",").forEach { origin ->
-            allowHost(origin.trim().removePrefix("http://").removePrefix("https://"),
+        val configuredOrigins = allowedOrigins.split(",").map { it.trim() }
+        configuredOrigins.forEach { origin ->
+            allowHost(origin.removePrefix("http://").removePrefix("https://"),
                 schemes = listOf("http", "https"))
         }
+
+        // Allow any port on localhost/127.0.0.1 when configured origins include localhost
+        // This supports reverse-proxy and port-forwarding scenarios (e.g. Docker, VS Code)
+        val localhostConfigured = configuredOrigins.any { origin ->
+            val host = origin.removePrefix("http://").removePrefix("https://").substringBefore(":")
+            host == "localhost" || host == "127.0.0.1"
+        }
+        if (localhostConfigured) {
+            allowOrigins { origin ->
+                val host = origin.removePrefix("http://").removePrefix("https://").substringBefore(":")
+                host == "localhost" || host == "127.0.0.1"
+            }
+        }
+
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Put)

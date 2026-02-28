@@ -80,5 +80,27 @@ tasks.withType<Jar> {
         attributes["Main-Class"] = "com.kakeibo.backend.ApplicationKt"
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+
+    // Merge META-INF/services files from all dependencies (avoids overwriting by DuplicatesStrategy.EXCLUDE)
+    val mergedServicesDir = layout.buildDirectory.dir("mergedServices")
+    doFirst {
+        val outDir = mergedServicesDir.get().asFile.resolve("META-INF/services")
+        outDir.mkdirs()
+        val serviceEntries = mutableMapOf<String, MutableSet<String>>()
+        configurations.runtimeClasspath.get().forEach { file ->
+            val tree = if (file.isFile && file.extension == "jar") zipTree(file) else fileTree(file)
+            tree.matching { include("META-INF/services/**") }.forEach { svc ->
+                serviceEntries.getOrPut(svc.name) { mutableSetOf() }
+                    .addAll(svc.readLines().filter { it.isNotBlank() && !it.startsWith("#") })
+            }
+        }
+        serviceEntries.forEach { (name, entries) ->
+            outDir.resolve(name).writeText(entries.joinToString("\n") + "\n")
+        }
+    }
+
+    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) }) {
+        exclude("META-INF/services/**")
+    }
+    from(mergedServicesDir)
 }
