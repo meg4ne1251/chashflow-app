@@ -14,11 +14,8 @@ import { zodFormResolver } from '@/validation/resolver';
 import { accountApi } from '@/api/accounts';
 import { transactionApi } from '@/api/transactions';
 import { accountTypeLabels, formatCurrency, getToday } from '@/utils/format';
+import { FALLBACK_EXPENSE_CATEGORY_ID, FALLBACK_INCOME_CATEGORY_ID } from '@/constants';
 import type { AccountResponse } from '@/types';
-
-// Fallback category IDs from seed data
-const FALLBACK_EXPENSE_CATEGORY_ID = 'a0000000-0000-0000-0000-00000000000d';
-const FALLBACK_INCOME_CATEGORY_ID = 'b0000000-0000-0000-0000-000000000005';
 
 export default function AccountListPage() {
   const queryClient = useQueryClient();

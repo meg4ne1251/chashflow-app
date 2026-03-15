@@ -140,8 +140,8 @@ export default function TransactionFormPage() {
       try {
         const res = await suggestionApi.memo(value);
         setMemoSuggestions(res.data.map((s) => s.memo));
-      } catch {
-        // Ignore
+      } catch (err) {
+        console.warn('Memo suggestion failed:', err);
       }
 
       // Auto-complete category/account
@@ -153,8 +153,8 @@ export default function TransactionFormPage() {
         if (res.data.account_id && res.data.confidence > AUTO_COMPLETE_CONFIDENCE_THRESHOLD) {
           setValue('account_id', res.data.account_id);
         }
-      } catch {
-        // Ignore
+      } catch (err) {
+        console.warn('Auto-complete failed:', err);
       }
     }, DEBOUNCE_DELAY_MS);
   };

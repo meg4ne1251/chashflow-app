@@ -104,7 +104,9 @@ export default function TemplateListPage() {
                 <TableCell>{t.last_used_at ? formatDateTime(t.last_used_at) : '-'}</TableCell>
                 <TableCell align="center">
                   <Tooltip title="この内容で取引を登録"><IconButton size="small" color="primary" onClick={() => {
-                    templateApi.use(t.id).catch(() => {});
+                    templateApi.use(t.id).catch((err) => {
+                      console.warn('Failed to record template usage:', err);
+                    });
                     navigate('/transactions/new', { state: { template: t } });
                   }}><PlayArrow fontSize="small" /></IconButton></Tooltip>
                   <IconButton size="small" onClick={() => openEdit(t)}><Edit fontSize="small" /></IconButton>

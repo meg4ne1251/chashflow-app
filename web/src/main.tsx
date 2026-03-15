@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import App from './App';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 const queryClient = new QueryClient({
@@ -21,9 +22,11 @@ function Root() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <ErrorBoundary>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

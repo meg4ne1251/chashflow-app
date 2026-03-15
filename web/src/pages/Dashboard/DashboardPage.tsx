@@ -55,7 +55,7 @@ export default function DashboardPage() {
                   {formatCurrency(data.income_total)}
                 </Typography>
               )}
-              {data && data.month_over_month.income_change_rate != null && (
+              {data?.month_over_month?.income_change_rate != null && (
                 <Typography variant="body2" color="text.secondary">
                   前月比 {formatPercent(data.month_over_month.income_change_rate)}
                   （{formatCurrency(data.month_over_month.income_change)}）
@@ -78,7 +78,7 @@ export default function DashboardPage() {
                   {formatCurrency(data.expense_total)}
                 </Typography>
               )}
-              {data && data.month_over_month.expense_change_rate != null && (
+              {data?.month_over_month?.expense_change_rate != null && (
                 <Typography variant="body2" color="text.secondary">
                   前月比 {formatPercent(data.month_over_month.expense_change_rate)}
                   （{formatCurrency(data.month_over_month.expense_change)}）

@@ -66,6 +66,12 @@ fun Route.transactionRoutes(transactionService: TransactionService) {
             call.respond(HttpStatusCode.NoContent)
         }
 
+        patch("/{id}/restore") {
+            val id = call.parameters["id"]!!
+            transactionService.restore(id)
+            call.respond(HttpStatusCode.OK, mapOf("status" to "restored"))
+        }
+
         get("/{id}/history") {
             val id = call.parameters["id"]!!
             val response = transactionService.getHistory(id)

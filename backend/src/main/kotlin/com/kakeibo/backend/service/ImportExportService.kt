@@ -49,7 +49,7 @@ class ImportExportService(
             throw InvalidRequestException("行数が上限(${MAX_IMPORT_ROWS}行)を超えています")
         }
         val preview = rows.take(20)
-        val errors = rows.flatMap { row -> validateImportRow(row) }
+        val errors = rows.flatMapIndexed { idx, row -> validateImportRow(row, idx + 2) }
         val validCount = rows.count { row -> validateImportRow(row).isEmpty() }
 
         return ImportPreviewResponse(
@@ -89,7 +89,7 @@ class ImportExportService(
 
         for ((index, row) in rows.withIndex()) {
             val rowNum = index + 2
-            val rowErrors = validateImportRow(row)
+            val rowErrors = validateImportRow(row, rowNum)
             if (rowErrors.isNotEmpty()) {
                 errors.addAll(rowErrors)
                 skippedCount++
@@ -163,22 +163,28 @@ class ImportExportService(
         )
         val (transactions, _) = transactionRepository.findAll(filter, page = null, size = Int.MAX_VALUE, sortField = "date", sortDirection = "asc")
 
+        // Batch-load all categories, accounts, and tags to avoid N+1 queries
+        val allCategories = categoryRepository.findAll().associate { it[Categories.id] to it[Categories.name] }
+        val allAccounts = accountRepository.findAll().associate {
+            it[Accounts.id] to if (it[Accounts.deletedAt] == null) it[Accounts.name] else ""
+        }
+        val txIds = transactions.map { it[Transactions.id] }
+        val tagIdsByTx = if (txIds.isNotEmpty()) transactionTagRepository.findByTransactionIds(txIds) else emptyMap()
+        val allTagIds = tagIdsByTx.values.flatten().distinct()
+        val allTags = if (allTagIds.isNotEmpty()) {
+            tagRepository.findByIds(allTagIds).associate { it[Tags.id] to it[Tags.name] }
+        } else emptyMap()
+
         val sb = StringBuilder()
         // UTF-8 BOM for Excel compatibility
         sb.append('\uFEFF')
         sb.appendLine("日付,種別,金額,カテゴリ,アカウント,メモ,タグ,作成日時,更新日時")
 
         for (tx in transactions) {
-            val catName = categoryRepository.findById(tx[Transactions.categoryId])?.get(Categories.name) ?: ""
-            val accName = accountRepository.findById(tx[Transactions.accountId])?.let {
-                if (it[Accounts.deletedAt] == null) it[Accounts.name] else ""
-            } ?: ""
-            val tagIds = transactionTagRepository.findByTransactionId(tx[Transactions.id])
-            val tagNames = if (tagIds.isNotEmpty()) {
-                tagRepository.findByIds(tagIds).joinToString(",") {
-                    sanitizeCsvField(it[Tags.name])
-                }
-            } else ""
+            val catName = allCategories[tx[Transactions.categoryId]] ?: ""
+            val accName = allAccounts[tx[Transactions.accountId]] ?: ""
+            val txTagIds = tagIdsByTx[tx[Transactions.id]] ?: emptyList()
+            val tagNames = txTagIds.mapNotNull { allTags[it] }.joinToString(",") { sanitizeCsvField(it) }
 
             val type = if (tx[Transactions.type] == "income") "収入" else "支出"
             val memo = sanitizeCsvField(tx[Transactions.memo] ?: "")
@@ -400,9 +406,8 @@ class ImportExportService(
         }
     }
 
-    private fun validateImportRow(row: Map<String, String?>): List<ImportError> {
+    private fun validateImportRow(row: Map<String, String?>, rowNum: Int = 0): List<ImportError> {
         val errors = mutableListOf<ImportError>()
-        val rowNum = 0 // will be re-assigned by caller
 
         if (row["date"].isNullOrBlank()) errors.add(ImportError(rowNum, "date", "日付は必須です"))
         if (row["type"].isNullOrBlank()) errors.add(ImportError(rowNum, "type", "種別は必須です"))

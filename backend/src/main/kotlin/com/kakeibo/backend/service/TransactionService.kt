@@ -181,6 +181,13 @@ class TransactionService(
         invalidateCacheForDate(existing[Transactions.date].toString())
     }
 
+    fun restore(id: String) {
+        val uuid = UUID.fromString(id)
+        if (!transactionRepository.restore(uuid)) {
+            throw NotFoundException("取引が見つかりません")
+        }
+    }
+
     fun getHistory(id: String): List<TransactionHistoryResponse> {
         val uuid = UUID.fromString(id)
         val rows = transactionHistoryRepository.findByTransactionId(uuid)

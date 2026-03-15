@@ -18,6 +18,16 @@ export const AUTO_COMPLETE_CONFIDENCE_THRESHOLD = 0.5;
 export const MEMO_SUGGESTION_MIN_LENGTH = 2;
 
 // =========================================
+// Default categories (must match backend seed data / shared Constants.kt)
+// =========================================
+
+/** Fallback expense category ID from seed data ("その他支出") */
+export const FALLBACK_EXPENSE_CATEGORY_ID = 'a0000000-0000-0000-0000-00000000000d';
+
+/** Fallback income category ID from seed data ("その他収入") */
+export const FALLBACK_INCOME_CATEGORY_ID = 'b0000000-0000-0000-0000-000000000005';
+
+// =========================================
 // Form defaults
 // =========================================
 
