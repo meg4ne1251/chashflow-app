@@ -15,6 +15,7 @@ import { recurringTransactionApi } from '@/api/recurringTransactions';
 import { categoryApi } from '@/api/categories';
 import { accountApi } from '@/api/accounts';
 import { formatCurrency, formatDate, frequencyLabels, dayOfWeekLabels } from '@/utils/format';
+import { EMPTY_NUMBER } from '@/constants';
 import type { RecurringTransactionResponse } from '@/types';
 
 export default function RecurringTransactionListPage() {
@@ -36,7 +37,7 @@ export default function RecurringTransactionListPage() {
 
   const form = useForm<RecurringTransactionFormData>({
     resolver: zodFormResolver(recurringTransactionSchema),
-    defaultValues: { type: 'expense', amount: undefined as unknown as number, category_id: '', account_id: '', memo: '', frequency: 'monthly', interval: 1, day_of_month: 1, day_of_week: undefined, start_date: '', end_date: '', is_active: true },
+    defaultValues: { type: 'expense', amount: EMPTY_NUMBER, category_id: '', account_id: '', memo: '', frequency: 'monthly', interval: 1, day_of_month: 1, day_of_week: undefined, start_date: '', end_date: '', is_active: true },
   });
 
   const watchType = form.watch('type');
@@ -45,7 +46,7 @@ export default function RecurringTransactionListPage() {
 
   const openCreate = () => {
     setEditing(null);
-    form.reset({ type: 'expense', amount: undefined as unknown as number, category_id: '', account_id: '', memo: '', frequency: 'monthly', interval: 1, day_of_month: 1, day_of_week: undefined, start_date: '', end_date: '', is_active: true });
+    form.reset({ type: 'expense', amount: EMPTY_NUMBER, category_id: '', account_id: '', memo: '', frequency: 'monthly', interval: 1, day_of_month: 1, day_of_week: undefined, start_date: '', end_date: '', is_active: true });
     setDialogOpen(true);
   };
 

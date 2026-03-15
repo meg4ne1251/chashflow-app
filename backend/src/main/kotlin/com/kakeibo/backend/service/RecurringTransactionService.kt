@@ -150,13 +150,15 @@ class RecurringTransactionService(
                     }
 
                     // Calculate and update next execution date
+                    // Use the current execution date (not +1) as the base;
+                    // each frequency handler already advances past fromDate.
                     val nextDate = calculateNextExecutionDate(
                         frequency = row[RecurringTransactions.frequency],
                         interval = row[RecurringTransactions.interval],
                         dayOfWeek = row[RecurringTransactions.dayOfWeek],
                         dayOfMonth = row[RecurringTransactions.dayOfMonth],
                         monthOfYear = row[RecurringTransactions.monthOfYear],
-                        fromDate = row[RecurringTransactions.nextExecutionDate].plusDays(1)
+                        fromDate = row[RecurringTransactions.nextExecutionDate]
                     )
                     recurringTransactionRepository.updateNextExecutionDate(rtId, nextDate)
                     created++
@@ -205,7 +207,7 @@ class RecurringTransactionService(
                 val adjustedDay = minOf(targetDay, yearMonth.lengthOfMonth())
                 LocalDate.of(next.year, targetMonth, adjustedDay)
             }
-            else -> fromDate.plusMonths(1)
+            else -> throw IllegalArgumentException("不正な頻度です: $frequency")
         }
     }
 
@@ -248,12 +250,12 @@ class RecurringTransactionService(
 
     private fun validateRequest(request: RecurringTransactionRequest) {
         val errors = mutableListOf<FieldError>()
-        if (request.type !in listOf("income", "expense"))
+        if (request.type !in com.kakeibo.shared.model.TransactionType.entries.map { it.value })
             errors.add(FieldError("type", "種別は income または expense を指定してください"))
         ValidationRules.validateAmount(request.amount)?.let {
             errors.add(FieldError("amount", it))
         }
-        if (request.frequency !in listOf("daily", "weekly", "monthly", "yearly"))
+        if (request.frequency !in com.kakeibo.shared.model.Frequency.entries.map { it.value })
             errors.add(FieldError("frequency", "頻度は daily/weekly/monthly/yearly を指定してください"))
         if (request.interval < 1)
             errors.add(FieldError("interval", "間隔は1以上を指定してください"))

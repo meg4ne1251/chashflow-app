@@ -115,109 +115,94 @@ class SyncService(
                         "transaction" -> {
                             val existing = transactionRepository.findById(uuid)
                             if (existing != null && change.operation == "create") {
-                                // Already exists, treat as conflict
                                 throw ConflictException("既に存在します")
                             }
+                            val type = change.data.requireString("type")
+                            val amount = change.data.requireLong("amount")
+                            val currency = change.data.optionalString("currency") ?: "JPY"
+                            val date = LocalDate.parse(change.data.requireString("date"))
+                            val memo = change.data.optionalString("memo")
+                            val categoryId = UUID.fromString(change.data.requireString("category_id"))
+                            val accountId = UUID.fromString(change.data.requireString("account_id"))
+
                             if (change.operation == "update" && existing != null) {
                                 val serverVersion = existing[Transactions.version]
                                 if (serverVersion != version) throw ConflictException("バージョン競合")
-
                                 transactionRepository.update(
-                                    id = uuid,
-                                    type = change.data["type"]!!.jsonPrimitive.content,
-                                    amount = change.data["amount"]!!.jsonPrimitive.long,
-                                    currency = change.data["currency"]?.jsonPrimitive?.contentOrNull ?: "JPY",
-                                    date = LocalDate.parse(change.data["date"]!!.jsonPrimitive.content),
-                                    memo = change.data["memo"]?.jsonPrimitive?.contentOrNull,
-                                    categoryId = UUID.fromString(change.data["category_id"]!!.jsonPrimitive.content),
-                                    accountId = UUID.fromString(change.data["account_id"]!!.jsonPrimitive.content),
-                                    currentVersion = version
+                                    id = uuid, type = type, amount = amount, currency = currency,
+                                    date = date, memo = memo, categoryId = categoryId,
+                                    accountId = accountId, currentVersion = version
                                 )
                             } else {
                                 transactionRepository.create(
-                                    id = uuid,
-                                    type = change.data["type"]!!.jsonPrimitive.content,
-                                    amount = change.data["amount"]!!.jsonPrimitive.long,
-                                    currency = change.data["currency"]?.jsonPrimitive?.contentOrNull ?: "JPY",
-                                    date = LocalDate.parse(change.data["date"]!!.jsonPrimitive.content),
-                                    memo = change.data["memo"]?.jsonPrimitive?.contentOrNull,
-                                    categoryId = UUID.fromString(change.data["category_id"]!!.jsonPrimitive.content),
-                                    accountId = UUID.fromString(change.data["account_id"]!!.jsonPrimitive.content)
+                                    id = uuid, type = type, amount = amount, currency = currency,
+                                    date = date, memo = memo, categoryId = categoryId, accountId = accountId
                                 )
                             }
                         }
                         "category" -> {
                             val existing = categoryRepository.findById(uuid)
+                            val name = change.data.requireString("name")
+                            val type = change.data.requireString("type")
+                            val icon = change.data.optionalString("icon")
+                            val color = change.data.optionalString("color")
+                            val sortOrder = change.data.optionalInt("sort_order") ?: 0
+
                             if (change.operation == "update" && existing != null) {
                                 val serverVersion = existing[Categories.version]
                                 if (serverVersion != version) throw ConflictException("バージョン競合")
                                 categoryRepository.update(
-                                    id = uuid,
-                                    name = change.data["name"]!!.jsonPrimitive.content,
-                                    type = change.data["type"]!!.jsonPrimitive.content,
-                                    icon = change.data["icon"]?.jsonPrimitive?.contentOrNull,
-                                    color = change.data["color"]?.jsonPrimitive?.contentOrNull,
-                                    sortOrder = change.data["sort_order"]?.jsonPrimitive?.int ?: 0,
-                                    currentVersion = version
+                                    id = uuid, name = name, type = type, icon = icon,
+                                    color = color, sortOrder = sortOrder, currentVersion = version
                                 )
                             } else {
                                 categoryRepository.create(
-                                    id = uuid,
-                                    name = change.data["name"]!!.jsonPrimitive.content,
-                                    type = change.data["type"]!!.jsonPrimitive.content,
-                                    icon = change.data["icon"]?.jsonPrimitive?.contentOrNull,
-                                    color = change.data["color"]?.jsonPrimitive?.contentOrNull,
-                                    sortOrder = change.data["sort_order"]?.jsonPrimitive?.int ?: 0
+                                    id = uuid, name = name, type = type, icon = icon,
+                                    color = color, sortOrder = sortOrder
                                 )
                             }
                         }
                         "account" -> {
                             val existing = accountRepository.findById(uuid)
+                            val name = change.data.requireString("name")
+                            val type = change.data.requireString("type")
+                            val initialBalance = change.data.optionalLong("initial_balance") ?: 0L
+                            val currency = change.data.optionalString("currency") ?: "JPY"
+                            val sortOrder = change.data.optionalInt("sort_order") ?: 0
+
                             if (change.operation == "update" && existing != null) {
                                 val serverVersion = existing[Accounts.version]
                                 if (serverVersion != version) throw ConflictException("バージョン競合")
                                 accountRepository.update(
-                                    id = uuid,
-                                    name = change.data["name"]!!.jsonPrimitive.content,
-                                    type = change.data["type"]!!.jsonPrimitive.content,
-                                    initialBalance = change.data["initial_balance"]?.jsonPrimitive?.long ?: 0L,
-                                    currency = change.data["currency"]?.jsonPrimitive?.contentOrNull ?: "JPY",
-                                    sortOrder = change.data["sort_order"]?.jsonPrimitive?.int ?: 0,
-                                    currentVersion = version
+                                    id = uuid, name = name, type = type, initialBalance = initialBalance,
+                                    currency = currency, sortOrder = sortOrder, currentVersion = version
                                 )
                             } else {
                                 accountRepository.create(
-                                    id = uuid,
-                                    name = change.data["name"]!!.jsonPrimitive.content,
-                                    type = change.data["type"]!!.jsonPrimitive.content,
-                                    initialBalance = change.data["initial_balance"]?.jsonPrimitive?.long ?: 0L,
-                                    currency = change.data["currency"]?.jsonPrimitive?.contentOrNull ?: "JPY",
-                                    sortOrder = change.data["sort_order"]?.jsonPrimitive?.int ?: 0
+                                    id = uuid, name = name, type = type, initialBalance = initialBalance,
+                                    currency = currency, sortOrder = sortOrder
                                 )
                             }
                         }
                         "tag" -> {
                             val existing = tagRepository.findById(uuid)
+                            val name = change.data.requireString("name")
+                            val color = change.data.optionalString("color")
+
                             if (change.operation == "update" && existing != null) {
                                 val serverVersion = existing[Tags.version]
                                 if (serverVersion != version) throw ConflictException("バージョン競合")
                                 tagRepository.update(
-                                    id = uuid,
-                                    name = change.data["name"]!!.jsonPrimitive.content,
-                                    color = change.data["color"]?.jsonPrimitive?.contentOrNull,
-                                    currentVersion = version
+                                    id = uuid, name = name, color = color, currentVersion = version
                                 )
                             } else {
-                                tagRepository.create(
-                                    id = uuid,
-                                    name = change.data["name"]!!.jsonPrimitive.content,
-                                    color = change.data["color"]?.jsonPrimitive?.contentOrNull
-                                )
+                                tagRepository.create(id = uuid, name = name, color = color)
                             }
                         }
-                        else -> {
-                            // Other entity types: accept without processing for forward compatibility
-                        }
+                        else -> throw ValidationException(
+                            "未対応のエンティティ種別です: ${change.entity_type}",
+                            listOf(FieldError("entity_type", "transaction, category, account, tag のいずれかを指定してください"))
+                        )
                     }
                 }
                 SyncResult(
@@ -400,4 +385,23 @@ class SyncService(
         hit_count = this[InputPatterns.hitCount],
         last_used_at = this[InputPatterns.lastUsedAt].toString()
     )
+
+    // ===== Safe JSON Field Access Helpers =====
+
+    private fun Map<String, kotlinx.serialization.json.JsonElement>.requireString(field: String): String =
+        this[field]?.jsonPrimitive?.contentOrNull
+            ?: throw ValidationException("${field}は必須です", listOf(FieldError(field, "${field}は必須です")))
+
+    private fun Map<String, kotlinx.serialization.json.JsonElement>.requireLong(field: String): Long =
+        this[field]?.jsonPrimitive?.longOrNull
+            ?: throw ValidationException("${field}は必須です", listOf(FieldError(field, "${field}は数値で指定してください")))
+
+    private fun Map<String, kotlinx.serialization.json.JsonElement>.optionalString(field: String): String? =
+        this[field]?.jsonPrimitive?.contentOrNull
+
+    private fun Map<String, kotlinx.serialization.json.JsonElement>.optionalInt(field: String): Int? =
+        this[field]?.jsonPrimitive?.intOrNull
+
+    private fun Map<String, kotlinx.serialization.json.JsonElement>.optionalLong(field: String): Long? =
+        this[field]?.jsonPrimitive?.longOrNull
 }

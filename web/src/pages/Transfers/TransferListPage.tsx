@@ -15,7 +15,7 @@ import { accountApi } from '@/api/accounts';
 import { formatCurrency, formatDate, getToday } from '@/utils/format';
 import { useUndoStore } from '@/stores/undoStore';
 import type { TransferResponse } from '@/types';
-import { UNDO_TIMEOUT_MS } from '@/constants';
+import { UNDO_TIMEOUT_MS, EMPTY_NUMBER } from '@/constants';
 
 export default function TransferListPage() {
   const queryClient = useQueryClient();
@@ -47,10 +47,10 @@ export default function TransferListPage() {
 
   const form = useForm<TransferFormData>({
     resolver: zodFormResolver(transferSchema),
-    defaultValues: { from_account_id: '', to_account_id: '', amount: undefined as unknown as number, date: getToday(), memo: '', currency: 'JPY' },
+    defaultValues: { from_account_id: '', to_account_id: '', amount: EMPTY_NUMBER, date: getToday(), memo: '', currency: 'JPY' },
   });
 
-  const openCreate = () => { setEditing(null); form.reset({ from_account_id: '', to_account_id: '', amount: undefined as unknown as number, date: getToday(), memo: '', currency: 'JPY' }); setDialogOpen(true); };
+  const openCreate = () => { setEditing(null); form.reset({ from_account_id: '', to_account_id: '', amount: EMPTY_NUMBER, date: getToday(), memo: '', currency: 'JPY' }); setDialogOpen(true); };
   const openEdit = (t: TransferResponse) => {
     setEditing(t);
     form.reset({ from_account_id: t.from_account_id, to_account_id: t.to_account_id, amount: t.amount, date: t.date, memo: t.memo || '', currency: t.currency });

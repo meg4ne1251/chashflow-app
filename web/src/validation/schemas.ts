@@ -63,7 +63,7 @@ export const transferSchema = z.object({
 });
 
 export const accountSchema = z.object({
-  name: z.string().min(1, 'アカウント名を入力してください').max(50),
+  name: z.string().min(1, 'アカウント名を入力してください').max(100),
   type: z.enum(['cash', 'bank', 'credit_card', 'e_money', 'other']),
   initial_balance: z.number().int('整数で入力してください').default(0),
   currency: z.string().default('JPY'),
@@ -79,7 +79,7 @@ export const categorySchema = z.object({
 });
 
 export const tagSchema = z.object({
-  name: z.string().min(1, 'タグ名を入力してください').max(30),
+  name: z.string().min(1, 'タグ名を入力してください').max(50),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, '色は#RRGGBB形式で入力してください').optional().or(z.literal('')),
 });
 

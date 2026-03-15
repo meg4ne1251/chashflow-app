@@ -163,7 +163,7 @@ class AccountService(
         if (request.name.isBlank()) errors.add(FieldError("name", "アカウント名を入力してください"))
         if (request.name.length > ValidationRules.ACCOUNT_NAME_MAX_LENGTH)
             errors.add(FieldError("name", "アカウント名は${ValidationRules.ACCOUNT_NAME_MAX_LENGTH}文字以下で入力してください"))
-        if (request.type !in listOf("cash", "bank", "credit_card", "e_money", "other"))
+        if (request.type !in com.kakeibo.shared.model.AccountType.entries.map { it.value })
             errors.add(FieldError("type", "アカウント種別が不正です"))
         if (errors.isNotEmpty()) throw ValidationException("入力内容にエラーがあります", errors)
     }

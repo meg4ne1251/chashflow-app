@@ -14,6 +14,7 @@ import { budgetApi } from '@/api/budgets';
 import { categoryApi } from '@/api/categories';
 import { analyticsApi } from '@/api/analytics';
 import { formatCurrency, getCurrentYearMonth } from '@/utils/format';
+import { EMPTY_NUMBER } from '@/constants';
 import type { BudgetResponse, CategoryBreakdownItem } from '@/types';
 
 export default function BudgetPage() {
@@ -54,12 +55,12 @@ export default function BudgetPage() {
 
   const form = useForm<BudgetFormData>({
     resolver: zodFormResolver(budgetSchema),
-    defaultValues: { category_id: '', amount: undefined as unknown as number, year_month: yearMonth },
+    defaultValues: { category_id: '', amount: EMPTY_NUMBER, year_month: yearMonth },
   });
 
   const openCreate = () => {
     setEditing(null);
-    form.reset({ category_id: '', amount: undefined as unknown as number, year_month: yearMonth });
+    form.reset({ category_id: '', amount: EMPTY_NUMBER, year_month: yearMonth });
     setDialogOpen(true);
   };
 

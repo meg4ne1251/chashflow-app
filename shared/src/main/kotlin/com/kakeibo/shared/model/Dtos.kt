@@ -12,6 +12,9 @@ data class SetupRequest(val username: String, val password: String)
 data class SetupResponse(val user: UserResponse)
 
 @Serializable
+data class SetupStatusResponse(val needs_setup: Boolean)
+
+@Serializable
 data class UserResponse(val id: String, val username: String)
 
 @Serializable

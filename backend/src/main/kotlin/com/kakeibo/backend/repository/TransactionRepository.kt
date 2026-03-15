@@ -6,6 +6,7 @@ import com.kakeibo.backend.db.Categories
 import com.kakeibo.backend.db.Accounts
 import com.kakeibo.backend.db.Tags
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.javatime.month
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDate
 import java.time.OffsetDateTime
@@ -184,6 +185,53 @@ class TransactionRepository {
             }.singleOrNull()?.get(Transactions.amount.sum()) ?: 0L
     }
 
+    /**
+     * Batch sum of expense amounts grouped by category for a given month.
+     * Returns Map<categoryId, totalExpense>.
+     */
+    fun sumAllCategoriesByMonth(yearMonth: String): Map<UUID, Long> = transaction {
+        val parts = yearMonth.split("-")
+        val year = parts[0].toInt()
+        val month = parts[1].toInt()
+        val startDate = LocalDate.of(year, month, 1)
+        val endDate = startDate.plusMonths(1).minusDays(1)
+        val amountSum = Transactions.amount.sum()
+
+        Transactions.select(Transactions.categoryId, amountSum)
+            .where {
+                (Transactions.type eq "expense") and
+                        (Transactions.date greaterEq startDate) and
+                        (Transactions.date lessEq endDate) and
+                        Transactions.deletedAt.isNull()
+            }
+            .groupBy(Transactions.categoryId)
+            .associate { row ->
+                row[Transactions.categoryId] to (row[amountSum] ?: 0L)
+            }
+    }
+
+    /**
+     * Batch sum of expense amounts grouped by category for an entire year (all 12 months combined).
+     * Returns Map<categoryId, totalExpense>.
+     */
+    fun sumAllCategoriesByYear(year: Int): Map<UUID, Long> = transaction {
+        val startDate = LocalDate.of(year, 1, 1)
+        val endDate = LocalDate.of(year, 12, 31)
+        val amountSum = Transactions.amount.sum()
+
+        Transactions.select(Transactions.categoryId, amountSum)
+            .where {
+                (Transactions.type eq "expense") and
+                        (Transactions.date greaterEq startDate) and
+                        (Transactions.date lessEq endDate) and
+                        Transactions.deletedAt.isNull()
+            }
+            .groupBy(Transactions.categoryId)
+            .associate { row ->
+                row[Transactions.categoryId] to (row[amountSum] ?: 0L)
+            }
+    }
+
     fun getDistinctMemos(keyword: String, limit: Int = 10): List<Pair<String, Long>> = transaction {
         val escaped = keyword.replace("%", "\\%").replace("_", "\\_")
         Transactions
@@ -224,6 +272,42 @@ class TransactionRepository {
             }.singleOrNull()?.get(Transactions.amount.sum()) ?: 0L
 
         Pair(income, expense)
+    }
+
+    /**
+     * Batch yearly summary: returns Map<month (1-12), Pair<income, expense>>
+     * in a single query per type instead of 12 separate queries.
+     */
+    fun getYearlyMonthlySummary(year: Int): Map<Int, Pair<Long, Long>> = transaction {
+        val startDate = LocalDate.of(year, 1, 1)
+        val endDate = LocalDate.of(year, 12, 31)
+        val monthExpr = Transactions.date.month()
+        val amountSum = Transactions.amount.sum()
+
+        val incomeByMonth = mutableMapOf<Int, Long>()
+        val expenseByMonth = mutableMapOf<Int, Long>()
+
+        Transactions.select(monthExpr, Transactions.type, amountSum)
+            .where {
+                (Transactions.date greaterEq startDate) and
+                        (Transactions.date lessEq endDate) and
+                        Transactions.deletedAt.isNull() and
+                        (Transactions.type inList listOf("income", "expense"))
+            }
+            .groupBy(monthExpr, Transactions.type)
+            .forEach { row ->
+                val month = row[monthExpr]
+                val type = row[Transactions.type]
+                val amount = row[amountSum] ?: 0L
+                when (type) {
+                    "income" -> incomeByMonth[month] = amount
+                    "expense" -> expenseByMonth[month] = amount
+                }
+            }
+
+        (1..12).associateWith { month ->
+            Pair(incomeByMonth[month] ?: 0L, expenseByMonth[month] ?: 0L)
+        }
     }
 
     fun getCategoryBreakdown(year: Int, month: Int, type: String): List<Triple<UUID, String, Long>> = transaction {

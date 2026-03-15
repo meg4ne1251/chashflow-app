@@ -16,12 +16,8 @@ class CategoryService(
     private val transactionRepository: TransactionRepository
 ) {
     fun getAll(type: String? = null): List<CategoryResponse> {
-        return categoryRepository.findAll()
-            .map { it.toResponse() }
-            .let { categories ->
-                if (type != null) categories.filter { it.type == type }
-                else categories
-            }
+        val rows = if (type != null) categoryRepository.findByType(type) else categoryRepository.findAll()
+        return rows.map { it.toResponse() }
     }
 
     fun create(request: CategoryRequest): CategoryResponse {
@@ -97,7 +93,7 @@ class CategoryService(
         if (request.name.isBlank()) errors.add(FieldError("name", "カテゴリ名を入力してください"))
         if (request.name.length > ValidationRules.CATEGORY_NAME_MAX_LENGTH)
             errors.add(FieldError("name", "カテゴリ名は${ValidationRules.CATEGORY_NAME_MAX_LENGTH}文字以下で入力してください"))
-        if (request.type !in listOf("income", "expense"))
+        if (request.type !in com.kakeibo.shared.model.TransactionType.entries.map { it.value })
             errors.add(FieldError("type", "種別は income または expense を指定してください"))
         request.color?.let {
             if (!ValidationRules.validateColor(it)) errors.add(FieldError("color", "カラーコードの形式が不正です（#RRGGBB）"))

@@ -13,6 +13,17 @@ class TransactionTagRepository {
             .map { it[TransactionTags.tagId] }
     }
 
+    /**
+     * Batch-load tag IDs for multiple transactions at once (N+1 prevention).
+     * Returns Map<transactionId, List<tagId>>.
+     */
+    fun findByTransactionIds(transactionIds: List<UUID>): Map<UUID, List<UUID>> = transaction {
+        if (transactionIds.isEmpty()) return@transaction emptyMap()
+        TransactionTags.selectAll()
+            .where { TransactionTags.transactionId inList transactionIds }
+            .groupBy({ it[TransactionTags.transactionId] }, { it[TransactionTags.tagId] })
+    }
+
     fun setTags(transactionId: UUID, tagIds: List<UUID>) = transaction {
         TransactionTags.deleteWhere { TransactionTags.transactionId eq transactionId }
         tagIds.forEach { tagId ->

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -11,9 +11,10 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { zodFormResolver } from '@/validation/resolver';
 import { setupSchema, type SetupFormData } from '@/validation/schemas';
 import { useAuthStore } from '@/stores/authStore';
+import { authApi } from '@/api/auth';
 import { AxiosError } from 'axios';
 import type { ErrorResponse } from '@/types';
 
@@ -22,13 +23,27 @@ export default function SetupPage() {
   const setup = useAuthStore((s) => s.setup);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    authApi.setupStatus()
+      .then((res) => {
+        if (!res.data.needs_setup) {
+          navigate('/login', { replace: true });
+        }
+      })
+      .catch(() => {
+        // If status check fails, allow the form to show
+      })
+      .finally(() => setChecking(false));
+  }, [navigate]);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<SetupFormData>({
-    resolver: zodResolver(setupSchema),
+    resolver: zodFormResolver(setupSchema),
   });
 
   const onSubmit = async (data: SetupFormData) => {
@@ -42,6 +57,8 @@ export default function SetupPage() {
         const apiError = err.response?.data as ErrorResponse | undefined;
         if (err.response?.status === 409) {
           setError('ユーザーは既にセットアップ済みです。ログインしてください。');
+        } else if (err.response?.status === 429) {
+          setError('リクエストが多すぎます。しばらく待ってからもう一度お試しください。');
         } else {
           setError(apiError?.error?.message || 'セットアップに失敗しました');
         }
@@ -52,6 +69,14 @@ export default function SetupPage() {
       setLoading(false);
     }
   };
+
+  if (checking) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box

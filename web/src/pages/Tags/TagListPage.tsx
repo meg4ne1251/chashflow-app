@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { zodFormResolver } from '@/validation/resolver';
 import { tagSchema, type TagFormData } from '@/validation/schemas';
 import { tagApi } from '@/api/tags';
 import { transactionApi } from '@/api/transactions';
@@ -28,7 +28,7 @@ export default function TagListPage() {
   });
 
   const form = useForm<TagFormData>({
-    resolver: zodResolver(tagSchema),
+    resolver: zodFormResolver(tagSchema),
     defaultValues: { name: '', color: '' },
   });
 

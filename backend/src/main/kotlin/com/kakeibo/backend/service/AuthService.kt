@@ -16,6 +16,10 @@ class AuthService(
     private val refreshTokenRepository: RefreshTokenRepository,
     private val jwtConfig: JwtConfig
 ) {
+    fun isSetupRequired(): Boolean {
+        return userRepository.count() == 0L
+    }
+
     fun setup(request: SetupRequest): SetupResponse {
         // Check if user already exists
         if (userRepository.count() > 0) {

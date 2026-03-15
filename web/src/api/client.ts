@@ -3,9 +3,12 @@ import type { ErrorResponse } from '@/types';
 
 const API_BASE_URL = '/api/v1';
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+  timeout: REQUEST_TIMEOUT_MS,
 });
 
 let isRefreshing = false;

@@ -15,13 +15,17 @@ class AnalyticsService(
     private val budgetRepository: BudgetRepository,
     private val categoryRepository: CategoryRepository
 ) {
-    // In-memory cache with TTL of 5 minutes
+    // In-memory cache with TTL of 5 minutes and bounded size
     private data class CacheEntry<T>(val data: T, val expireAt: Long)
     private val cache = ConcurrentHashMap<String, CacheEntry<*>>()
     private val cacheTtl = 5 * 60 * 1000L // 5 minutes
+    private val maxCacheSize = 200
 
     fun invalidateCache(yearMonth: String) {
-        cache.keys.removeIf { it.contains(yearMonth) }
+        // Use exact prefix matching to avoid unintended key removal
+        cache.keys.removeIf { key ->
+            key.endsWith(":$yearMonth") || key.contains(":$yearMonth:")
+        }
     }
 
     fun invalidateAllCache() {
@@ -30,12 +34,24 @@ class AnalyticsService(
 
     @Suppress("UNCHECKED_CAST")
     private fun <T> cached(key: String, compute: () -> T): T {
+        // Evict expired entries and enforce size limit
+        val now = System.currentTimeMillis()
+        if (cache.size > maxCacheSize) {
+            cache.entries.removeIf { it.value.expireAt <= now }
+            // If still over limit after expiry eviction, remove oldest entries
+            if (cache.size > maxCacheSize) {
+                cache.entries
+                    .sortedBy { it.value.expireAt }
+                    .take(cache.size - maxCacheSize + 1)
+                    .forEach { cache.remove(it.key) }
+            }
+        }
         val entry = cache[key]
-        if (entry != null && entry.expireAt > System.currentTimeMillis()) {
+        if (entry != null && entry.expireAt > now) {
             return entry.data as T
         }
         val result = compute()
-        cache[key] = CacheEntry(result, System.currentTimeMillis() + cacheTtl)
+        cache[key] = CacheEntry(result, now + cacheTtl)
         return result
     }
 
@@ -46,15 +62,22 @@ class AnalyticsService(
         return cached("dashboard:$yearMonth") {
             val (income, expense) = transactionRepository.getMonthlySummary(now.year, now.monthValue)
 
+            // Batch-load all category expense sums for the month (eliminates N+1)
+            val spentByCategory = transactionRepository.sumAllCategoriesByMonth(yearMonth)
+
+            // Batch-load all category names
+            val allCategories = categoryRepository.findAll()
+            val categoryNameMap = allCategories.associate { it[Categories.id] to it[Categories.name] }
+
             // Budget consumption (top 3)
             val budgets = budgetRepository.findByYearMonth(yearMonth)
             val budgetConsumptions = budgets
                 .map { row ->
                     val catId = row[Budgets.categoryId]
                     val budgetAmount = row[Budgets.amount]
-                    val spent = transactionRepository.sumByCategoryAndMonth(catId, yearMonth)
+                    val spent = spentByCategory[catId] ?: 0L
                     val rate = if (budgetAmount > 0) (spent.toDouble() / budgetAmount.toDouble()) * 100.0 else 0.0
-                    val catName = categoryRepository.findById(catId)?.get(Categories.name) ?: "不明"
+                    val catName = categoryNameMap[catId] ?: "不明"
                     BudgetConsumption(
                         category_id = catId.toString(),
                         category_name = catName,
@@ -118,6 +141,10 @@ class AnalyticsService(
             val month = parts[1].toInt()
             val targetType = type ?: "expense"
 
+            // Batch-load category colors to eliminate N+1 findById calls
+            val allCategories = categoryRepository.findAll()
+            val categoryColorMap = allCategories.associate { it[Categories.id] to it[Categories.color] }
+
             val breakdown = transactionRepository.getCategoryBreakdown(year, month, targetType)
             val total = breakdown.sumOf { it.third }
 
@@ -126,11 +153,10 @@ class AnalyticsService(
                 type = targetType,
                 total = total,
                 breakdown = breakdown.map { (catId, catName, amount) ->
-                    val cat = categoryRepository.findById(catId)
                     CategoryBreakdownItem(
                         category_id = catId.toString(),
                         category_name = catName,
-                        category_color = cat?.get(Categories.color),
+                        category_color = categoryColorMap[catId],
                         amount = amount,
                         percentage = if (total > 0) Math.round(amount.toDouble() / total.toDouble() * 10000.0) / 100.0 else 0.0
                     )
@@ -203,42 +229,37 @@ class AnalyticsService(
 
     fun getYearlySummary(year: Int): YearlySummaryResponse {
         return cached("yearly:$year") {
+            // Single batch query for all 12 months instead of 12 separate queries
+            val monthlySummaries = transactionRepository.getYearlyMonthlySummary(year)
+
             var totalIncome = 0L
             var totalExpense = 0L
-            val monthly = mutableListOf<MonthlySummaryItem>()
-
-            for (month in 1..12) {
-                val (income, expense) = transactionRepository.getMonthlySummary(year, month)
+            val monthly = (1..12).map { month ->
+                val (income, expense) = monthlySummaries[month] ?: Pair(0L, 0L)
                 totalIncome += income
                 totalExpense += expense
-                monthly.add(MonthlySummaryItem(
+                MonthlySummaryItem(
                     year_month = String.format("%04d-%02d", year, month),
                     income = income,
                     expense = expense,
                     balance = income - expense
-                ))
+                )
             }
 
-            // Category summary for the full year
-            val categorySummary = mutableListOf<CategorySummaryItem>()
+            // Category summary: single batch query instead of N categories × 12 months
+            val yearlySpentByCategory = transactionRepository.sumAllCategoriesByYear(year)
             val allCategories = categoryRepository.findAll()
-            for (cat in allCategories) {
-                val catId = cat[Categories.id]
-                val catName = cat[Categories.name]
-                var total = 0L
-                for (month in 1..12) {
-                    total += transactionRepository.sumByCategoryAndMonth(
-                        catId, String.format("%04d-%02d", year, month)
+            val categoryNameMap = allCategories.associate { it[Categories.id] to it[Categories.name] }
+
+            val categorySummary = yearlySpentByCategory
+                .filter { (_, total) -> total > 0 }
+                .map { (catId, total) ->
+                    CategorySummaryItem(
+                        category_id = catId.toString(),
+                        category_name = categoryNameMap[catId] ?: "不明",
+                        amount = total
                     )
                 }
-                if (total > 0) {
-                    categorySummary.add(CategorySummaryItem(
-                        category_id = catId.toString(),
-                        category_name = catName,
-                        amount = total
-                    ))
-                }
-            }
 
             YearlySummaryResponse(
                 year = year,

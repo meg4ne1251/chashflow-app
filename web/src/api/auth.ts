@@ -4,10 +4,14 @@ import type {
   LoginResponse,
   SetupRequest,
   SetupResponse,
+  SetupStatusResponse,
   PasswordChangeRequest,
 } from '@/types';
 
 export const authApi = {
+  setupStatus: () =>
+    apiClient.get<SetupStatusResponse>('/auth/setup/status'),
+
   setup: (data: SetupRequest) =>
     apiClient.post<SetupResponse>('/auth/setup', data),
 

@@ -11,7 +11,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { zodFormResolver } from '@/validation/resolver';
 import { loginSchema, type LoginFormData } from '@/validation/schemas';
 import { useAuthStore } from '@/stores/authStore';
 import { AxiosError } from 'axios';
@@ -28,7 +28,7 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodFormResolver(loginSchema),
   });
 
   const onSubmit = async (data: LoginFormData) => {

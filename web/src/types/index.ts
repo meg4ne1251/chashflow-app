@@ -21,6 +21,10 @@ export interface SetupResponse {
   user: UserResponse;
 }
 
+export interface SetupStatusResponse {
+  needs_setup: boolean;
+}
+
 export interface UserResponse {
   id: string;
   username: string;

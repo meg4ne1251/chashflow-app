@@ -12,6 +12,11 @@ import io.ktor.server.routing.*
 
 fun Route.authRoutes(authService: AuthService) {
     route("/auth") {
+        get("/setup/status") {
+            val needsSetup = authService.isSetupRequired()
+            call.respond(HttpStatusCode.OK, SetupStatusResponse(needs_setup = needsSetup))
+        }
+
         rateLimit(RateLimitName("auth-setup")) {
             post("/setup") {
                 val request = call.receive<SetupRequest>()

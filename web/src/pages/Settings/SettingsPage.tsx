@@ -10,7 +10,7 @@ import {
   Notifications,
 } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { zodFormResolver } from '@/validation/resolver';
 import { passwordChangeSchema, type PasswordChangeFormData } from '@/validation/schemas';
 import { authApi } from '@/api/auth';
 import { importExportApi, notificationSettingApi } from '@/api/importExport';
@@ -29,7 +29,7 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // === Password Change ===
-  const pwForm = useForm<PasswordChangeFormData>({ resolver: zodResolver(passwordChangeSchema) });
+  const pwForm = useForm<PasswordChangeFormData>({ resolver: zodFormResolver(passwordChangeSchema) });
   const pwMutation = useMutation({
     mutationFn: (data: PasswordChangeFormData) => authApi.changePassword({ current_password: data.current_password, new_password: data.new_password }),
     onSuccess: () => {

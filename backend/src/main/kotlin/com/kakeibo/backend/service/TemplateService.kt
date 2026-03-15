@@ -2,9 +2,9 @@ package com.kakeibo.backend.service
 
 import com.kakeibo.backend.db.Templates
 import com.kakeibo.backend.middleware.*
+import com.kakeibo.backend.repository.TagRepository
 import com.kakeibo.backend.repository.TemplateRepository
 import com.kakeibo.backend.repository.TemplateTagRepository
-import com.kakeibo.backend.repository.TagRepository
 import com.kakeibo.backend.service.TagService.Companion.toResponse as tagToResponse
 import com.kakeibo.shared.model.*
 import com.kakeibo.shared.validation.ValidationRules
@@ -53,19 +53,22 @@ class TemplateService(
         val currentVersion = request.version
             ?: throw ValidationException("バージョンを指定してください", listOf(FieldError("version", "version は必須です")))
 
-        val row = templateRepository.update(
-            id = uuid,
-            name = request.name.trim(),
-            type = request.type,
-            amount = request.amount,
-            currency = request.currency,
-            categoryId = request.category_id?.let { UUID.fromString(it) },
-            accountId = request.account_id?.let { UUID.fromString(it) },
-            memo = request.memo?.trim(),
-            currentVersion = currentVersion
-        ) ?: throw ConflictException("バージョン競合が発生しました")
+        val row = transaction {
+            val updated = templateRepository.update(
+                id = uuid,
+                name = request.name.trim(),
+                type = request.type,
+                amount = request.amount,
+                currency = request.currency,
+                categoryId = request.category_id?.let { UUID.fromString(it) },
+                accountId = request.account_id?.let { UUID.fromString(it) },
+                memo = request.memo?.trim(),
+                currentVersion = currentVersion
+            ) ?: throw ConflictException("バージョン競合が発生しました")
 
-        templateTagRepository.setTags(uuid, request.tag_ids.map { UUID.fromString(it) })
+            templateTagRepository.setTags(uuid, request.tag_ids.map { UUID.fromString(it) })
+            updated
+        }
 
         return row.toResponse()
     }
@@ -111,7 +114,7 @@ class TemplateService(
         if (request.name.isBlank()) errors.add(FieldError("name", "テンプレート名を入力してください"))
         if (request.name.length > ValidationRules.TEMPLATE_NAME_MAX_LENGTH)
             errors.add(FieldError("name", "テンプレート名は${ValidationRules.TEMPLATE_NAME_MAX_LENGTH}文字以下で入力してください"))
-        if (request.type !in listOf("income", "expense"))
+        if (request.type !in com.kakeibo.shared.model.TransactionType.entries.map { it.value })
             errors.add(FieldError("type", "種別は income または expense を指定してください"))
         request.amount?.let { amount ->
             ValidationRules.validateAmount(amount)?.let {

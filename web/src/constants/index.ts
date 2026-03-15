@@ -18,6 +18,17 @@ export const AUTO_COMPLETE_CONFIDENCE_THRESHOLD = 0.5;
 export const MEMO_SUGGESTION_MIN_LENGTH = 2;
 
 // =========================================
+// Form defaults
+// =========================================
+
+/**
+ * Empty initial value for numeric form fields.
+ * react-hook-form requires a typed default, but number inputs should start blank.
+ * Using this constant avoids scattered `as unknown as number` casts.
+ */
+export const EMPTY_NUMBER = undefined as unknown as number;
+
+// =========================================
 // Chart colors
 // =========================================
 
