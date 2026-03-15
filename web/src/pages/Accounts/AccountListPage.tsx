@@ -5,14 +5,20 @@ import {
   IconButton, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, TextField, Typography, Paper, Alert, FormControl,
   InputLabel, Select, MenuItem, Stack, CircularProgress, Chip,
+  Tooltip,
 } from '@mui/material';
-import { Add, Edit, Delete } from '@mui/icons-material';
+import { Add, Edit, Delete, AccountBalance } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { accountSchema, type AccountFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
 import { accountApi } from '@/api/accounts';
-import { accountTypeLabels, formatCurrency } from '@/utils/format';
+import { transactionApi } from '@/api/transactions';
+import { accountTypeLabels, formatCurrency, getToday } from '@/utils/format';
 import type { AccountResponse } from '@/types';
+
+// Fallback category IDs from seed data
+const FALLBACK_EXPENSE_CATEGORY_ID = 'a0000000-0000-0000-0000-00000000000d';
+const FALLBACK_INCOME_CATEGORY_ID = 'b0000000-0000-0000-0000-000000000005';
 
 export default function AccountListPage() {
   const queryClient = useQueryClient();
@@ -20,6 +26,9 @@ export default function AccountListPage() {
   const [editing, setEditing] = useState<AccountResponse | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<AccountResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [adjustTarget, setAdjustTarget] = useState<AccountResponse | null>(null);
+  const [adjustBalance, setAdjustBalance] = useState('');
+  const [adjusting, setAdjusting] = useState(false);
 
   const { data: accounts, isLoading } = useQuery({
     queryKey: ['accounts'],
@@ -67,6 +76,46 @@ export default function AccountListPage() {
     editing ? updateMutation.mutate(data) : createMutation.mutate(data);
   };
 
+  const openAdjust = (a: AccountResponse) => {
+    setAdjustTarget(a);
+    setAdjustBalance(String(a.balance));
+    setError(null);
+  };
+
+  const handleAdjust = async () => {
+    if (!adjustTarget) return;
+    const targetBalance = Number(adjustBalance);
+    if (Number.isNaN(targetBalance)) {
+      setError('有効な金額を入力してください');
+      return;
+    }
+    const diff = targetBalance - adjustTarget.balance;
+    if (diff === 0) {
+      setAdjustTarget(null);
+      return;
+    }
+    setAdjusting(true);
+    try {
+      await transactionApi.create({
+        type: diff > 0 ? 'income' : 'expense',
+        amount: Math.abs(diff),
+        date: getToday(),
+        category_id: diff > 0 ? FALLBACK_INCOME_CATEGORY_ID : FALLBACK_EXPENSE_CATEGORY_ID,
+        account_id: adjustTarget.id,
+        memo: '残高調整',
+        currency: adjustTarget.currency,
+      });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      setAdjustTarget(null);
+    } catch {
+      setError('残高調整に失敗しました');
+    } finally {
+      setAdjusting(false);
+    }
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -101,6 +150,7 @@ export default function AccountListPage() {
                 </TableCell>
                 <TableCell>{a.sort_order}</TableCell>
                 <TableCell align="center">
+                  <Tooltip title="残高調整"><IconButton size="small" color="primary" onClick={() => openAdjust(a)}><AccountBalance fontSize="small" /></IconButton></Tooltip>
                   <IconButton size="small" onClick={() => openEdit(a)}><Edit fontSize="small" /></IconButton>
                   <IconButton size="small" color="error" onClick={() => setDeleteConfirm(a)}><Delete fontSize="small" /></IconButton>
                 </TableCell>
@@ -137,6 +187,33 @@ export default function AccountListPage() {
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>キャンセル</Button>
           <Button type="submit" form="account-form" variant="contained">{editing ? '更新' : '作成'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Balance Adjustment Dialog */}
+      <Dialog open={!!adjustTarget} onClose={() => setAdjustTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>残高調整 - {adjustTarget?.name}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            現在の計算残高: {adjustTarget && formatCurrency(adjustTarget.balance)}
+          </Typography>
+          <TextField
+            fullWidth
+            label="実際の残高"
+            type="number"
+            value={adjustBalance}
+            onChange={(e) => setAdjustBalance(e.target.value)}
+            helperText={adjustTarget && adjustBalance !== '' && !Number.isNaN(Number(adjustBalance))
+              ? `差額: ${formatCurrency(Number(adjustBalance) - adjustTarget.balance)}（${Number(adjustBalance) - adjustTarget.balance > 0 ? '収入' : Number(adjustBalance) - adjustTarget.balance < 0 ? '支出' : '調整不要'}として記録）`
+              : undefined}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAdjustTarget(null)}>キャンセル</Button>
+          <Button variant="contained" onClick={handleAdjust} disabled={adjusting}>
+            {adjusting ? <CircularProgress size={20} /> : '調整'}
+          </Button>
         </DialogActions>
       </Dialog>
 

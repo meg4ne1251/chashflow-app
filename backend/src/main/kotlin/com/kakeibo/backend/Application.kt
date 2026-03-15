@@ -166,7 +166,7 @@ fun Application.module() {
     // Routes
     routing {
         route("/api/v1") {
-            authRoutes(authService)
+            authRoutes(authService, accountService)
             healthRoutes()
 
             authenticate("auth-jwt") {

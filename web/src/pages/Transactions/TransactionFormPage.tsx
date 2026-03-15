@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
@@ -34,8 +34,10 @@ export default function TransactionFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id;
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const templateData = (location.state as { template?: import('@/types').TemplateResponse } | null)?.template;
   const [memoSuggestions, setMemoSuggestions] = useState<string[]>([]);
   const memoDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -110,6 +112,22 @@ export default function TransactionFormPage() {
       });
     }
   }, [existingTx, reset]);
+
+  // Pre-fill from template
+  useEffect(() => {
+    if (templateData && !isEdit) {
+      reset({
+        type: templateData.type,
+        amount: templateData.amount ?? undefined,
+        date: getToday(),
+        category_id: templateData.category_id || '',
+        account_id: templateData.account_id || '',
+        memo: templateData.memo || '',
+        currency: templateData.currency || 'JPY',
+        tag_ids: templateData.tags.map((t) => t.id),
+      });
+    }
+  }, [templateData, isEdit, reset]);
 
   // Memo auto-complete (debounced)
   const handleMemoChange = (value: string) => {

@@ -1,12 +1,14 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle,
   IconButton, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, TextField, Typography, Paper, Alert, Stack, CircularProgress,
   Chip, FormControl, InputLabel, Select, MenuItem, OutlinedInput,
+  Tooltip,
 } from '@mui/material';
-import { Add, Edit, Delete } from '@mui/icons-material';
+import { Add, Edit, Delete, PlayArrow } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { templateSchema, type TemplateFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
@@ -18,6 +20,7 @@ import { formatCurrency, formatDateTime } from '@/utils/format';
 import type { TemplateResponse } from '@/types';
 
 export default function TemplateListPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TemplateResponse | null>(null);
@@ -100,6 +103,10 @@ export default function TemplateListPage() {
                 <TableCell>{t.use_count}回</TableCell>
                 <TableCell>{t.last_used_at ? formatDateTime(t.last_used_at) : '-'}</TableCell>
                 <TableCell align="center">
+                  <Tooltip title="この内容で取引を登録"><IconButton size="small" color="primary" onClick={() => {
+                    templateApi.use(t.id).catch(() => {});
+                    navigate('/transactions/new', { state: { template: t } });
+                  }}><PlayArrow fontSize="small" /></IconButton></Tooltip>
                   <IconButton size="small" onClick={() => openEdit(t)}><Edit fontSize="small" /></IconButton>
                   <IconButton size="small" color="error" onClick={() => setDeleteConfirm(t)}><Delete fontSize="small" /></IconButton>
                 </TableCell>
@@ -118,7 +125,9 @@ export default function TemplateListPage() {
               <Controller name="type" control={form.control} render={({ field }) => (
                 <FormControl fullWidth><InputLabel>種別</InputLabel><Select {...field} label="種別"><MenuItem value="expense">支出</MenuItem><MenuItem value="income">収入</MenuItem></Select></FormControl>
               )} />
-              <TextField fullWidth label="金額（任意）" type="number" inputProps={{ step: 1 }} {...form.register('amount', { valueAsNumber: true })} />
+              <TextField fullWidth label="金額（任意）" type="number" inputProps={{ step: 1 }}
+                {...form.register('amount', { setValueAs: (v: string) => (v === '' || v == null) ? undefined : Number(v) })}
+                error={!!form.formState.errors.amount} helperText={form.formState.errors.amount?.message} />
               <Controller name="category_id" control={form.control} render={({ field }) => (
                 <FormControl fullWidth><InputLabel>カテゴリ（任意）</InputLabel><Select {...field} label="カテゴリ（任意）"><MenuItem value="">未設定</MenuItem>{filteredCategories.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}</Select></FormControl>
               )} />

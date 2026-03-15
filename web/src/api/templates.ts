@@ -13,4 +13,7 @@ export const templateApi = {
 
   delete: (id: string, version: number) =>
     apiClient.delete(`/templates/${id}`, { params: { version } }),
+
+  use: (id: string) =>
+    apiClient.post(`/templates/${id}/use`),
 };

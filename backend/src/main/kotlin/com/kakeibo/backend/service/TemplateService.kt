@@ -73,6 +73,13 @@ class TemplateService(
         return row.toResponse()
     }
 
+    fun recordUse(id: String) {
+        val uuid = UUID.fromString(id)
+        templateRepository.findById(uuid)
+            ?: throw NotFoundException("テンプレートが見つかりません")
+        templateRepository.incrementUseCount(uuid)
+    }
+
     fun delete(id: String, version: Int) {
         val uuid = UUID.fromString(id)
         templateRepository.findById(uuid)

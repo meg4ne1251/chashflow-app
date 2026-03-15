@@ -1,6 +1,7 @@
 package com.kakeibo.backend.routes
 
 import com.kakeibo.backend.middleware.*
+import com.kakeibo.backend.service.AccountService
 import com.kakeibo.backend.service.AuthService
 import com.kakeibo.shared.model.*
 import io.ktor.client.request.*
@@ -24,6 +25,7 @@ import kotlin.time.Duration.Companion.minutes
 class AuthRoutesTest {
 
     private val authService = mockk<AuthService>()
+    private val accountService = mockk<AccountService>(relaxed = true)
 
     private fun ApplicationTestBuilder.configureTestApp() {
         application {
@@ -70,7 +72,7 @@ class AuthRoutesTest {
             }
             routing {
                 route("/api/v1") {
-                    authRoutes(authService)
+                    authRoutes(authService, accountService)
                 }
             }
         }
@@ -78,7 +80,7 @@ class AuthRoutesTest {
 
     @BeforeTest
     fun setUp() {
-        clearMocks(authService)
+        clearMocks(authService, accountService)
     }
 
     // ===========================

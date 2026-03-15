@@ -20,6 +20,12 @@ fun Route.templateRoutes(templateService: TemplateService) {
             call.respond(HttpStatusCode.Created, response)
         }
 
+        post("/{id}/use") {
+            val id = call.parameters["id"]!!
+            templateService.recordUse(id)
+            call.respond(HttpStatusCode.NoContent)
+        }
+
         put("/{id}") {
             val id = call.parameters["id"]!!
             val request = call.receive<TemplateRequest>()

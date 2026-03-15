@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+// Loose UUID format: 8-4-4-4-12 hex digits
+// Accepts seed-data UUIDs that don't conform to RFC 4122 version/variant bits
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Password: 8+ chars, at least 1 uppercase, 1 lowercase, 1 digit
 const passwordSchema = z
   .string()
@@ -39,16 +43,16 @@ export const transactionSchema = z.object({
     .positive('金額は0より大きい値を指定してください')
     .max(9_999_999_999, '金額が上限を超えています'),
   date: z.string().min(1, '日付を入力してください'),
-  category_id: z.string().uuid('カテゴリを選択してください'),
-  account_id: z.string().uuid('アカウントを選択してください'),
+  category_id: z.string().regex(UUID_PATTERN, 'カテゴリを選択してください'),
+  account_id: z.string().regex(UUID_PATTERN, 'アカウントを選択してください'),
   memo: z.string().max(500, 'メモは500文字以下です').optional().or(z.literal('')),
   currency: z.string().default('JPY'),
   tag_ids: z.array(z.string()).default([]),
 });
 
 export const transferSchema = z.object({
-  from_account_id: z.string().uuid('出金元アカウントを選択してください'),
-  to_account_id: z.string().uuid('入金先アカウントを選択してください'),
+  from_account_id: z.string().regex(UUID_PATTERN, '出金元アカウントを選択してください'),
+  to_account_id: z.string().regex(UUID_PATTERN, '入金先アカウントを選択してください'),
   amount: z
     .number({ error: '金額を入力してください' })
     .int('整数で入力してください')
@@ -88,14 +92,14 @@ export const templateSchema = z.object({
   type: z.enum(['income', 'expense']).default('expense'),
   amount: z.number().int().positive().max(9_999_999_999).optional().nullable(),
   currency: z.string().default('JPY'),
-  category_id: z.string().uuid().optional().nullable().or(z.literal('')),
-  account_id: z.string().uuid().optional().nullable().or(z.literal('')),
+  category_id: z.string().regex(UUID_PATTERN).optional().nullable().or(z.literal('')),
+  account_id: z.string().regex(UUID_PATTERN).optional().nullable().or(z.literal('')),
   memo: z.string().max(500).optional().or(z.literal('')),
   tag_ids: z.array(z.string()).default([]),
 });
 
 export const budgetSchema = z.object({
-  category_id: z.string().uuid('カテゴリを選択してください'),
+  category_id: z.string().regex(UUID_PATTERN, 'カテゴリを選択してください'),
   year_month: z.string().regex(/^\d{4}-\d{2}$/, 'YYYY-MM形式で入力してください'),
   amount: z
     .number({ error: '予算額を入力してください' })
@@ -113,8 +117,8 @@ export const recurringTransactionSchema = z.object({
     .positive('金額は0より大きい値を指定してください')
     .max(9_999_999_999),
   currency: z.string().default('JPY'),
-  category_id: z.string().uuid('カテゴリを選択してください'),
-  account_id: z.string().uuid('アカウントを選択してください'),
+  category_id: z.string().regex(UUID_PATTERN, 'カテゴリを選択してください'),
+  account_id: z.string().regex(UUID_PATTERN, 'アカウントを選択してください'),
   memo: z.string().max(500).optional().or(z.literal('')),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
   interval: z.number().int().min(1).default(1),
