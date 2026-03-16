@@ -17,6 +17,10 @@ class AccountRepository {
         Accounts.selectAll().where { Accounts.id eq id }.singleOrNull()
     }
 
+    fun findByIds(ids: List<UUID>): List<ResultRow> = transaction {
+        Accounts.selectAll().where { Accounts.id inList ids }.toList()
+    }
+
     fun findActiveById(id: UUID): ResultRow? = transaction {
         Accounts.selectAll().where {
             (Accounts.id eq id) and Accounts.deletedAt.isNull()

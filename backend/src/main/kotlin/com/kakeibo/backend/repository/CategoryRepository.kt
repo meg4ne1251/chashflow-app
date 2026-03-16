@@ -17,6 +17,10 @@ class CategoryRepository {
         Categories.selectAll().where { Categories.id eq id }.singleOrNull()
     }
 
+    fun findByIds(ids: List<UUID>): List<ResultRow> = transaction {
+        Categories.selectAll().where { Categories.id inList ids }.toList()
+    }
+
     fun findActiveById(id: UUID): ResultRow? = transaction {
         Categories.selectAll().where {
             (Categories.id eq id) and Categories.deletedAt.isNull()

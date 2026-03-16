@@ -61,7 +61,7 @@ fun Application.module() {
     val analyticsService = AnalyticsService(transactionRepository, budgetRepository, categoryRepository)
     val transactionService = TransactionService(
         transactionRepository, transactionTagRepository, transactionHistoryRepository,
-        inputPatternRepository, categoryRepository, budgetRepository,
+        inputPatternRepository, categoryRepository, accountRepository, budgetRepository,
         tagRepository, analyticsService
     )
     val recurringTransactionService = RecurringTransactionService(

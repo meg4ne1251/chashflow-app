@@ -55,12 +55,9 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const errorCode = error.response.data?.error?.code;
-
-    // Only auto-refresh for TOKEN_EXPIRED
+    // Auto-refresh on any 401 response (expired token, invalid token, etc.)
     if (
       error.response.status === 401 &&
-      errorCode === 'TOKEN_EXPIRED' &&
       !originalRequest._retry
     ) {
       if (refreshFailCount >= MAX_REFRESH_FAILURES) {
