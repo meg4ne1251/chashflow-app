@@ -183,9 +183,14 @@ export default function TransactionFormPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.removeQueries({ queryKey: ['transaction', id] });
       navigate('/transactions');
     },
-    onError: () => setError('取引の更新に失敗しました'),
+    onError: () => {
+      setError('取引の更新に失敗しました');
+      // Refetch to get the latest version from server
+      queryClient.invalidateQueries({ queryKey: ['transaction', id] });
+    },
   });
 
   const onSubmit = (data: TransactionFormData) => {
@@ -369,8 +374,8 @@ export default function TransactionFormPage() {
                 <Button
                   type="submit"
                   variant="contained"
-                  disabled={isSubmitting}
-                  startIcon={isSubmitting ? <CircularProgress size={20} /> : undefined}
+                  disabled={isSubmitting || updateMutation.isPending || createMutation.isPending}
+                  startIcon={isSubmitting || updateMutation.isPending || createMutation.isPending ? <CircularProgress size={20} /> : undefined}
                 >
                   {isEdit ? '更新' : '登録'}
                 </Button>
