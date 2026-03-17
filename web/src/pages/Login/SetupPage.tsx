@@ -16,7 +16,7 @@ import { setupSchema, type SetupFormData } from '@/validation/schemas';
 import { useAuthStore } from '@/stores/authStore';
 import { authApi } from '@/api/auth';
 import { AxiosError } from 'axios';
-import type { ErrorResponse } from '@/types';
+import { getApiErrorMessage } from '@/types';
 
 export default function SetupPage() {
   const navigate = useNavigate();
@@ -54,13 +54,12 @@ export default function SetupPage() {
       navigate('/', { replace: true });
     } catch (err) {
       if (err instanceof AxiosError) {
-        const apiError = err.response?.data as ErrorResponse | undefined;
         if (err.response?.status === 409) {
           setError('ユーザーは既にセットアップ済みです。ログインしてください。');
         } else if (err.response?.status === 429) {
           setError('リクエストが多すぎます。しばらく待ってからもう一度お試しください。');
         } else {
-          setError(apiError?.error?.message || 'セットアップに失敗しました');
+          setError(getApiErrorMessage(err.response?.data) || 'セットアップに失敗しました');
         }
       } else {
         setError('セットアップに失敗しました');

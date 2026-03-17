@@ -15,7 +15,7 @@ import { accountApi } from '@/api/accounts';
 import { formatCurrency, formatDate, getToday } from '@/utils/format';
 import { useUndoStore } from '@/stores/undoStore';
 import type { TransferResponse } from '@/types';
-import { UNDO_TIMEOUT_MS, EMPTY_NUMBER } from '@/constants';
+import { UNDO_TIMEOUT_MS, EMPTY_NUMBER, DEFAULT_PAGE_SIZE } from '@/constants';
 
 export default function TransferListPage() {
   const queryClient = useQueryClient();
@@ -35,7 +35,7 @@ export default function TransferListPage() {
 
   const { data: transfers, isLoading } = useQuery({
     queryKey: ['transfers'],
-    queryFn: () => transferApi.list({ size: 100 }),
+    queryFn: () => transferApi.list({ size: DEFAULT_PAGE_SIZE }),
     select: (res) => res.data.data,
   });
 

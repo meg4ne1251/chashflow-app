@@ -3,6 +3,7 @@ package com.kakeibo.backend.routes
 import com.kakeibo.backend.service.ImportExportService
 import io.ktor.http.*
 import io.ktor.http.content.*
+import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -11,6 +12,7 @@ import kotlinx.serialization.json.Json
 import java.io.ByteArrayInputStream
 
 fun Route.importExportRoutes(importExportService: ImportExportService) {
+  rateLimit(RateLimitName("import-export")) {
     route("/import") {
         post("/excel/preview") {
             val multipart = call.receiveMultipart()
@@ -97,8 +99,14 @@ fun Route.importExportRoutes(importExportService: ImportExportService) {
         post("/restore") {
             val jsonText = call.receiveText()
             val backupData = Json.decodeFromString(com.kakeibo.shared.model.BackupData.serializer(), jsonText)
-            importExportService.restoreBackup(backupData)
-            call.respond(HttpStatusCode.OK, mapOf("message" to "バックアップからの復元が完了しました"))
+            val errors = importExportService.restoreBackup(backupData)
+            val message = if (errors.isEmpty()) {
+                "バックアップからの復元が完了しました"
+            } else {
+                "バックアップからの復元が完了しました（${errors.size}件の変換警告あり）"
+            }
+            call.respond(HttpStatusCode.OK, mapOf("message" to message, "warnings" to errors))
         }
     }
+  }
 }

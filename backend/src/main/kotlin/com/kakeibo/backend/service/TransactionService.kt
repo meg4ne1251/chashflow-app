@@ -186,11 +186,7 @@ class TransactionService(
                 val serverVersion = freshRow?.get(Transactions.version)
                 logger.warn("Version conflict: id=$uuid, requestVersion=$currentVersion, serverVersion=$serverVersion")
                 throw ConflictException(
-                    "バージョン競合が発生しました（リクエスト: $currentVersion, サーバー: $serverVersion）",
-                    buildJsonObject {
-                        put("request_version", JsonPrimitive(currentVersion))
-                        put("server_version", serverVersion?.let { JsonPrimitive(it) } ?: JsonNull)
-                    }
+                    "バージョン競合が発生しました。最新データを取得して再度お試しください。"
                 )
             }
 

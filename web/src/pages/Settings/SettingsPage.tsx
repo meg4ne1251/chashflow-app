@@ -16,6 +16,7 @@ import { authApi } from '@/api/auth';
 import { importExportApi, notificationSettingApi } from '@/api/importExport';
 import { clearAuthTokens } from '@/api/client';
 import { downloadBlob } from '@/utils/format';
+import { MAX_IMPORT_FILE_SIZE_BYTES } from '@/constants';
 import type { ImportResultResponse } from '@/types';
 
 export default function SettingsPage() {
@@ -116,16 +117,29 @@ export default function SettingsPage() {
 
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) { importMutation.mutate(file); e.target.value = ''; }
+    if (!file) return;
+    e.target.value = '';
+    if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
+      setError('ファイルサイズが上限（10MB）を超えています');
+      return;
+    }
+    if (!file.name.endsWith('.xlsx')) {
+      setError('対応形式は .xlsx のみです');
+      return;
+    }
+    importMutation.mutate(file);
   };
 
   const handleRestoreFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setRestoreFile(file);
-      setRestoreDialogOpen(true);
-      e.target.value = '';
+    if (!file) return;
+    e.target.value = '';
+    if (!file.name.endsWith('.json')) {
+      setError('バックアップファイルは .json 形式である必要があります');
+      return;
     }
+    setRestoreFile(file);
+    setRestoreDialogOpen(true);
   };
 
   const handleRestoreConfirm = () => {

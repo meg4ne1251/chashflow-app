@@ -39,6 +39,23 @@ export const FALLBACK_INCOME_CATEGORY_ID = 'b0000000-0000-0000-0000-000000000005
 export const EMPTY_NUMBER = undefined as unknown as number;
 
 // =========================================
+// File upload limits
+// =========================================
+
+/** Maximum file size for Excel import (10MB, must match backend MAX_IMPORT_FILE_SIZE) */
+export const MAX_IMPORT_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
+/** Accepted MIME types for Excel import */
+export const ACCEPTED_EXCEL_TYPES = [
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+] as const;
+
+/** Accepted MIME types for JSON backup restore */
+export const ACCEPTED_JSON_TYPES = [
+  'application/json',
+] as const;
+
+// =========================================
 // Chart colors
 // =========================================
 

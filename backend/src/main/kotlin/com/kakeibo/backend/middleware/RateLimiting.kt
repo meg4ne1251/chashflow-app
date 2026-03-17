@@ -15,5 +15,11 @@ fun Application.configureRateLimiting() {
         register(RateLimitName("api-general")) {
             rateLimiter(limit = 60, refillPeriod = 1.minutes)
         }
+        register(RateLimitName("sync")) {
+            rateLimiter(limit = 10, refillPeriod = 1.minutes)
+        }
+        register(RateLimitName("import-export")) {
+            rateLimiter(limit = 5, refillPeriod = 1.minutes)
+        }
     }
 }

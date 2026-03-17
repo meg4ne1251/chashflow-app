@@ -15,7 +15,7 @@ import { zodFormResolver } from '@/validation/resolver';
 import { loginSchema, type LoginFormData } from '@/validation/schemas';
 import { useAuthStore } from '@/stores/authStore';
 import { AxiosError } from 'axios';
-import type { ErrorResponse } from '@/types';
+import { getApiErrorMessage } from '@/types';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -39,8 +39,7 @@ export default function LoginPage() {
       navigate('/', { replace: true });
     } catch (err) {
       if (err instanceof AxiosError) {
-        const apiError = err.response?.data as ErrorResponse | undefined;
-        setError(apiError?.error?.message || 'ログインに失敗しました');
+        setError(getApiErrorMessage(err.response?.data) || 'ログインに失敗しました');
       } else {
         setError('ログインに失敗しました');
       }

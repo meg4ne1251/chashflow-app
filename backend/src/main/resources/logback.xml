@@ -20,7 +20,7 @@
     <logger name="io.netty" level="WARN"/>
     <logger name="Exposed" level="INFO"/>
     <logger name="org.flywaydb" level="INFO"/>
-    <logger name="com.kakeibo" level="DEBUG"/>
+    <logger name="com.kakeibo" level="${KAKEIBO_LOG_LEVEL:-INFO}"/>
 
     <root level="${LOG_LEVEL:-INFO}">
         <appender-ref ref="STDOUT"/>

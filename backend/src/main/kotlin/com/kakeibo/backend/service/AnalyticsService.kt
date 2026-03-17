@@ -15,11 +15,14 @@ class AnalyticsService(
     private val budgetRepository: BudgetRepository,
     private val categoryRepository: CategoryRepository
 ) {
-    // In-memory cache with TTL of 5 minutes and bounded size
+    private companion object {
+        private const val CACHE_TTL_MS = 5 * 60 * 1000L // 5 minutes
+        private const val MAX_CACHE_SIZE = 200
+    }
+
+    // In-memory cache with TTL and bounded size
     private data class CacheEntry<T>(val data: T, val expireAt: Long)
     private val cache = ConcurrentHashMap<String, CacheEntry<*>>()
-    private val cacheTtl = 5 * 60 * 1000L // 5 minutes
-    private val maxCacheSize = 200
 
     fun invalidateCache(yearMonth: String) {
         // Use exact prefix matching to avoid unintended key removal
@@ -34,25 +37,35 @@ class AnalyticsService(
 
     @Suppress("UNCHECKED_CAST")
     private fun <T> cached(key: String, compute: () -> T): T {
-        // Evict expired entries and enforce size limit
         val now = System.currentTimeMillis()
-        if (cache.size > maxCacheSize) {
+
+        // Check existing valid entry first (fast path)
+        val existing = cache[key]
+        if (existing != null && existing.expireAt > now) {
+            return existing.data as T
+        }
+
+        // Evict expired entries and enforce size limit before computing
+        if (cache.size > MAX_CACHE_SIZE) {
             cache.entries.removeIf { it.value.expireAt <= now }
-            // If still over limit after expiry eviction, remove oldest entries
-            if (cache.size > maxCacheSize) {
+            if (cache.size > MAX_CACHE_SIZE) {
                 cache.entries
                     .sortedBy { it.value.expireAt }
-                    .take(cache.size - maxCacheSize + 1)
+                    .take(cache.size - MAX_CACHE_SIZE + 1)
                     .forEach { cache.remove(it.key) }
             }
         }
-        val entry = cache[key]
-        if (entry != null && entry.expireAt > now) {
-            return entry.data as T
-        }
-        val result = compute()
-        cache[key] = CacheEntry(result, now + cacheTtl)
-        return result
+
+        // Compute and store atomically using compute to avoid duplicate computation
+        val entry = cache.compute(key) { _, current ->
+            val currentNow = System.currentTimeMillis()
+            if (current != null && current.expireAt > currentNow) {
+                current // Another thread already computed it
+            } else {
+                CacheEntry(compute(), currentNow + CACHE_TTL_MS)
+            }
+        }!!
+        return entry.data as T
     }
 
     fun getDashboard(): DashboardResponse {

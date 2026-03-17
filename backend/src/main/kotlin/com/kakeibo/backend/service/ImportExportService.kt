@@ -281,7 +281,8 @@ class ImportExportService(
     /**
      * Restore data from JSON backup (overwrite mode - truncates all tables first)
      */
-    fun restoreBackup(backupData: BackupData) {
+    fun restoreBackup(backupData: BackupData): List<String> {
+        val allErrors = mutableListOf<String>()
         transaction {
             // Order matters: delete child tables first to avoid FK violations
             TransactionHistory.deleteAll()
@@ -300,27 +301,33 @@ class ImportExportService(
             Accounts.deleteAll()
 
             // Restore in dependency order
-            restoreTable(Accounts, backupData.data.accounts)
-            restoreTable(Categories, backupData.data.categories)
-            restoreTable(Tags, backupData.data.tags)
-            restoreTable(Transactions, backupData.data.transactions)
-            restoreTable(TransactionTags, backupData.data.transaction_tags)
-            restoreTable(Templates, backupData.data.templates)
-            restoreTable(TemplateTags, backupData.data.template_tags)
-            restoreTable(RecurringTransactions, backupData.data.recurring_transactions)
-            restoreTable(RecurringTransactionTags, backupData.data.recurring_transaction_tags)
-            restoreTable(Budgets, backupData.data.budgets)
-            restoreTable(Transfers, backupData.data.transfers)
-            restoreTable(NotificationSettings, backupData.data.notification_settings)
-            restoreTable(InputPatterns, backupData.data.input_patterns)
-            restoreTable(TransactionHistory, backupData.data.transaction_history)
+            allErrors += restoreTable(Accounts, backupData.data.accounts)
+            allErrors += restoreTable(Categories, backupData.data.categories)
+            allErrors += restoreTable(Tags, backupData.data.tags)
+            allErrors += restoreTable(Transactions, backupData.data.transactions)
+            allErrors += restoreTable(TransactionTags, backupData.data.transaction_tags)
+            allErrors += restoreTable(Templates, backupData.data.templates)
+            allErrors += restoreTable(TemplateTags, backupData.data.template_tags)
+            allErrors += restoreTable(RecurringTransactions, backupData.data.recurring_transactions)
+            allErrors += restoreTable(RecurringTransactionTags, backupData.data.recurring_transaction_tags)
+            allErrors += restoreTable(Budgets, backupData.data.budgets)
+            allErrors += restoreTable(Transfers, backupData.data.transfers)
+            allErrors += restoreTable(NotificationSettings, backupData.data.notification_settings)
+            allErrors += restoreTable(InputPatterns, backupData.data.input_patterns)
+            allErrors += restoreTable(TransactionHistory, backupData.data.transaction_history)
         }
-        logger.info("バックアップからの復元が完了しました")
+        if (allErrors.isEmpty()) {
+            logger.info("バックアップからの復元が完了しました")
+        } else {
+            logger.warn("バックアップ復元完了（${allErrors.size}件の変換エラーあり）")
+        }
+        return allErrors
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun restoreTable(table: Table, rows: List<JsonObject>) {
-        for (row in rows) {
+    private fun restoreTable(table: Table, rows: List<JsonObject>): List<String> {
+        val errors = mutableListOf<String>()
+        for ((rowIndex, row) in rows.withIndex()) {
             table.insert { stmt ->
                 for (col in table.columns) {
                     val value = row[col.name]
@@ -347,12 +354,15 @@ class ImportExportService(
                                     stmt[col as Column<String>] = strValue
                             }
                         } catch (e: Exception) {
-                            logger.warn("復元時にカラム ${col.name} の変換に失敗: $strValue", e)
+                            val errorMsg = "テーブル ${table.tableName} 行${rowIndex + 1} カラム ${col.name} の変換に失敗"
+                            logger.warn(errorMsg, e)
+                            errors.add(errorMsg)
                         }
                     }
                 }
             }
         }
+        return errors
     }
 
     // ===== Private Helpers =====
@@ -405,7 +415,7 @@ class ImportExportService(
             return rows
         } catch (e: Exception) {
             logger.error("Excel parse error", e)
-            throw InvalidRequestException("Excelファイルの読み込みに失敗しました: ${e.message}")
+            throw InvalidRequestException("Excelファイルの読み込みに失敗しました。ファイル形式を確認してください。")
         }
     }
 

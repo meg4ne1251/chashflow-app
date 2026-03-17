@@ -547,6 +547,25 @@ export interface FieldError {
   message: string;
 }
 
+/**
+ * Type guard for API error responses.
+ * Safely extracts an error message from an unknown AxiosError response payload.
+ */
+export function getApiErrorMessage(data: unknown): string | null {
+  if (
+    data != null &&
+    typeof data === 'object' &&
+    'error' in data &&
+    data.error != null &&
+    typeof data.error === 'object' &&
+    'message' in data.error &&
+    typeof data.error.message === 'string'
+  ) {
+    return data.error.message;
+  }
+  return null;
+}
+
 // =========================================
 // Health
 // =========================================
