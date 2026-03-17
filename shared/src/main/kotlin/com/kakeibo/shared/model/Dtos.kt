@@ -131,7 +131,7 @@ data class TransactionRequest(
     val date: String,
     val memo: String? = null,
     val category_id: String,
-    val account_id: String,
+    val account_id: String? = null,
     val tag_ids: List<String> = emptyList(),
     val version: Int? = null
 )
@@ -145,7 +145,7 @@ data class TransactionResponse(
     val date: String,
     val memo: String? = null,
     val category_id: String,
-    val account_id: String,
+    val account_id: String? = null,
     val category: CategoryResponse? = null,
     val account: AccountResponse? = null,
     val tags: List<TagResponse> = emptyList(),

@@ -44,7 +44,7 @@ export const transactionSchema = z.object({
     .max(9_999_999_999, '金額が上限を超えています'),
   date: z.string().min(1, '日付を入力してください'),
   category_id: z.string().regex(UUID_PATTERN, 'カテゴリを選択してください'),
-  account_id: z.string().regex(UUID_PATTERN, 'アカウントを選択してください'),
+  account_id: z.string().regex(UUID_PATTERN).optional().or(z.literal('')),
   memo: z.string().max(500, 'メモは500文字以下です').optional().or(z.literal('')),
   currency: z.string().default('JPY'),
   tag_ids: z.array(z.string()).default([]),

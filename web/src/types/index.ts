@@ -139,7 +139,7 @@ export interface TransactionRequest {
   date: string;
   memo?: string;
   category_id: string;
-  account_id: string;
+  account_id?: string;
   tag_ids?: string[];
   version?: number;
 }
@@ -152,7 +152,7 @@ export interface TransactionResponse {
   date: string;
   memo?: string | null;
   category_id: string;
-  account_id: string;
+  account_id?: string | null;
   category?: CategoryResponse | null;
   account?: AccountResponse | null;
   tags: TagResponse[];

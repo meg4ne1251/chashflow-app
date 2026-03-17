@@ -8,10 +8,15 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogTitle,
   FormControl,
   IconButton,
   InputAdornment,
   InputLabel,
+  List,
+  ListItemButton,
+  ListItemText,
   MenuItem,
   Select,
   Snackbar,
@@ -33,14 +38,16 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   FilterList as FilterIcon,
+  ContentPaste as TemplateIcon,
 } from '@mui/icons-material';
 import { transactionApi } from '@/api/transactions';
+import { templateApi } from '@/api/templates';
 import { categoryApi } from '@/api/categories';
 import { accountApi } from '@/api/accounts';
 import { tagApi } from '@/api/tags';
 import { formatCurrency, formatDateTime } from '@/utils/format';
 import { useUndoStore } from '@/stores/undoStore';
-import type { TransactionResponse } from '@/types';
+import type { TransactionResponse, TemplateResponse } from '@/types';
 import { DEBOUNCE_DELAY_MS, DEFAULT_PAGE_SIZE, UNDO_TIMEOUT_MS } from '@/constants';
 
 export default function TransactionListPage() {
@@ -61,6 +68,7 @@ export default function TransactionListPage() {
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [sortValue, setSortValue] = useState('date,desc');
   const [showFilters, setShowFilters] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
   // Debounce keyword search
   const handleKeywordChange = useCallback((value: string) => {
@@ -90,6 +98,13 @@ export default function TransactionListPage() {
     queryKey: ['tags'],
     queryFn: () => tagApi.list(),
     select: (res) => res.data.filter((t) => !t.deleted_at),
+  });
+
+  const { data: templates } = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => templateApi.list(),
+    select: (res) => res.data.filter((t) => !t.deleted_at),
+    enabled: templateDialogOpen,
   });
 
   // Infinite query for transactions
@@ -187,6 +202,14 @@ export default function TransactionListPage() {
     setSnackOpen(false);
   };
 
+  const handleTemplateSelect = (template: TemplateResponse) => {
+    templateApi.use(template.id).catch((err) => {
+      console.warn('Failed to record template usage:', err);
+    });
+    setTemplateDialogOpen(false);
+    navigate('/transactions/new', { state: { template } });
+  };
+
   const allTransactions = data?.pages.flatMap((page) => page.data.data) || [];
 
   return (
@@ -194,13 +217,22 @@ export default function TransactionListPage() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5" fontWeight={700}>取引一覧</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/transactions/new')}
-        >
-          新規取引
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            startIcon={<TemplateIcon />}
+            onClick={() => setTemplateDialogOpen(true)}
+          >
+            テンプレートから登録
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/transactions/new')}
+          >
+            新規取引
+          </Button>
+        </Stack>
       </Box>
 
       {/* Search & Filters */}
@@ -413,6 +445,48 @@ export default function TransactionListPage() {
           </Button>
         }
       />
+
+      {/* Template Selection Dialog */}
+      <Dialog
+        open={templateDialogOpen}
+        onClose={() => setTemplateDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>テンプレートを選択</DialogTitle>
+        {!templates ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : templates.length === 0 ? (
+          <Box sx={{ px: 3, pb: 3 }}>
+            <Typography color="text.secondary">テンプレートがありません</Typography>
+          </Box>
+        ) : (
+          <List sx={{ pt: 0 }}>
+            {templates.map((t) => (
+              <ListItemButton key={t.id} onClick={() => handleTemplateSelect(t)}>
+                <ListItemText
+                  primary={t.name}
+                  secondary={[
+                    t.type === 'income' ? '収入' : '支出',
+                    t.amount ? `${formatCurrency(t.amount)}` : null,
+                    t.memo,
+                  ].filter(Boolean).join(' / ')}
+                />
+                {t.amount && (
+                  <Typography
+                    variant="body2"
+                    sx={{ ml: 2, fontWeight: 600, color: t.type === 'income' ? 'success.main' : 'error.main', whiteSpace: 'nowrap' }}
+                  >
+                    {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                  </Typography>
+                )}
+              </ListItemButton>
+            ))}
+          </List>
+        )}
+      </Dialog>
     </Box>
   );
 }

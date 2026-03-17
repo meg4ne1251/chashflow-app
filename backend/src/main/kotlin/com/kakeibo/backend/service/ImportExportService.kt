@@ -183,7 +183,7 @@ class ImportExportService(
 
         for (tx in transactions) {
             val catName = allCategories[tx[Transactions.categoryId]] ?: ""
-            val accName = allAccounts[tx[Transactions.accountId]] ?: ""
+            val accName = tx[Transactions.accountId]?.let { allAccounts[it] } ?: ""
             val txTagIds = tagIdsByTx[tx[Transactions.id]] ?: emptyList()
             val tagNames = txTagIds.mapNotNull { allTags[it] }.joinToString(",") { sanitizeCsvField(it) }
 

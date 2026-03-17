@@ -64,7 +64,7 @@ class TransactionService(
             categoryRepository.findByIds(allCategoryIds).associate { it[Categories.id] to it.categoryToResponse() }
         } else emptyMap()
 
-        val allAccountIds = rows.map { it[Transactions.accountId] }.distinct()
+        val allAccountIds = rows.mapNotNull { it[Transactions.accountId] }.distinct()
         val accountsMap = if (allAccountIds.isNotEmpty()) {
             accountRepository.findByIds(allAccountIds).associate { row ->
                 row[Accounts.id] to AccountResponse(
@@ -88,7 +88,7 @@ class TransactionService(
             val txTagIds = tagIdsByTx[txId] ?: emptyList()
             val tags = txTagIds.mapNotNull { allTags[it] }
             val category = categoriesMap[row[Transactions.categoryId]]
-            val account = accountsMap[row[Transactions.accountId]]
+            val account = row[Transactions.accountId]?.let { accountsMap[it] }
             row.toResponseWithTags(tags, category, account)
         }
 
@@ -128,7 +128,7 @@ class TransactionService(
                 date = LocalDateTime.parse(request.date),
                 memo = request.memo?.trim(),
                 categoryId = UUID.fromString(request.category_id),
-                accountId = UUID.fromString(request.account_id)
+                accountId = request.account_id?.let { UUID.fromString(it) }
             )
 
             if (request.tag_ids.isNotEmpty()) {
@@ -140,7 +140,7 @@ class TransactionService(
                 inputPatternRepository.upsert(
                     keyword = memo.trim(),
                     categoryId = UUID.fromString(request.category_id),
-                    accountId = UUID.fromString(request.account_id)
+                    accountId = request.account_id?.let { UUID.fromString(it) }
                 )
             }
 
@@ -175,7 +175,7 @@ class TransactionService(
                 it[Transactions.date] = LocalDateTime.parse(request.date)
                 it[Transactions.memo] = request.memo?.trim()
                 it[Transactions.categoryId] = UUID.fromString(request.category_id)
-                it[Transactions.accountId] = UUID.fromString(request.account_id)
+                it[Transactions.accountId] = request.account_id?.let { UUID.fromString(it) }
                 it[Transactions.version] = currentVersion + 1
                 it[Transactions.updatedAt] = now
             }
@@ -273,7 +273,7 @@ class TransactionService(
         addChange("date", existing[Transactions.date].toString(), request.date)
         addChange("memo", existing[Transactions.memo], request.memo)
         addChange("category_id", existing[Transactions.categoryId].toString(), request.category_id)
-        addChange("account_id", existing[Transactions.accountId].toString(), request.account_id)
+        addChange("account_id", existing[Transactions.accountId]?.toString(), request.account_id)
 
         return JsonObject(changes)
     }
@@ -304,7 +304,7 @@ class TransactionService(
             date = this[Transactions.date].toString(),
             memo = this[Transactions.memo],
             category_id = this[Transactions.categoryId].toString(),
-            account_id = this[Transactions.accountId].toString(),
+            account_id = this[Transactions.accountId]?.toString(),
             category = category,
             account = account,
             tags = tags,
@@ -352,8 +352,10 @@ class TransactionService(
         if (!ValidationRules.validateUuid(request.category_id))
             errors.add(FieldError("category_id", "カテゴリIDの形式が不正です"))
 
-        if (!ValidationRules.validateUuid(request.account_id))
-            errors.add(FieldError("account_id", "アカウントIDの形式が不正です"))
+        request.account_id?.let {
+            if (!ValidationRules.validateUuid(it))
+                errors.add(FieldError("account_id", "アカウントIDの形式が不正です"))
+        }
 
         request.memo?.let {
             if (it.length > ValidationRules.MEMO_MAX_LENGTH)

@@ -38,7 +38,7 @@ class AccountService(
                 .where { (Transactions.type eq "income") and Transactions.deletedAt.isNull() and (Transactions.accountId inList accountIds) }
                 .groupBy(Transactions.accountId)
                 .forEach { row ->
-                    incomeMap[row[Transactions.accountId]] = row[txAmountSum] ?: 0L
+                    row[Transactions.accountId]?.let { incomeMap[it] = row[txAmountSum] ?: 0L }
                 }
 
             // Expense by account
@@ -46,7 +46,7 @@ class AccountService(
                 .where { (Transactions.type eq "expense") and Transactions.deletedAt.isNull() and (Transactions.accountId inList accountIds) }
                 .groupBy(Transactions.accountId)
                 .forEach { row ->
-                    expenseMap[row[Transactions.accountId]] = row[txAmountSum] ?: 0L
+                    row[Transactions.accountId]?.let { expenseMap[it] = row[txAmountSum] ?: 0L }
                 }
 
             // Transfer in

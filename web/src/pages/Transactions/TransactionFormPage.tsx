@@ -105,7 +105,7 @@ export default function TransactionFormPage() {
         amount: existingTx.amount,
         date: existingTx.date,
         category_id: existingTx.category_id,
-        account_id: existingTx.account_id,
+        account_id: existingTx.account_id || '',
         memo: existingTx.memo || '',
         currency: existingTx.currency,
         tag_ids: existingTx.tags.map((t) => t.id),
@@ -164,6 +164,7 @@ export default function TransactionFormPage() {
       transactionApi.create({
         ...data,
         memo: data.memo || undefined,
+        account_id: data.account_id || undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -178,6 +179,7 @@ export default function TransactionFormPage() {
       transactionApi.update(id!, {
         ...data,
         memo: data.memo || undefined,
+        account_id: data.account_id || undefined,
         version: existingTx!.version,
       }),
     onSuccess: () => {
@@ -294,16 +296,16 @@ export default function TransactionFormPage() {
                 name="account_id"
                 control={control}
                 render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.account_id}>
+                  <FormControl fullWidth>
                     <InputLabel>アカウント</InputLabel>
                     <Select {...field} label="アカウント">
+                      <MenuItem value="">
+                        <em>未選択</em>
+                      </MenuItem>
                       {accounts?.map((a) => (
                         <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
                       ))}
                     </Select>
-                    {errors.account_id && (
-                      <Typography variant="caption" color="error">{errors.account_id.message}</Typography>
-                    )}
                   </FormControl>
                 )}
               />
