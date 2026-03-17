@@ -38,7 +38,7 @@ import { transactionApi } from '@/api/transactions';
 import { categoryApi } from '@/api/categories';
 import { accountApi } from '@/api/accounts';
 import { tagApi } from '@/api/tags';
-import { formatCurrency, formatDate } from '@/utils/format';
+import { formatCurrency, formatDateTime } from '@/utils/format';
 import { useUndoStore } from '@/stores/undoStore';
 import type { TransactionResponse } from '@/types';
 import { DEBOUNCE_DELAY_MS, DEFAULT_PAGE_SIZE, UNDO_TIMEOUT_MS } from '@/constants';
@@ -313,7 +313,7 @@ export default function TransactionListPage() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>日付</TableCell>
+                <TableCell>日時</TableCell>
                 <TableCell>種別</TableCell>
                 <TableCell>カテゴリ</TableCell>
                 <TableCell>アカウント</TableCell>
@@ -339,7 +339,7 @@ export default function TransactionListPage() {
               ) : (
                 allTransactions.map((tx) => (
                   <TableRow key={tx.id} hover>
-                    <TableCell>{formatDate(tx.date)}</TableCell>
+                    <TableCell>{formatDateTime(tx.date)}</TableCell>
                     <TableCell>
                       <Chip
                         size="small"

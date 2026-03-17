@@ -2,6 +2,7 @@ package com.kakeibo.backend.db
 
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.*
+import org.jetbrains.exposed.sql.json.jsonb
 
 // =========================================
 // Users
@@ -85,7 +86,7 @@ object Transactions : Table("transactions") {
     val type = varchar("type", 10)
     val amount = long("amount")
     val currency = varchar("currency", 3)
-    val date = date("date")
+    val date = datetime("date")
     val memo = text("memo").nullable()
     val categoryId = uuid("category_id").references(Categories.id)
     val accountId = uuid("account_id").references(Accounts.id)
@@ -114,7 +115,7 @@ object TransactionHistory : Table("transaction_history") {
     val id = uuid("id").autoGenerate()
     val transactionId = uuid("transaction_id").references(Transactions.id)
     val userId = uuid("user_id").references(Users.id)
-    val changedFields = text("changed_fields")
+    val changedFields = jsonb<String>("changed_fields", { it }, { it })
     val changedAt = timestampWithTimeZone("changed_at")
     val versionBefore = integer("version_before")
     val versionAfter = integer("version_after")

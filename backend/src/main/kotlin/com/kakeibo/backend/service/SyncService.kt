@@ -7,6 +7,7 @@ import com.kakeibo.shared.model.*
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.time.LocalDateTime
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.util.*
@@ -120,7 +121,7 @@ class SyncService(
                             val type = change.data.requireString("type")
                             val amount = change.data.requireLong("amount")
                             val currency = change.data.optionalString("currency") ?: "JPY"
-                            val date = LocalDate.parse(change.data.requireString("date"))
+                            val date = LocalDateTime.parse(change.data.requireString("date"))
                             val memo = change.data.optionalString("memo")
                             val categoryId = UUID.fromString(change.data.requireString("category_id"))
                             val accountId = UUID.fromString(change.data.requireString("account_id"))

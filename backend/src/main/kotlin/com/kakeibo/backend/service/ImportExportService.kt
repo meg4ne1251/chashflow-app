@@ -10,6 +10,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.io.*
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.YearMonth
 import java.util.*
@@ -132,7 +133,7 @@ class ImportExportService(
                         type = type,
                         amount = amount,
                         currency = "JPY",
-                        date = LocalDate.parse(dateStr),
+                        date = LocalDate.parse(dateStr).atStartOfDay(),
                         memo = memo,
                         categoryId = category[Categories.id],
                         accountId = account[Accounts.id]
@@ -158,8 +159,8 @@ class ImportExportService(
      */
     fun exportCsv(dateFrom: String?, dateTo: String?): ByteArray {
         val filter = TransactionFilter(
-            dateFrom = dateFrom?.let { LocalDate.parse(it) },
-            dateTo = dateTo?.let { LocalDate.parse(it) }
+            dateFrom = dateFrom?.let { LocalDate.parse(it).atStartOfDay() },
+            dateTo = dateTo?.let { LocalDate.parse(it).atTime(java.time.LocalTime.MAX) }
         )
         val (transactions, _) = transactionRepository.findAll(filter, page = null, size = Int.MAX_VALUE, sortField = "date", sortDirection = "asc")
 
@@ -336,8 +337,10 @@ class ImportExportService(
                                     stmt[col as Column<Long>] = strValue.toLong()
                                 col.columnType.sqlType().contains("INT", ignoreCase = true) ->
                                     stmt[col as Column<Int>] = strValue.toInt()
-                                col.columnType.sqlType().contains("TIMESTAMP", ignoreCase = true) ->
+                                col.columnType.sqlType().contains("WITH TIME ZONE", ignoreCase = true) ->
                                     stmt[col as Column<OffsetDateTime>] = OffsetDateTime.parse(strValue)
+                                col.columnType.sqlType().contains("TIMESTAMP", ignoreCase = true) ->
+                                    stmt[col as Column<LocalDateTime>] = LocalDateTime.parse(strValue)
                                 col.columnType.sqlType().contains("DATE", ignoreCase = true) ->
                                     stmt[col as Column<LocalDate>] = LocalDate.parse(strValue)
                                 else ->

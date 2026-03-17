@@ -11,10 +11,13 @@ import com.kakeibo.backend.service.TagService.Companion.toResponse as tagToRespo
 import com.kakeibo.shared.model.*
 import com.kakeibo.shared.validation.ValidationRules
 import kotlinx.serialization.json.*
-import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.OffsetDateTime
 import java.util.*
 
 class TransactionService(
@@ -35,8 +38,8 @@ class TransactionService(
         keyword: String?, page: Int?, size: Int, sort: String?
     ): PaginatedResponse<TransactionResponse> {
         val filter = TransactionFilter(
-            dateFrom = dateFrom?.let { LocalDate.parse(it) },
-            dateTo = dateTo?.let { LocalDate.parse(it) },
+            dateFrom = dateFrom?.let { LocalDate.parse(it).atStartOfDay() },
+            dateTo = dateTo?.let { LocalDate.parse(it).atTime(LocalTime.MAX) },
             type = type,
             categoryId = categoryId?.let { UUID.fromString(it) },
             accountId = accountId?.let { UUID.fromString(it) },
@@ -122,7 +125,7 @@ class TransactionService(
                 type = request.type,
                 amount = request.amount,
                 currency = request.currency,
-                date = LocalDate.parse(request.date),
+                date = LocalDateTime.parse(request.date),
                 memo = request.memo?.trim(),
                 categoryId = UUID.fromString(request.category_id),
                 accountId = UUID.fromString(request.account_id)
@@ -158,9 +161,40 @@ class TransactionService(
 
         val existing = transactionRepository.findById(uuid)
             ?: throw NotFoundException("取引が見つかりません")
+        val existingDate = existing[Transactions.date].toString()
 
         val row = transaction {
-            // Record history
+            // Inline UPDATE to avoid nested transaction{} issues
+            val now = OffsetDateTime.now()
+            val updatedCount = Transactions.update({
+                (Transactions.id eq uuid) and (Transactions.version eq currentVersion)
+            }) {
+                it[Transactions.type] = request.type
+                it[Transactions.amount] = request.amount
+                it[Transactions.currency] = request.currency
+                it[Transactions.date] = LocalDateTime.parse(request.date)
+                it[Transactions.memo] = request.memo?.trim()
+                it[Transactions.categoryId] = UUID.fromString(request.category_id)
+                it[Transactions.accountId] = UUID.fromString(request.account_id)
+                it[Transactions.version] = currentVersion + 1
+                it[Transactions.updatedAt] = now
+            }
+
+            if (updatedCount == 0) {
+                val freshRow = Transactions.selectAll()
+                    .where { Transactions.id eq uuid }.singleOrNull()
+                val serverVersion = freshRow?.get(Transactions.version)
+                logger.warn("Version conflict: id=$uuid, requestVersion=$currentVersion, serverVersion=$serverVersion")
+                throw ConflictException(
+                    "バージョン競合が発生しました（リクエスト: $currentVersion, サーバー: $serverVersion）",
+                    buildJsonObject {
+                        put("request_version", JsonPrimitive(currentVersion))
+                        put("server_version", serverVersion?.let { JsonPrimitive(it) } ?: JsonNull)
+                    }
+                )
+            }
+
+            // Record history after successful update
             val changedFields = buildChangedFields(existing, request)
             if (changedFields.isNotEmpty()) {
                 transactionHistoryRepository.create(
@@ -172,25 +206,15 @@ class TransactionService(
                 )
             }
 
-            val updated = transactionRepository.update(
-                id = uuid,
-                type = request.type,
-                amount = request.amount,
-                currency = request.currency,
-                date = LocalDate.parse(request.date),
-                memo = request.memo?.trim(),
-                categoryId = UUID.fromString(request.category_id),
-                accountId = UUID.fromString(request.account_id),
-                currentVersion = currentVersion
-            ) ?: throw ConflictException("バージョン競合が発生しました")
-
             transactionTagRepository.setTags(uuid, request.tag_ids.map { UUID.fromString(it) })
 
-            updated
+            // Read updated row within same transaction
+            Transactions.selectAll()
+                .where { Transactions.id eq uuid }.single()
         }
 
         // Invalidate analytics cache for both old and new dates
-        invalidateCacheForDate(existing[Transactions.date].toString())
+        invalidateCacheForDate(existingDate)
         invalidateCacheForDate(request.date)
 
         return row.toResponse()
@@ -303,8 +327,8 @@ class TransactionService(
 
     private fun invalidateCacheForDate(dateStr: String) {
         try {
-            val date = LocalDate.parse(dateStr)
-            val yearMonth = String.format("%04d-%02d", date.year, date.monthValue)
+            val dateTime = LocalDateTime.parse(dateStr)
+            val yearMonth = String.format("%04d-%02d", dateTime.year, dateTime.monthValue)
             analyticsService?.invalidateCache(yearMonth)
         } catch (e: Exception) {
             logger.warn("キャッシュ無効化中に日付パースに失敗: $dateStr", e)
@@ -322,8 +346,8 @@ class TransactionService(
             errors.add(FieldError("amount", it))
         }
 
-        if (!ValidationRules.validateDate(request.date))
-            errors.add(FieldError("date", "日付の形式が不正です（YYYY-MM-DD）"))
+        if (!ValidationRules.validateDateTime(request.date))
+            errors.add(FieldError("date", "日時の形式が不正です（YYYY-MM-DDTHH:mm）"))
 
         if (!ValidationRules.validateUuid(request.category_id))
             errors.add(FieldError("category_id", "カテゴリIDの形式が不正です"))

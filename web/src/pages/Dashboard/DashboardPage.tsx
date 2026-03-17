@@ -23,7 +23,7 @@ import {
   AccountBalanceWallet,
 } from '@mui/icons-material';
 import { analyticsApi } from '@/api';
-import { formatCurrency, formatDate, formatPercent } from '@/utils/format';
+import { formatCurrency, formatDateTime, formatPercent } from '@/utils/format';
 
 export default function DashboardPage() {
   const { data, isLoading, error } = useQuery({
@@ -188,7 +188,7 @@ export default function DashboardPage() {
                     <TableBody>
                       {data.recent_transactions.slice(0, 10).map((tx) => (
                         <TableRow key={tx.id}>
-                          <TableCell>{formatDate(tx.date)}</TableCell>
+                          <TableCell>{formatDateTime(tx.date)}</TableCell>
                           <TableCell>{tx.category?.name || '-'}</TableCell>
                           <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {tx.memo || '-'}

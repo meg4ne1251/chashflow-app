@@ -68,6 +68,14 @@ export function getToday(): string {
 }
 
 /**
+ * Get current date and time as YYYY-MM-DDTHH:mm (for datetime-local input)
+ */
+export function getNow(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
  * Format percentage
  */
 export function formatPercent(value: number | null | undefined): string {

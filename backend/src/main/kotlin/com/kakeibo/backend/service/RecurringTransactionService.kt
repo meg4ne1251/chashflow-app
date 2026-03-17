@@ -135,7 +135,7 @@ class RecurringTransactionService(
                         type = row[RecurringTransactions.type],
                         amount = row[RecurringTransactions.amount],
                         currency = row[RecurringTransactions.currency],
-                        date = row[RecurringTransactions.nextExecutionDate],
+                        date = row[RecurringTransactions.nextExecutionDate].atStartOfDay(),
                         memo = row[RecurringTransactions.memo],
                         categoryId = row[RecurringTransactions.categoryId],
                         accountId = row[RecurringTransactions.accountId],

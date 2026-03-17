@@ -47,6 +47,9 @@ object ValidationRules {
     // Date pattern (YYYY-MM-DD)
     val DATE_PATTERN = Regex("^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$")
 
+    // DateTime pattern (YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss)
+    val DATETIME_PATTERN = Regex("^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?$")
+
     // Time pattern (HH:mm)
     val TIME_PATTERN = Regex("^([01]\\d|2[0-3]):[0-5]\\d$")
 
@@ -80,4 +83,6 @@ object ValidationRules {
     fun validateYearMonth(value: String): Boolean = YEAR_MONTH_PATTERN.matches(value)
 
     fun validateDate(value: String): Boolean = DATE_PATTERN.matches(value)
+
+    fun validateDateTime(value: String): Boolean = DATETIME_PATTERN.matches(value)
 }

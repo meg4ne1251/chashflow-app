@@ -27,7 +27,7 @@ import { categoryApi } from '@/api/categories';
 import { accountApi } from '@/api/accounts';
 import { tagApi } from '@/api/tags';
 import { suggestionApi } from '@/api/suggestions';
-import { getToday } from '@/utils/format';
+import { getNow } from '@/utils/format';
 import { DEBOUNCE_DELAY_MS, AUTO_COMPLETE_CONFIDENCE_THRESHOLD, MEMO_SUGGESTION_MIN_LENGTH } from '@/constants';
 
 export default function TransactionFormPage() {
@@ -86,7 +86,7 @@ export default function TransactionFormPage() {
     defaultValues: {
       type: 'expense',
       amount: undefined,
-      date: getToday(),
+      date: getNow(),
       category_id: '',
       account_id: '',
       memo: '',
@@ -119,7 +119,7 @@ export default function TransactionFormPage() {
       reset({
         type: templateData.type,
         amount: templateData.amount ?? undefined,
-        date: getToday(),
+        date: getNow(),
         category_id: templateData.category_id || '',
         account_id: templateData.account_id || '',
         memo: templateData.memo || '',
@@ -249,8 +249,8 @@ export default function TransactionFormPage() {
 
               <TextField
                 fullWidth
-                label="日付"
-                type="date"
+                label="日時"
+                type="datetime-local"
                 InputLabelProps={{ shrink: true }}
                 {...register('date')}
                 error={!!errors.date}
