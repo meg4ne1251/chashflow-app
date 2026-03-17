@@ -8,6 +8,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Icon,
   IconButton,
   Table,
   TableBody,
@@ -32,6 +33,7 @@ import { categorySchema, type CategoryFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
 import { categoryApi } from '@/api/categories';
 import type { CategoryResponse } from '@/types';
+import IconPicker from '@/components/IconPicker';
 
 export default function CategoryListPage() {
   const queryClient = useQueryClient();
@@ -101,7 +103,7 @@ export default function CategoryListPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>カラー</TableCell>
+              <TableCell>アイコン</TableCell>
               <TableCell>名前</TableCell>
               <TableCell>種別</TableCell>
               <TableCell>デフォルト</TableCell>
@@ -115,9 +117,19 @@ export default function CategoryListPage() {
             ) : categories?.map((c) => (
               <TableRow key={c.id} hover>
                 <TableCell>
-                  {c.color && (
-                    <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: c.color }} />
-                  )}
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      bgcolor: c.color || 'grey.300',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {c.icon && <Icon sx={{ color: '#fff', fontSize: 20 }}>{c.icon}</Icon>}
+                  </Box>
                 </TableCell>
                 <TableCell>{c.name}</TableCell>
                 <TableCell>
@@ -153,7 +165,18 @@ export default function CategoryListPage() {
                   </Select>
                 </FormControl>
               )} />
-              <TextField fullWidth label="アイコン" {...form.register('icon')} helperText="Material Iconの名前（例: restaurant）" />
+              <Controller
+                name="icon"
+                control={form.control}
+                render={({ field }) => (
+                  <IconPicker
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    error={!!form.formState.errors.icon}
+                    helperText={form.formState.errors.icon?.message}
+                  />
+                )}
+              />
               <TextField fullWidth label="カラー" type="color" {...form.register('color')} InputLabelProps={{ shrink: true }} />
               <TextField fullWidth label="表示順" type="number" {...form.register('sort_order', { valueAsNumber: true })} />
             </Stack>
