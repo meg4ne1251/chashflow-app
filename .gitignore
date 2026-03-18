@@ -54,3 +54,8 @@ logs/
 *.bak
 *.tmp
 *.pid
+
+# ===========================
+# Claude Code
+# ===========================
+.claude/settings.local.json

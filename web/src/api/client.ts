@@ -17,7 +17,7 @@ let failedQueue: Array<{
   reject: (reason: unknown) => void;
 }> = [];
 let refreshFailCount = 0;
-const MAX_REFRESH_FAILURES = 5;
+const MAX_REFRESH_FAILURES = 3;
 
 function processQueue(error: unknown, token: string | null = null) {
   failedQueue.forEach((promise) => {
@@ -83,7 +83,9 @@ apiClient.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refresh_token');
         if (!refreshToken) {
-          throw new Error('No refresh token');
+          clearAuthTokens();
+          window.location.href = '/login';
+          return Promise.reject(new Error('No refresh token'));
         }
 
         const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
@@ -102,10 +104,17 @@ apiClient.interceptors.response.use(
         processQueue(null, access_token);
         return apiClient(originalRequest);
       } catch (refreshError) {
-        refreshFailCount++;
         processQueue(refreshError, null);
 
-        if (refreshFailCount >= MAX_REFRESH_FAILURES) {
+        // If the refresh endpoint itself returns 401, the session is definitively
+        // expired — retrying won't help. Redirect to login immediately.
+        const isAuthError =
+          refreshError instanceof AxiosError && refreshError.response?.status === 401;
+
+        refreshFailCount++;
+
+        if (isAuthError || refreshFailCount >= MAX_REFRESH_FAILURES) {
+          refreshFailCount = 0;
           clearAuthTokens();
           window.location.href = '/login';
         }

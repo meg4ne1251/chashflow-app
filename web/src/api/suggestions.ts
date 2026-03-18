@@ -6,7 +6,7 @@ import type {
 
 export const suggestionApi = {
   memo: (keyword: string) =>
-    apiClient.get<MemoSuggestion[]>('/suggestions/memo', { params: { q: keyword } }),
+    apiClient.get<MemoSuggestion[]>('/suggestions/memos', { params: { keyword } }),
 
   autoComplete: (memo: string) =>
     apiClient.get<AutoCompleteResponse>('/suggestions/auto-complete', { params: { memo } }),
