@@ -18,6 +18,7 @@ import {
   CircularProgress,
   Stack,
   Autocomplete,
+  Icon,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { transactionSchema, type TransactionFormData } from '@/validation/schemas';
@@ -287,7 +288,24 @@ export default function TransactionFormPage() {
                       </MenuItem>
                       {filteredCategories.map((c) => (
                         <MenuItem key={c.id} value={c.id}>
-                          {c.color && (
+                          {c.icon ? (
+                            <Box
+                              component="span"
+                              sx={{
+                                display: 'inline-flex',
+                                width: 24,
+                                height: 24,
+                                borderRadius: '50%',
+                                bgcolor: c.color || 'grey.300',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                mr: 1,
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Icon sx={{ color: '#fff', fontSize: 16 }}>{c.icon}</Icon>
+                            </Box>
+                          ) : c.color ? (
                             <Box
                               component="span"
                               sx={{
@@ -299,7 +317,7 @@ export default function TransactionFormPage() {
                                 mr: 1,
                               }}
                             />
-                          )}
+                          ) : null}
                           {c.name}
                         </MenuItem>
                       ))}

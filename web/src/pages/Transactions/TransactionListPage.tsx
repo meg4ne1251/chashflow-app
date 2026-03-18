@@ -31,6 +31,7 @@ import {
   Paper,
   Alert,
   Stack,
+  Icon,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -273,7 +274,26 @@ export default function TransactionListPage() {
                 <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} label="カテゴリ">
                   <MenuItem value="">すべて</MenuItem>
                   {categories?.filter((c) => !c.deleted_at).map((c) => (
-                    <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+                    <MenuItem key={c.id} value={c.id}>
+                      {c.icon && (
+                        <Box
+                          sx={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: '50%',
+                            bgcolor: c.color || 'grey.300',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mr: 1,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Icon sx={{ color: '#fff', fontSize: 14 }}>{c.icon}</Icon>
+                        </Box>
+                      )}
+                      {c.name}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -384,7 +404,29 @@ export default function TransactionListPage() {
                     <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {tx.name || '-'}
                     </TableCell>
-                    <TableCell>{tx.category?.name || '-'}</TableCell>
+                    <TableCell>
+                      {tx.category ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {tx.category.icon && (
+                            <Box
+                              sx={{
+                                width: 24,
+                                height: 24,
+                                borderRadius: '50%',
+                                bgcolor: tx.category.color || 'grey.300',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Icon sx={{ color: '#fff', fontSize: 16 }}>{tx.category.icon}</Icon>
+                            </Box>
+                          )}
+                          {tx.category.name}
+                        </Box>
+                      ) : '-'}
+                    </TableCell>
                     <TableCell>{tx.account?.name || '-'}</TableCell>
                     <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {tx.memo || '-'}
