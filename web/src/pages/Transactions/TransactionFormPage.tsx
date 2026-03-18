@@ -104,7 +104,7 @@ export default function TransactionFormPage() {
         type: existingTx.type,
         amount: existingTx.amount,
         date: existingTx.date,
-        category_id: existingTx.category_id,
+        category_id: existingTx.category_id || '',
         account_id: existingTx.account_id || '',
         memo: existingTx.memo || '',
         currency: existingTx.currency,
@@ -164,6 +164,7 @@ export default function TransactionFormPage() {
       transactionApi.create({
         ...data,
         memo: data.memo || undefined,
+        category_id: data.category_id || undefined,
         account_id: data.account_id || undefined,
       }),
     onSuccess: () => {
@@ -179,6 +180,7 @@ export default function TransactionFormPage() {
       transactionApi.update(id!, {
         ...data,
         memo: data.memo || undefined,
+        category_id: data.category_id || undefined,
         account_id: data.account_id || undefined,
         version: existingTx!.version,
       }),
@@ -263,9 +265,12 @@ export default function TransactionFormPage() {
                 name="category_id"
                 control={control}
                 render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.category_id}>
+                  <FormControl fullWidth>
                     <InputLabel>カテゴリ</InputLabel>
                     <Select {...field} label="カテゴリ">
+                      <MenuItem value="">
+                        <em>未選択</em>
+                      </MenuItem>
                       {filteredCategories.map((c) => (
                         <MenuItem key={c.id} value={c.id}>
                           {c.color && (
@@ -285,10 +290,7 @@ export default function TransactionFormPage() {
                         </MenuItem>
                       ))}
                     </Select>
-                    {errors.category_id && (
-                      <Typography variant="caption" color="error">{errors.category_id.message}</Typography>
-                    )}
-                  </FormControl>
+                                  </FormControl>
                 )}
               />
 

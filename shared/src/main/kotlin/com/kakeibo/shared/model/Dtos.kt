@@ -130,7 +130,7 @@ data class TransactionRequest(
     val currency: String = "JPY",
     val date: String,
     val memo: String? = null,
-    val category_id: String,
+    val category_id: String? = null,
     val account_id: String? = null,
     val tag_ids: List<String> = emptyList(),
     val version: Int? = null
@@ -144,7 +144,7 @@ data class TransactionResponse(
     val currency: String,
     val date: String,
     val memo: String? = null,
-    val category_id: String,
+    val category_id: String? = null,
     val account_id: String? = null,
     val category: CategoryResponse? = null,
     val account: AccountResponse? = null,
