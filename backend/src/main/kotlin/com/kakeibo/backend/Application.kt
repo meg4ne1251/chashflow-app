@@ -187,8 +187,13 @@ fun Application.module() {
         }
     }
 
-    // Start recurring transaction scheduler
-    val scheduler = RecurringTransactionScheduler(recurringTransactionService)
+    // Start recurring transaction scheduler with daily maintenance tasks
+    val scheduler = RecurringTransactionScheduler(
+        recurringTransactionService,
+        dailyCleanupTasks = listOf {
+            refreshTokenRepository.cleanupExpired()
+        }
+    )
     scheduler.start()
 
     monitor.subscribe(ApplicationStopped) {

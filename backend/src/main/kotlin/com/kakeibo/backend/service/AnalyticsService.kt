@@ -9,6 +9,7 @@ import com.kakeibo.shared.model.*
 import java.time.LocalDate
 import java.time.YearMonth
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.round
 
 class AnalyticsService(
     private val transactionRepository: TransactionRepository,
@@ -19,6 +20,9 @@ class AnalyticsService(
         private const val CACHE_TTL_MS = 5 * 60 * 1000L // 5 minutes
         private const val MAX_CACHE_SIZE = 200
     }
+
+    /** Holds aggregated income and expense totals for a category within a period. */
+    private data class CategoryTotals(val name: String, val income: Long, val expense: Long)
 
     // In-memory cache with TTL and bounded size
     private data class CacheEntry<T>(val data: T, val expireAt: Long)
@@ -96,7 +100,7 @@ class AnalyticsService(
                         category_name = catName,
                         budget_amount = budgetAmount,
                         spent_amount = spent,
-                        consumption_rate = Math.round(rate * 100.0) / 100.0
+                        consumption_rate = round(rate * 100.0) / 100.0
                     )
                 }
                 .sortedByDescending { it.consumption_rate }
@@ -189,7 +193,7 @@ class AnalyticsService(
                         category_name = catName,
                         category_color = categoryColorMap[catId],
                         amount = amount,
-                        percentage = if (total > 0) Math.round(amount.toDouble() / total.toDouble() * 10000.0) / 100.0 else 0.0
+                        percentage = if (total > 0) round(amount.toDouble() / total.toDouble() * 10000.0) / 100.0 else 0.0
                     )
                 }
             )
@@ -208,24 +212,24 @@ class AnalyticsService(
                 val incomeBreakdown = transactionRepository.getCategoryBreakdown(current.year, current.monthValue, "income")
                 val expenseBreakdown = transactionRepository.getCategoryBreakdown(current.year, current.monthValue, "expense")
 
-                val categoryMap = mutableMapOf<String, Triple<String, Long, Long>>() // id -> (name, income, expense)
+                val categoryMap = mutableMapOf<String, CategoryTotals>() // id -> CategoryTotals
                 incomeBreakdown.forEach { (id, name, amount) ->
                     val existing = categoryMap[id.toString()]
-                    categoryMap[id.toString()] = Triple(name, amount, existing?.third ?: 0L)
+                    categoryMap[id.toString()] = CategoryTotals(name, amount, existing?.expense ?: 0L)
                 }
                 expenseBreakdown.forEach { (id, name, amount) ->
                     val existing = categoryMap[id.toString()]
-                    categoryMap[id.toString()] = Triple(name, existing?.second ?: 0L, amount)
+                    categoryMap[id.toString()] = CategoryTotals(name, existing?.income ?: 0L, amount)
                 }
 
                 trendItems.add(TrendItem(
                     year_month = yearMonth,
-                    categories = categoryMap.map { (id, triple) ->
+                    categories = categoryMap.map { (id, totals) ->
                         CategoryTrendItem(
                             category_id = id,
-                            category_name = triple.first,
-                            income = triple.second,
-                            expense = triple.third
+                            category_name = totals.name,
+                            income = totals.income,
+                            expense = totals.expense
                         )
                     }
                 ))

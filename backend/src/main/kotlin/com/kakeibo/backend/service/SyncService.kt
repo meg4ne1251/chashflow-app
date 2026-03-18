@@ -124,7 +124,8 @@ class SyncService(
                             val date = LocalDateTime.parse(change.data.requireString("date"))
                             val memo = change.data.optionalString("memo")
                             val categoryId = UUID.fromString(change.data.requireString("category_id"))
-                            val accountId = UUID.fromString(change.data.requireString("account_id"))
+                            // account_id is optional (V4 migration made it nullable)
+                            val accountId = change.data.optionalString("account_id")?.let { UUID.fromString(it) }
 
                             if (change.operation == "update" && existing != null) {
                                 val serverVersion = existing[Transactions.version]

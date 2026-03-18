@@ -71,19 +71,20 @@ class AuthService(
             throw UnauthorizedException("リフレッシュトークンの有効期限が切れています", "TOKEN_EXPIRED")
         }
 
-        // Rotate: revoke old token
-        refreshTokenRepository.revoke(tokenHash)
-
         val user = userRepository.findById(tokenEntity.userId)
             ?: throw UnauthorizedException("ユーザーが見つかりません")
 
-        // Issue new tokens
         val accessToken = jwtConfig.generateAccessToken(user.id.toString(), user.username)
         val newRefreshToken = jwtConfig.generateRefreshToken()
         val newTokenHash = RefreshTokenRepository.hashToken(newRefreshToken)
         val expiresAt = OffsetDateTime.now().plusDays(AppConstants.REFRESH_TOKEN_EXPIRY_DAYS)
 
-        refreshTokenRepository.create(user.id, newTokenHash, expiresAt)
+        // Atomically revoke old token and create new one.
+        // If create fails after revoke, the transaction rolls back and the original token remains valid.
+        transaction {
+            refreshTokenRepository.revoke(tokenHash)
+            refreshTokenRepository.create(user.id, newTokenHash, expiresAt)
+        }
 
         return LoginResponse(
             access_token = accessToken,

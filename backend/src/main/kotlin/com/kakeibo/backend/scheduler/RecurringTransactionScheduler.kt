@@ -13,9 +13,13 @@ import java.time.ZonedDateTime
  * Scheduler for automatically generating transactions from recurring transaction definitions.
  * Runs daily at 0:00 JST.
  * Retry: up to 3 attempts with 5-minute intervals on failure.
+ *
+ * @param recurringTransactionService service for executing due recurring transactions
+ * @param dailyCleanupTasks additional maintenance tasks to run after the daily batch (e.g. token cleanup)
  */
 class RecurringTransactionScheduler(
-    private val recurringTransactionService: RecurringTransactionService
+    private val recurringTransactionService: RecurringTransactionService,
+    private val dailyCleanupTasks: List<() -> Unit> = emptyList()
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -63,6 +67,15 @@ class RecurringTransactionScheduler(
                 logger.info("定期取引バッチを実行します (日付: $today, リトライ: $retryCount)")
                 val created = recurringTransactionService.executeDueTransactions(today)
                 logger.info("定期取引バッチ完了: ${created}件生成")
+
+                // Run daily maintenance tasks (e.g. expired token cleanup)
+                dailyCleanupTasks.forEach { task ->
+                    try {
+                        task()
+                    } catch (e: Exception) {
+                        logger.warn("デイリークリーンアップタスクでエラーが発生しました", e)
+                    }
+                }
                 return
             } catch (e: CancellationException) {
                 throw e

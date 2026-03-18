@@ -4,6 +4,7 @@ import com.kakeibo.backend.db.*
 import com.kakeibo.backend.middleware.*
 import com.kakeibo.backend.repository.*
 import com.kakeibo.shared.model.*
+import com.kakeibo.shared.validation.ValidationRules
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -34,8 +35,8 @@ class ImportExportService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     companion object {
-        private const val MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-        private const val MAX_IMPORT_ROWS = 10000
+        private val MAX_IMPORT_FILE_SIZE = ValidationRules.MAX_IMPORT_FILE_SIZE
+        private val MAX_IMPORT_ROWS = ValidationRules.MAX_IMPORT_ROWS
     }
 
     /**
@@ -50,8 +51,9 @@ class ImportExportService(
             throw InvalidRequestException("行数が上限(${MAX_IMPORT_ROWS}行)を超えています")
         }
         val preview = rows.take(20)
-        val errors = rows.flatMapIndexed { idx, row -> validateImportRow(row, idx + 2) }
-        val validCount = rows.count { row -> validateImportRow(row).isEmpty() }
+        val rowErrors = rows.mapIndexed { idx, row -> validateImportRow(row, idx + 2) }
+        val errors = rowErrors.flatten()
+        val validCount = rowErrors.count { it.isEmpty() }
 
         return ImportPreviewResponse(
             total_rows = rows.size,
@@ -88,6 +90,10 @@ class ImportExportService(
         var skippedCount = 0
         val errors = mutableListOf<ImportError>()
 
+        // Pre-load all categories and accounts to avoid N+1 queries during row processing
+        val allCategories = categoryRepository.findAll()
+        val allAccounts = accountRepository.findAll()
+
         for ((index, row) in rows.withIndex()) {
             val rowNum = index + 2
             val rowErrors = validateImportRow(row, rowNum)
@@ -106,11 +112,10 @@ class ImportExportService(
                     val accountName = row["account"]!!.trim()
                     val memo = row["memo"]?.trim()
 
-                    // Find or fallback category
-                    val category = categoryRepository.findAll()
+                    // Find or fallback category using pre-loaded data
+                    val category = allCategories
                         .firstOrNull { it[Categories.name] == categoryName && it[Categories.type] == type }
-                        ?: categoryRepository.findAll()
-                            .firstOrNull { it[Categories.name] == categoryName }
+                        ?: allCategories.firstOrNull { it[Categories.name] == categoryName }
 
                     if (category == null) {
                         errors.add(ImportError(rowNum, "category", "カテゴリ「${categoryName}」が見つかりません"))
@@ -118,8 +123,8 @@ class ImportExportService(
                         return@transaction
                     }
 
-                    // Find or fallback account
-                    val account = accountRepository.findAll()
+                    // Find account using pre-loaded data
+                    val account = allAccounts
                         .firstOrNull { it[Accounts.name] == accountName }
 
                     if (account == null) {

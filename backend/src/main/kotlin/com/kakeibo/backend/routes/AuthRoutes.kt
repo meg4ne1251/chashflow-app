@@ -52,7 +52,7 @@ fun Route.authRoutes(authService: AuthService, accountService: AccountService) {
             }
         }
 
-        rateLimit(RateLimitName("auth-login")) {
+        rateLimit(RateLimitName("auth-refresh")) {
             post("/refresh") {
                 val request = call.receive<RefreshRequest>()
                 val response = authService.refresh(request)

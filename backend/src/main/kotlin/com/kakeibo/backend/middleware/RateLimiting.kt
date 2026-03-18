@@ -12,6 +12,9 @@ fun Application.configureRateLimiting() {
         register(RateLimitName("auth-setup")) {
             rateLimiter(limit = 3, refillPeriod = 1.minutes)
         }
+        register(RateLimitName("auth-refresh")) {
+            rateLimiter(limit = 30, refillPeriod = 1.minutes)
+        }
         register(RateLimitName("api-general")) {
             rateLimiter(limit = 60, refillPeriod = 1.minutes)
         }
