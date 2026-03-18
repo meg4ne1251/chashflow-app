@@ -97,7 +97,23 @@ fun Route.importExportRoutes(importExportService: ImportExportService) {
         }
 
         post("/restore") {
-            val jsonText = call.receiveText()
+            val multipart = call.receiveMultipart()
+            var fileBytes: ByteArray? = null
+
+            multipart.forEachPart { part ->
+                when (part) {
+                    is PartData.FileItem -> {
+                        fileBytes = part.provider().toByteArray()
+                    }
+                    else -> {}
+                }
+                part.dispose()
+            }
+
+            val bytes = fileBytes
+                ?: throw com.kakeibo.backend.middleware.InvalidRequestException("ファイルがアップロードされていません")
+
+            val jsonText = bytes.toString(Charsets.UTF_8)
             val backupData = Json.decodeFromString(com.kakeibo.shared.model.BackupData.serializer(), jsonText)
             val errors = importExportService.restoreBackup(backupData)
             val message = if (errors.isEmpty()) {
