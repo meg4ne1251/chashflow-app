@@ -62,6 +62,7 @@ dependencies {
 
     // PDF generation
     implementation("com.itextpdf:itext-core:8.0.5")
+    implementation("com.itextpdf:font-asian:8.0.5")
 
     // Test
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")

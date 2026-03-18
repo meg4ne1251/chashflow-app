@@ -578,6 +578,7 @@ data class ImportPreviewRow(
     val date: String?,
     val type: String?,
     val amount: Long?,
+    val name: String? = null,
     val category_name: String?,
     val account_name: String?,
     val memo: String?,

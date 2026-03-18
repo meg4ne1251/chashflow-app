@@ -490,6 +490,7 @@ export interface ImportPreviewRow {
   date?: string | null;
   type?: string | null;
   amount?: number | null;
+  name?: string | null;
   category_name?: string | null;
   account_name?: string | null;
   memo?: string | null;

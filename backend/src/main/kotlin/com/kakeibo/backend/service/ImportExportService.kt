@@ -8,6 +8,17 @@ import com.kakeibo.shared.validation.ValidationRules
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
+import com.itextpdf.kernel.colors.ColorConstants
+import com.itextpdf.kernel.font.PdfFont
+import com.itextpdf.kernel.font.PdfFontFactory
+import com.itextpdf.kernel.pdf.PdfDocument
+import com.itextpdf.kernel.pdf.PdfWriter
+import com.itextpdf.layout.Document
+import com.itextpdf.layout.element.Cell
+import com.itextpdf.layout.element.Paragraph
+import com.itextpdf.layout.element.Table as PdfTable
+import com.itextpdf.layout.properties.TextAlignment
+import com.itextpdf.layout.properties.UnitValue
 import org.slf4j.LoggerFactory
 import java.io.*
 import java.time.LocalDate
@@ -65,6 +76,7 @@ class ImportExportService(
                     date = row["date"],
                     type = row["type"],
                     amount = row["amount"]?.toLongOrNull(),
+                    name = row["name"],
                     category_name = row["category"],
                     account_name = row["account"],
                     memo = row["memo"],
@@ -110,6 +122,7 @@ class ImportExportService(
                     val amount = kotlin.math.abs(row["amount"]!!.toLong())
                     val categoryName = row["category"]!!.trim()
                     val accountName = row["account"]!!.trim()
+                    val name = row["name"]?.trim()
                     val memo = row["memo"]?.trim()
 
                     // Find or fallback category using pre-loaded data
@@ -141,7 +154,8 @@ class ImportExportService(
                         date = LocalDate.parse(dateStr).atStartOfDay(),
                         memo = memo,
                         categoryId = category[Categories.id],
-                        accountId = account[Accounts.id]
+                        accountId = account[Accounts.id],
+                        name = name
                     )
                     importedCount++
                 }
@@ -184,7 +198,7 @@ class ImportExportService(
         val sb = StringBuilder()
         // UTF-8 BOM for Excel compatibility
         sb.append('\uFEFF')
-        sb.appendLine("日付,種別,金額,カテゴリ,アカウント,メモ,タグ,作成日時,更新日時")
+        sb.appendLine("日付,種別,金額,名前,カテゴリ,アカウント,メモ,タグ,作成日時,更新日時")
 
         for (tx in transactions) {
             val catName = allCategories[tx[Transactions.categoryId]] ?: ""
@@ -193,37 +207,43 @@ class ImportExportService(
             val tagNames = txTagIds.mapNotNull { allTags[it] }.joinToString(",") { sanitizeCsvField(it) }
 
             val type = if (tx[Transactions.type] == "income") "収入" else "支出"
+            val name = sanitizeCsvField(tx[Transactions.name] ?: "")
             val memo = sanitizeCsvField(tx[Transactions.memo] ?: "")
             val createdAt = tx[Transactions.createdAt].toString()
             val updatedAt = tx[Transactions.updatedAt].toString()
 
-            sb.appendLine("${tx[Transactions.date]},$type,${tx[Transactions.amount]},\"${sanitizeCsvField(catName)}\",\"${sanitizeCsvField(accName)}\",\"${memo}\",\"${tagNames}\",\"${createdAt}\",\"${updatedAt}\"")
+            sb.appendLine("${tx[Transactions.date]},$type,${tx[Transactions.amount]},\"${name}\",\"${sanitizeCsvField(catName)}\",\"${sanitizeCsvField(accName)}\",\"${memo}\",\"${tagNames}\",\"${createdAt}\",\"${updatedAt}\"")
         }
 
         return sb.toString().toByteArray(Charsets.UTF_8)
     }
 
     /**
-     * Generate PDF report (stub - iText integration)
+     * Generate PDF report using iText
      */
     fun generatePdf(type: String, yearMonth: String?, year: Int?): ByteArray {
-        // PDF generation using iText
-        // For now, return a simple text-based PDF placeholder
-        // Full iText implementation would go here
-        val content = when (type) {
+        val baos = ByteArrayOutputStream()
+        val writer = PdfWriter(baos)
+        val pdfDoc = PdfDocument(writer)
+        val document = Document(pdfDoc)
+        val font = PdfFontFactory.createFont("HeiseiKakuGo-W5", "Identity-H")
+        document.setFont(font)
+        document.setFontSize(10f)
+
+        when (type) {
             "monthly" -> {
                 val ym = yearMonth ?: throw ValidationException(
                     "年月が必要です",
                     listOf(FieldError("year_month", "指定してください"))
                 )
-                generateMonthlyReportContent(ym)
+                writeMonthlyPdfReport(document, font, ym)
             }
             "yearly" -> {
                 val y = year ?: throw ValidationException(
                     "年が必要です",
                     listOf(FieldError("year", "指定してください"))
                 )
-                generateYearlyReportContent(y)
+                writeYearlyPdfReport(document, font, y)
             }
             else -> throw ValidationException(
                 "レポートタイプが不正です",
@@ -231,8 +251,8 @@ class ImportExportService(
             )
         }
 
-        // Return UTF-8 text as a basic report (iText would create proper PDF)
-        return content.toByteArray(Charsets.UTF_8)
+        document.close()
+        return baos.toByteArray()
     }
 
     /**
@@ -388,6 +408,7 @@ class ImportExportService(
                 "日付" to "date", "date" to "date",
                 "種別" to "type", "type" to "type",
                 "金額" to "amount", "amount" to "amount",
+                "名前" to "name", "name" to "name",
                 "カテゴリ" to "category", "category" to "category",
                 "アカウント" to "account", "account" to "account",
                 "メモ" to "memo", "memo" to "memo",
@@ -462,31 +483,63 @@ class ImportExportService(
         }
     }
 
-    private fun generateMonthlyReportContent(yearMonth: String): String {
+    private fun writeMonthlyPdfReport(document: Document, font: PdfFont, yearMonth: String) {
         val parts = yearMonth.split("-")
         val year = parts[0].toInt()
         val month = parts[1].toInt()
         val (income, expense) = transactionRepository.getMonthlySummary(year, month)
         val breakdown = transactionRepository.getCategoryBreakdown(year, month, "expense")
 
-        val sb = StringBuilder()
-        sb.appendLine("月次レポート: ${yearMonth}")
-        sb.appendLine("=" .repeat(40))
-        sb.appendLine("収入合計: ¥${String.format("%,d", income)}")
-        sb.appendLine("支出合計: ¥${String.format("%,d", expense)}")
-        sb.appendLine("収支: ¥${String.format("%,d", income - expense)}")
-        sb.appendLine()
-        sb.appendLine("カテゴリ別支出:")
-        for ((_, name, amount) in breakdown) {
-            sb.appendLine("  $name: ¥${String.format("%,d", amount)}")
+        document.add(
+            Paragraph("月次レポート: $yearMonth")
+                .setFont(font).setFontSize(18f)
+                .setTextAlignment(TextAlignment.CENTER)
+                .setMarginBottom(20f)
+        )
+
+        val summaryTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(1f, 1f)))
+            .useAllAvailableWidth().setMarginBottom(20f)
+        summaryTable.addHeaderCell(pdfCell("項目", font, header = true))
+        summaryTable.addHeaderCell(pdfCell("金額", font, header = true))
+        summaryTable.addCell(pdfCell("収入合計", font))
+        summaryTable.addCell(pdfCell("¥${String.format("%,d", income)}", font, align = TextAlignment.RIGHT))
+        summaryTable.addCell(pdfCell("支出合計", font))
+        summaryTable.addCell(pdfCell("¥${String.format("%,d", expense)}", font, align = TextAlignment.RIGHT))
+        summaryTable.addCell(pdfCell("収支", font))
+        summaryTable.addCell(pdfCell("¥${String.format("%,d", income - expense)}", font, align = TextAlignment.RIGHT))
+        document.add(summaryTable)
+
+        if (breakdown.isNotEmpty()) {
+            document.add(
+                Paragraph("カテゴリ別支出")
+                    .setFont(font).setFontSize(14f).setMarginBottom(10f)
+            )
+            val breakdownTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(1f, 1f)))
+                .useAllAvailableWidth()
+            breakdownTable.addHeaderCell(pdfCell("カテゴリ", font, header = true))
+            breakdownTable.addHeaderCell(pdfCell("金額", font, header = true))
+            for ((_, name, amount) in breakdown) {
+                breakdownTable.addCell(pdfCell(name, font))
+                breakdownTable.addCell(pdfCell("¥${String.format("%,d", amount)}", font, align = TextAlignment.RIGHT))
+            }
+            document.add(breakdownTable)
         }
-        return sb.toString()
     }
 
-    private fun generateYearlyReportContent(year: Int): String {
-        val sb = StringBuilder()
-        sb.appendLine("年間レポート: ${year}年")
-        sb.appendLine("=".repeat(40))
+    private fun writeYearlyPdfReport(document: Document, font: PdfFont, year: Int) {
+        document.add(
+            Paragraph("年間レポート: ${year}年")
+                .setFont(font).setFontSize(18f)
+                .setTextAlignment(TextAlignment.CENTER)
+                .setMarginBottom(20f)
+        )
+
+        val table = PdfTable(UnitValue.createPercentArray(floatArrayOf(1f, 1f, 1f, 1f)))
+            .useAllAvailableWidth().setMarginBottom(20f)
+        table.addHeaderCell(pdfCell("月", font, header = true))
+        table.addHeaderCell(pdfCell("収入", font, header = true))
+        table.addHeaderCell(pdfCell("支出", font, header = true))
+        table.addHeaderCell(pdfCell("収支", font, header = true))
 
         var totalIncome = 0L
         var totalExpense = 0L
@@ -494,11 +547,23 @@ class ImportExportService(
             val (income, expense) = transactionRepository.getMonthlySummary(year, month)
             totalIncome += income
             totalExpense += expense
-            sb.appendLine("${month}月: 収入 ¥${String.format("%,d", income)} / 支出 ¥${String.format("%,d", expense)}")
+            table.addCell(pdfCell("${month}月", font))
+            table.addCell(pdfCell("¥${String.format("%,d", income)}", font, align = TextAlignment.RIGHT))
+            table.addCell(pdfCell("¥${String.format("%,d", expense)}", font, align = TextAlignment.RIGHT))
+            table.addCell(pdfCell("¥${String.format("%,d", income - expense)}", font, align = TextAlignment.RIGHT))
         }
-        sb.appendLine()
-        sb.appendLine("年間合計: 収入 ¥${String.format("%,d", totalIncome)} / 支出 ¥${String.format("%,d", totalExpense)}")
-        sb.appendLine("年間収支: ¥${String.format("%,d", totalIncome - totalExpense)}")
-        return sb.toString()
+
+        table.addCell(pdfCell("合計", font, header = true))
+        table.addCell(pdfCell("¥${String.format("%,d", totalIncome)}", font, header = true, align = TextAlignment.RIGHT))
+        table.addCell(pdfCell("¥${String.format("%,d", totalExpense)}", font, header = true, align = TextAlignment.RIGHT))
+        table.addCell(pdfCell("¥${String.format("%,d", totalIncome - totalExpense)}", font, header = true, align = TextAlignment.RIGHT))
+        document.add(table)
+    }
+
+    private fun pdfCell(text: String, font: PdfFont, header: Boolean = false, align: TextAlignment = TextAlignment.LEFT): Cell {
+        val cell = Cell().add(Paragraph(text).setFont(font))
+        if (header) cell.setBackgroundColor(ColorConstants.LIGHT_GRAY)
+        cell.setTextAlignment(align)
+        return cell
     }
 }
