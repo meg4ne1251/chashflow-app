@@ -5,6 +5,7 @@ import com.kakeibo.backend.config.JwtConfig
 import com.kakeibo.backend.middleware.configureErrorHandling
 import com.kakeibo.backend.middleware.configureRateLimiting
 import com.kakeibo.backend.routes.*
+import com.kakeibo.backend.scheduler.NotificationScheduler
 import com.kakeibo.backend.scheduler.RecurringTransactionScheduler
 import com.kakeibo.backend.service.*
 import com.kakeibo.backend.repository.*
@@ -82,7 +83,12 @@ fun Application.module() {
         inputPatternRepository, transactionHistoryRepository
     )
     val suggestionService = SuggestionService(transactionRepository, inputPatternRepository)
+    val notificationRepository = NotificationRepository()
     val notificationSettingService = NotificationSettingService(notificationSettingRepository)
+    val notificationService = NotificationService(
+        notificationRepository, notificationSettingRepository,
+        budgetRepository, transactionRepository, categoryRepository
+    )
 
     // Plugins
     install(ContentNegotiation) {
@@ -182,6 +188,7 @@ fun Application.module() {
                 syncRoutes(syncService)
                 importExportRoutes(importExportService)
                 suggestionRoutes(suggestionService)
+                notificationRoutes(notificationService)
                 notificationSettingRoutes(notificationSettingService)
             }
         }
@@ -190,14 +197,20 @@ fun Application.module() {
     // Start recurring transaction scheduler with daily maintenance tasks
     val scheduler = RecurringTransactionScheduler(
         recurringTransactionService,
-        dailyCleanupTasks = listOf {
-            refreshTokenRepository.cleanupExpired()
-        }
+        dailyCleanupTasks = listOf(
+            { refreshTokenRepository.cleanupExpired() },
+            { notificationService.cleanupOldNotifications() }
+        )
     )
     scheduler.start()
 
+    // Start notification scheduler (checks every 60 seconds)
+    val notificationScheduler = NotificationScheduler(notificationService)
+    notificationScheduler.start()
+
     monitor.subscribe(ApplicationStopped) {
         scheduler.stop()
+        notificationScheduler.stop()
         DatabaseConfig.close()
     }
 }

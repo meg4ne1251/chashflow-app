@@ -346,6 +346,24 @@ export interface NotificationSettingResponse {
 }
 
 // =========================================
+// Notification
+// =========================================
+export interface NotificationResponse {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  read_at?: string | null;
+}
+
+export interface NotificationListResponse {
+  notifications: NotificationResponse[];
+  unread_count: number;
+}
+
+// =========================================
 // Suggestion
 // =========================================
 export interface MemoSuggestion {

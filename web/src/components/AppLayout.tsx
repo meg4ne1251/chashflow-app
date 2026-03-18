@@ -39,6 +39,7 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import { useUiStore } from '@/stores/uiStore';
 import type { ThemeMode } from '@/types';
+import NotificationBell from './NotificationBell';
 
 const DRAWER_WIDTH = 260;
 
@@ -173,6 +174,7 @@ export default function AppLayout() {
           <IconButton onClick={cycleTheme} title={`テーマ: ${themeMode}`}>
             {themeIcon}
           </IconButton>
+          <NotificationBell />
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
             <AccountCircle />
           </IconButton>

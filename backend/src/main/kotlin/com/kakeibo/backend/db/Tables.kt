@@ -244,6 +244,20 @@ object InputPatterns : Table("input_patterns") {
 }
 
 // =========================================
+// Notifications
+// =========================================
+object Notifications : Table("notifications") {
+    val id = uuid("id").autoGenerate()
+    val type = varchar("type", 30)
+    val title = varchar("title", 200)
+    val message = text("message")
+    val isRead = bool("is_read")
+    val createdAt = timestampWithTimeZone("created_at")
+    val readAt = timestampWithTimeZone("read_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+// =========================================
 // Notification Settings
 // =========================================
 object NotificationSettings : Table("notification_settings") {

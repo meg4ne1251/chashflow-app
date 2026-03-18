@@ -11,3 +11,4 @@ export { budgetApi } from './budgets';
 export { analyticsApi } from './analytics';
 export { suggestionApi } from './suggestions';
 export { importExportApi, notificationSettingApi } from './importExport';
+export { notificationApi } from './notifications';

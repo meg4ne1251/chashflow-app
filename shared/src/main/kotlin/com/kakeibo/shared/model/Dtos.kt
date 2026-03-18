@@ -351,6 +351,26 @@ data class NotificationSettingResponse(
 )
 
 // =========================================
+// Notification DTOs
+// =========================================
+@Serializable
+data class NotificationResponse(
+    val id: String,
+    val type: String,
+    val title: String,
+    val message: String,
+    val is_read: Boolean,
+    val created_at: String,
+    val read_at: String? = null
+)
+
+@Serializable
+data class NotificationListResponse(
+    val notifications: List<NotificationResponse>,
+    val unread_count: Int
+)
+
+// =========================================
 // Input Pattern DTOs
 // =========================================
 @Serializable
