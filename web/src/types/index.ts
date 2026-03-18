@@ -133,6 +133,7 @@ export interface TagResponse {
 // =========================================
 export interface TransactionRequest {
   id?: string;
+  name?: string;
   type: TransactionType;
   amount: number;
   currency?: string;
@@ -146,6 +147,7 @@ export interface TransactionRequest {
 
 export interface TransactionResponse {
   id: string;
+  name?: string | null;
   type: TransactionType;
   amount: number;
   currency: string;
@@ -243,6 +245,7 @@ export interface TemplateResponse {
 // =========================================
 export interface RecurringTransactionRequest {
   id?: string;
+  name?: string;
   type: TransactionType;
   amount: number;
   currency?: string;
@@ -263,6 +266,7 @@ export interface RecurringTransactionRequest {
 
 export interface RecurringTransactionResponse {
   id: string;
+  name?: string | null;
   type: TransactionType;
   amount: number;
   currency: string;

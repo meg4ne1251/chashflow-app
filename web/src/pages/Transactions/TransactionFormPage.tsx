@@ -84,6 +84,7 @@ export default function TransactionFormPage() {
   } = useForm<TransactionFormData>({
     resolver: zodFormResolver(transactionSchema),
     defaultValues: {
+      name: '',
       type: 'expense',
       amount: undefined,
       date: getNow(),
@@ -101,6 +102,7 @@ export default function TransactionFormPage() {
   useEffect(() => {
     if (existingTx) {
       reset({
+        name: existingTx.name || '',
         type: existingTx.type,
         amount: existingTx.amount,
         date: existingTx.date,
@@ -117,6 +119,7 @@ export default function TransactionFormPage() {
   useEffect(() => {
     if (templateData && !isEdit) {
       reset({
+        name: '',
         type: templateData.type,
         amount: templateData.amount ?? undefined,
         date: getNow(),
@@ -163,6 +166,7 @@ export default function TransactionFormPage() {
     mutationFn: (data: TransactionFormData) =>
       transactionApi.create({
         ...data,
+        name: data.name || undefined,
         memo: data.memo || undefined,
         category_id: data.category_id || undefined,
         account_id: data.account_id || undefined,
@@ -179,6 +183,7 @@ export default function TransactionFormPage() {
     mutationFn: (data: TransactionFormData) =>
       transactionApi.update(id!, {
         ...data,
+        name: data.name || undefined,
         memo: data.memo || undefined,
         category_id: data.category_id || undefined,
         account_id: data.account_id || undefined,
@@ -239,6 +244,15 @@ export default function TransactionFormPage() {
                     </Select>
                   </FormControl>
                 )}
+              />
+
+              <TextField
+                fullWidth
+                label="名前"
+                placeholder="例: スーパーで買い物"
+                {...register('name')}
+                error={!!errors.name}
+                helperText={errors.name?.message}
               />
 
               <TextField

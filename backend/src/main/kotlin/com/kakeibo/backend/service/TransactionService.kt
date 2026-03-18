@@ -128,7 +128,8 @@ class TransactionService(
                 date = LocalDateTime.parse(request.date),
                 memo = request.memo?.trim(),
                 categoryId = request.category_id?.let { UUID.fromString(it) },
-                accountId = request.account_id?.let { UUID.fromString(it) }
+                accountId = request.account_id?.let { UUID.fromString(it) },
+                name = request.name?.trim()
             )
 
             if (request.tag_ids.isNotEmpty()) {
@@ -169,6 +170,7 @@ class TransactionService(
             val updatedCount = Transactions.update({
                 (Transactions.id eq uuid) and (Transactions.version eq currentVersion)
             }) {
+                it[Transactions.name] = request.name?.trim()
                 it[Transactions.type] = request.type
                 it[Transactions.amount] = request.amount
                 it[Transactions.currency] = request.currency
@@ -264,6 +266,7 @@ class TransactionService(
             }
         }
 
+        addChange("name", existing[Transactions.name], request.name)
         addChange("type", existing[Transactions.type], request.type)
         addChange("amount", existing[Transactions.amount].toString(), request.amount.toString())
         addChange("date", existing[Transactions.date].toString(), request.date)
@@ -294,6 +297,7 @@ class TransactionService(
     ): TransactionResponse {
         return TransactionResponse(
             id = this[Transactions.id].toString(),
+            name = this[Transactions.name],
             type = this[Transactions.type],
             amount = this[Transactions.amount],
             currency = this[Transactions.currency],
@@ -353,6 +357,11 @@ class TransactionService(
         request.account_id?.let {
             if (!ValidationRules.validateUuid(it))
                 errors.add(FieldError("account_id", "アカウントIDの形式が不正です"))
+        }
+
+        request.name?.let {
+            if (it.length > ValidationRules.TRANSACTION_NAME_MAX_LENGTH)
+                errors.add(FieldError("name", "名前は${ValidationRules.TRANSACTION_NAME_MAX_LENGTH}文字以下で入力してください"))
         }
 
         request.memo?.let {

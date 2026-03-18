@@ -125,6 +125,7 @@ data class TagResponse(
 @Serializable
 data class TransactionRequest(
     val id: String? = null,
+    val name: String? = null,
     val type: String,
     val amount: Long,
     val currency: String = "JPY",
@@ -139,6 +140,7 @@ data class TransactionRequest(
 @Serializable
 data class TransactionResponse(
     val id: String,
+    val name: String? = null,
     val type: String,
     val amount: Long,
     val currency: String,
@@ -242,6 +244,7 @@ data class TemplateResponse(
 @Serializable
 data class RecurringTransactionRequest(
     val id: String? = null,
+    val name: String? = null,
     val type: String,
     val amount: Long,
     val currency: String = "JPY",
@@ -263,6 +266,7 @@ data class RecurringTransactionRequest(
 @Serializable
 data class RecurringTransactionResponse(
     val id: String,
+    val name: String? = null,
     val type: String,
     val amount: Long,
     val currency: String,

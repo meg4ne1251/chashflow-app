@@ -11,6 +11,7 @@ object ValidationRules {
     const val ACCOUNT_NAME_MAX_LENGTH = 100
     const val CATEGORY_NAME_MAX_LENGTH = 50
     const val TAG_NAME_MAX_LENGTH = 50
+    const val TRANSACTION_NAME_MAX_LENGTH = 100
     const val TEMPLATE_NAME_MAX_LENGTH = 100
     const val MEMO_MAX_LENGTH = 500
     const val KEYWORD_MAX_LENGTH = 200

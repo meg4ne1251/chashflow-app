@@ -347,6 +347,7 @@ export default function TransactionListPage() {
               <TableRow>
                 <TableCell>日時</TableCell>
                 <TableCell>種別</TableCell>
+                <TableCell>名前</TableCell>
                 <TableCell>カテゴリ</TableCell>
                 <TableCell>アカウント</TableCell>
                 <TableCell>メモ</TableCell>
@@ -358,13 +359,13 @@ export default function TransactionListPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : allTransactions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                     <Typography color="text.secondary">取引がありません</Typography>
                   </TableCell>
                 </TableRow>
@@ -379,6 +380,9 @@ export default function TransactionListPage() {
                         color={tx.type === 'income' ? 'success' : 'error'}
                         variant="outlined"
                       />
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {tx.name || '-'}
                     </TableCell>
                     <TableCell>{tx.category?.name || '-'}</TableCell>
                     <TableCell>{tx.account?.name || '-'}</TableCell>

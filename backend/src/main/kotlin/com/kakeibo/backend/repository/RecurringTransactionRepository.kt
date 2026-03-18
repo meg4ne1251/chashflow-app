@@ -41,11 +41,13 @@ class RecurringTransactionRepository {
         frequency: String, interval: Int,
         dayOfWeek: Int?, dayOfMonth: Int?, monthOfYear: Int?,
         startDate: LocalDate, endDate: LocalDate?,
-        nextExecutionDate: LocalDate, isActive: Boolean
+        nextExecutionDate: LocalDate, isActive: Boolean,
+        name: String? = null
     ): ResultRow = transaction {
         val now = OffsetDateTime.now()
         RecurringTransactions.insert {
             it[RecurringTransactions.id] = id
+            it[RecurringTransactions.name] = name
             it[RecurringTransactions.type] = type
             it[RecurringTransactions.amount] = amount
             it[RecurringTransactions.currency] = currency
@@ -74,13 +76,15 @@ class RecurringTransactionRepository {
         frequency: String, interval: Int,
         dayOfWeek: Int?, dayOfMonth: Int?, monthOfYear: Int?,
         startDate: LocalDate, endDate: LocalDate?,
-        nextExecutionDate: LocalDate, isActive: Boolean, currentVersion: Int
+        nextExecutionDate: LocalDate, isActive: Boolean, currentVersion: Int,
+        name: String? = null
     ): ResultRow? = transaction {
         val updated = RecurringTransactions.update({
             (RecurringTransactions.id eq id) and
                     (RecurringTransactions.version eq currentVersion) and
                     RecurringTransactions.deletedAt.isNull()
         }) {
+            it[RecurringTransactions.name] = name
             it[RecurringTransactions.type] = type
             it[RecurringTransactions.amount] = amount
             it[RecurringTransactions.currency] = currency

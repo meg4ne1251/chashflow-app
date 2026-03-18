@@ -118,6 +118,7 @@ class SyncService(
                             if (existing != null && change.operation == "create") {
                                 throw ConflictException("既に存在します")
                             }
+                            val name = change.data.optionalString("name")
                             val type = change.data.requireString("type")
                             val amount = change.data.requireLong("amount")
                             val currency = change.data.optionalString("currency") ?: "JPY"
@@ -133,12 +134,14 @@ class SyncService(
                                 transactionRepository.update(
                                     id = uuid, type = type, amount = amount, currency = currency,
                                     date = date, memo = memo, categoryId = categoryId,
-                                    accountId = accountId, currentVersion = version
+                                    accountId = accountId, currentVersion = version,
+                                    name = name
                                 )
                             } else {
                                 transactionRepository.create(
                                     id = uuid, type = type, amount = amount, currency = currency,
-                                    date = date, memo = memo, categoryId = categoryId, accountId = accountId
+                                    date = date, memo = memo, categoryId = categoryId, accountId = accountId,
+                                    name = name
                                 )
                             }
                         }

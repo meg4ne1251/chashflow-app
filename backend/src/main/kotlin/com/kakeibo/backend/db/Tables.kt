@@ -83,6 +83,7 @@ object Tags : Table("tags") {
 // =========================================
 object Transactions : Table("transactions") {
     val id = uuid("id")
+    val name = varchar("name", 100).nullable()
     val type = varchar("type", 10)
     val amount = long("amount")
     val currency = varchar("currency", 3)
@@ -147,6 +148,7 @@ object Transfers : Table("transfers") {
 // =========================================
 object RecurringTransactions : Table("recurring_transactions") {
     val id = uuid("id")
+    val name = varchar("name", 100).nullable()
     val type = varchar("type", 10)
     val amount = long("amount")
     val currency = varchar("currency", 3)

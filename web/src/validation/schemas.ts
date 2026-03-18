@@ -36,6 +36,7 @@ export const passwordChangeSchema = z.object({
 });
 
 export const transactionSchema = z.object({
+  name: z.string().max(100, '名前は100文字以下です').optional().or(z.literal('')),
   type: z.enum(['income', 'expense']),
   amount: z
     .number({ error: '金額を入力してください' })
@@ -110,6 +111,7 @@ export const budgetSchema = z.object({
 });
 
 export const recurringTransactionSchema = z.object({
+  name: z.string().max(100, '名前は100文字以下です').optional().or(z.literal('')),
   type: z.enum(['income', 'expense']),
   amount: z
     .number({ error: '金額を入力してください' })
