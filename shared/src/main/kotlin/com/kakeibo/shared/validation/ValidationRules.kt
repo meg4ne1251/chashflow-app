@@ -27,6 +27,9 @@ object ValidationRules {
     const val MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024 // 10MB
     const val MAX_IMPORT_ROWS = 10_000
 
+    // Backup
+    const val MAX_BACKUP_FILE_SIZE = 50L * 1024 * 1024 // 50MB
+
     // Transaction History
     const val MAX_HISTORY_PER_TRANSACTION = 5
 

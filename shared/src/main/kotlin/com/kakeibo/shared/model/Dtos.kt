@@ -644,7 +644,8 @@ data class BackupDataContent(
     val transfers: List<kotlinx.serialization.json.JsonObject> = emptyList(),
     val notification_settings: List<kotlinx.serialization.json.JsonObject> = emptyList(),
     val input_patterns: List<kotlinx.serialization.json.JsonObject> = emptyList(),
-    val transaction_history: List<kotlinx.serialization.json.JsonObject> = emptyList()
+    val transaction_history: List<kotlinx.serialization.json.JsonObject> = emptyList(),
+    val notifications: List<kotlinx.serialization.json.JsonObject> = emptyList()
 )
 
 @Serializable

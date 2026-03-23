@@ -7,6 +7,7 @@ import com.kakeibo.shared.model.*
 import com.kakeibo.shared.validation.ValidationRules
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import org.jetbrains.exposed.sql.transactions.transaction
 import com.itextpdf.kernel.colors.ColorConstants
 import com.itextpdf.kernel.font.PdfFont
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory
 import java.io.*
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.YearMonth
 import java.util.*
@@ -290,7 +292,8 @@ class ImportExportService(
                     transfers = exportTable(Transfers, Transfers.columns),
                     notification_settings = exportTable(NotificationSettings, NotificationSettings.columns),
                     input_patterns = exportTable(InputPatterns, InputPatterns.columns),
-                    transaction_history = exportTable(TransactionHistory, TransactionHistory.columns)
+                    transaction_history = exportTable(TransactionHistory, TransactionHistory.columns),
+                    notifications = exportTable(Notifications, Notifications.columns)
                 )
             )
         }
@@ -313,90 +316,182 @@ class ImportExportService(
     }
 
     /**
-     * Restore data from JSON backup (overwrite mode - truncates all tables first)
+     * Restore data from JSON backup
+     * @param mode "overwrite" = truncate all tables first, "merge" = upsert (newer wins)
      */
-    fun restoreBackup(backupData: BackupData): List<String> {
+    fun restoreBackup(backupData: BackupData, mode: String = "overwrite"): List<String> {
+        if (backupData.schema_version != 1) {
+            throw InvalidRequestException(
+                "サポートされていないスキーマバージョンです: ${backupData.schema_version}（対応バージョン: 1）"
+            )
+        }
+
         val allErrors = mutableListOf<String>()
+        val merge = mode == "merge"
+
         transaction {
-            // Order matters: delete child tables first to avoid FK violations
-            TransactionHistory.deleteAll()
-            TransactionTags.deleteAll()
-            TemplateTags.deleteAll()
-            RecurringTransactionTags.deleteAll()
-            Transactions.deleteAll()
-            Templates.deleteAll()
-            RecurringTransactions.deleteAll()
-            Budgets.deleteAll()
-            Transfers.deleteAll()
-            InputPatterns.deleteAll()
-            NotificationSettings.deleteAll()
-            Tags.deleteAll()
-            Categories.deleteAll()
-            Accounts.deleteAll()
+            if (!merge) {
+                // Overwrite: delete child tables first to avoid FK violations
+                Notifications.deleteAll()
+                TransactionHistory.deleteAll()
+                TransactionTags.deleteAll()
+                TemplateTags.deleteAll()
+                RecurringTransactionTags.deleteAll()
+                Transactions.deleteAll()
+                Templates.deleteAll()
+                RecurringTransactions.deleteAll()
+                Budgets.deleteAll()
+                Transfers.deleteAll()
+                InputPatterns.deleteAll()
+                NotificationSettings.deleteAll()
+                Tags.deleteAll()
+                Categories.deleteAll()
+                Accounts.deleteAll()
+            }
 
             // Restore in dependency order
-            allErrors += restoreTable(Accounts, backupData.data.accounts)
-            allErrors += restoreTable(Categories, backupData.data.categories)
-            allErrors += restoreTable(Tags, backupData.data.tags)
-            allErrors += restoreTable(Transactions, backupData.data.transactions)
-            allErrors += restoreTable(TransactionTags, backupData.data.transaction_tags)
-            allErrors += restoreTable(Templates, backupData.data.templates)
-            allErrors += restoreTable(TemplateTags, backupData.data.template_tags)
-            allErrors += restoreTable(RecurringTransactions, backupData.data.recurring_transactions)
-            allErrors += restoreTable(RecurringTransactionTags, backupData.data.recurring_transaction_tags)
-            allErrors += restoreTable(Budgets, backupData.data.budgets)
-            allErrors += restoreTable(Transfers, backupData.data.transfers)
-            allErrors += restoreTable(NotificationSettings, backupData.data.notification_settings)
-            allErrors += restoreTable(InputPatterns, backupData.data.input_patterns)
-            allErrors += restoreTable(TransactionHistory, backupData.data.transaction_history)
+            allErrors += restoreTable(Accounts, backupData.data.accounts, merge)
+            allErrors += restoreTable(Categories, backupData.data.categories, merge)
+            allErrors += restoreTable(Tags, backupData.data.tags, merge)
+            allErrors += restoreTable(Transactions, backupData.data.transactions, merge)
+            allErrors += restoreTable(TransactionTags, backupData.data.transaction_tags, merge)
+            allErrors += restoreTable(Templates, backupData.data.templates, merge)
+            allErrors += restoreTable(TemplateTags, backupData.data.template_tags, merge)
+            allErrors += restoreTable(RecurringTransactions, backupData.data.recurring_transactions, merge)
+            allErrors += restoreTable(RecurringTransactionTags, backupData.data.recurring_transaction_tags, merge)
+            allErrors += restoreTable(Budgets, backupData.data.budgets, merge)
+            allErrors += restoreTable(Transfers, backupData.data.transfers, merge)
+            allErrors += restoreTable(NotificationSettings, backupData.data.notification_settings, merge)
+            allErrors += restoreTable(InputPatterns, backupData.data.input_patterns, merge)
+            allErrors += restoreTable(TransactionHistory, backupData.data.transaction_history, merge)
+            allErrors += restoreTable(Notifications, backupData.data.notifications, merge)
         }
         if (allErrors.isEmpty()) {
-            logger.info("バックアップからの復元が完了しました")
+            logger.info("バックアップからの復元が完了しました（モード: $mode）")
         } else {
-            logger.warn("バックアップ復元完了（${allErrors.size}件の変換エラーあり）")
+            logger.warn("バックアップ復元完了（モード: $mode、${allErrors.size}件の変換エラーあり）")
         }
         return allErrors
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun restoreTable(table: Table, rows: List<JsonObject>): List<String> {
+    private fun restoreTable(table: Table, rows: List<JsonObject>, merge: Boolean = false): List<String> {
         val errors = mutableListOf<String>()
+        val pkColumns = table.primaryKey?.columns ?: emptyArray()
+        val pkColumnNames = pkColumns.map { it.name }.toSet()
+
         for ((rowIndex, row) in rows.withIndex()) {
-            table.insert { stmt ->
-                for (col in table.columns) {
-                    val value = row[col.name]
-                    if (value != null && value !is JsonNull) {
-                        val strValue = value.jsonPrimitive.contentOrNull ?: continue
-                        try {
-                            when {
-                                col.columnType.sqlType().contains("UUID", ignoreCase = true) ->
-                                    stmt[col as Column<UUID>] = UUID.fromString(strValue)
-                                col.columnType.sqlType().contains("BOOL", ignoreCase = true) ->
-                                    stmt[col as Column<Boolean>] = strValue.toBoolean()
-                                col.columnType.sqlType().contains("BIGINT", ignoreCase = true) ||
-                                col.columnType.sqlType().contains("INT8", ignoreCase = true) ->
-                                    stmt[col as Column<Long>] = strValue.toLong()
-                                col.columnType.sqlType().contains("INT", ignoreCase = true) ->
-                                    stmt[col as Column<Int>] = strValue.toInt()
-                                col.columnType.sqlType().contains("WITH TIME ZONE", ignoreCase = true) ->
-                                    stmt[col as Column<OffsetDateTime>] = OffsetDateTime.parse(strValue)
-                                col.columnType.sqlType().contains("TIMESTAMP", ignoreCase = true) ->
-                                    stmt[col as Column<LocalDateTime>] = LocalDateTime.parse(strValue)
-                                col.columnType.sqlType().contains("DATE", ignoreCase = true) ->
-                                    stmt[col as Column<LocalDate>] = LocalDate.parse(strValue)
-                                else ->
-                                    stmt[col as Column<String>] = strValue
+            try {
+                if (merge && pkColumns.isNotEmpty()) {
+                    val pkValues = parsePkValues(pkColumns, row)
+                    if (pkValues != null) {
+                        val existing = table.selectAll().where {
+                            pkValues.fold(Op.TRUE as Op<Boolean>) { acc, (col, value) ->
+                                acc and ((col as Column<Any>) eq value)
                             }
-                        } catch (e: Exception) {
-                            val errorMsg = "テーブル ${table.tableName} 行${rowIndex + 1} カラム ${col.name} の変換に失敗"
-                            logger.warn(errorMsg, e)
-                            errors.add(errorMsg)
+                        }.firstOrNull()
+
+                        if (existing != null) {
+                            // For tables with updated_at, only update if backup is newer
+                            val updatedAtCol = table.columns.find { it.name == "updated_at" }
+                            if (updatedAtCol != null) {
+                                val backupUpdatedAt = row["updated_at"]?.jsonPrimitive?.contentOrNull
+                                val existingUpdatedAt = existing.getOrNull(updatedAtCol)?.toString()
+                                if (backupUpdatedAt != null && existingUpdatedAt != null) {
+                                    try {
+                                        val backupTime = OffsetDateTime.parse(backupUpdatedAt)
+                                        val existingTime = OffsetDateTime.parse(existingUpdatedAt)
+                                        if (!backupTime.isAfter(existingTime)) continue
+                                    } catch (_: Exception) { }
+                                }
+                            } else {
+                                // Join tables without updated_at: already exists, skip
+                                continue
+                            }
+                            // Update existing record (skip PK columns)
+                            table.update({
+                                pkValues.fold(Op.TRUE as Op<Boolean>) { acc, (col, value) ->
+                                    acc and ((col as Column<Any>) eq value)
+                                }
+                            }) { stmt ->
+                                for (col in table.columns) {
+                                    if (col.name in pkColumnNames) continue
+                                    setColumnValue(stmt, col, row, errors, rowIndex, table.tableName)
+                                }
+                            }
+                            continue
                         }
                     }
                 }
+                // Insert new record
+                table.insert { stmt ->
+                    for (col in table.columns) {
+                        setColumnValue(stmt, col, row, errors, rowIndex, table.tableName)
+                    }
+                }
+            } catch (e: Exception) {
+                val errorMsg = "テーブル ${table.tableName} 行${rowIndex + 1} の復元に失敗"
+                logger.warn(errorMsg, e)
+                errors.add(errorMsg)
             }
         }
         return errors
+    }
+
+    private fun parsePkValues(pkColumns: Array<out Column<*>>, row: JsonObject): List<Pair<Column<*>, Any>>? {
+        val result = mutableListOf<Pair<Column<*>, Any>>()
+        for (col in pkColumns) {
+            val strValue = row[col.name]?.jsonPrimitive?.contentOrNull ?: return null
+            val parsed: Any = if (col.columnType.sqlType().contains("UUID", ignoreCase = true)) {
+                UUID.fromString(strValue)
+            } else {
+                strValue
+            }
+            result.add(col to parsed)
+        }
+        return result
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun setColumnValue(
+        stmt: UpdateBuilder<*>,
+        col: Column<*>,
+        row: JsonObject,
+        errors: MutableList<String>,
+        rowIndex: Int,
+        tableName: String
+    ) {
+        val value = row[col.name]
+        if (value != null && value !is JsonNull) {
+            val strValue = value.jsonPrimitive.contentOrNull ?: return
+            try {
+                when {
+                    col.columnType.sqlType().contains("UUID", ignoreCase = true) ->
+                        stmt[col as Column<UUID>] = UUID.fromString(strValue)
+                    col.columnType.sqlType().contains("BOOL", ignoreCase = true) ->
+                        stmt[col as Column<Boolean>] = strValue.toBoolean()
+                    col.columnType.sqlType().contains("BIGINT", ignoreCase = true) ||
+                    col.columnType.sqlType().contains("INT8", ignoreCase = true) ->
+                        stmt[col as Column<Long>] = strValue.toLong()
+                    col.columnType.sqlType().contains("INT", ignoreCase = true) ->
+                        stmt[col as Column<Int>] = strValue.toInt()
+                    col.columnType.sqlType().contains("WITH TIME ZONE", ignoreCase = true) ->
+                        stmt[col as Column<OffsetDateTime>] = OffsetDateTime.parse(strValue)
+                    col.columnType.sqlType().contains("TIMESTAMP", ignoreCase = true) ->
+                        stmt[col as Column<LocalDateTime>] = LocalDateTime.parse(strValue)
+                    col.columnType.sqlType().contains("TIME", ignoreCase = true) ->
+                        stmt[col as Column<LocalTime>] = LocalTime.parse(strValue)
+                    col.columnType.sqlType().contains("DATE", ignoreCase = true) ->
+                        stmt[col as Column<LocalDate>] = LocalDate.parse(strValue)
+                    else ->
+                        stmt[col as Column<String>] = strValue
+                }
+            } catch (e: Exception) {
+                val errorMsg = "テーブル $tableName 行${rowIndex + 1} カラム ${col.name} の変換に失敗"
+                logger.warn(errorMsg, e)
+                errors.add(errorMsg)
+            }
+        }
     }
 
     // ===== Private Helpers =====

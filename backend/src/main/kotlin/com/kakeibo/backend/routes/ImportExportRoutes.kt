@@ -8,6 +8,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.*
+import com.kakeibo.shared.validation.ValidationRules
 import kotlinx.serialization.json.Json
 import java.io.ByteArrayInputStream
 
@@ -99,11 +100,17 @@ fun Route.importExportRoutes(importExportService: ImportExportService) {
         post("/restore") {
             val multipart = call.receiveMultipart()
             var fileBytes: ByteArray? = null
+            var mode = "overwrite"
 
             multipart.forEachPart { part ->
                 when (part) {
                     is PartData.FileItem -> {
                         fileBytes = part.provider().toByteArray()
+                    }
+                    is PartData.FormItem -> {
+                        if (part.name == "mode") {
+                            mode = part.value
+                        }
                     }
                     else -> {}
                 }
@@ -113,9 +120,17 @@ fun Route.importExportRoutes(importExportService: ImportExportService) {
             val bytes = fileBytes
                 ?: throw com.kakeibo.backend.middleware.InvalidRequestException("ファイルがアップロードされていません")
 
+            if (bytes.size > ValidationRules.MAX_BACKUP_FILE_SIZE) {
+                throw com.kakeibo.backend.middleware.InvalidRequestException("ファイルサイズが上限(50MB)を超えています")
+            }
+
+            if (mode !in listOf("overwrite", "merge")) {
+                throw com.kakeibo.backend.middleware.InvalidRequestException("復元モードは 'overwrite' または 'merge' を指定してください")
+            }
+
             val jsonText = bytes.toString(Charsets.UTF_8)
             val backupData = Json.decodeFromString(com.kakeibo.shared.model.BackupData.serializer(), jsonText)
-            val errors = importExportService.restoreBackup(backupData)
+            val errors = importExportService.restoreBackup(backupData, mode)
             val message = if (errors.isEmpty()) {
                 "バックアップからの復元が完了しました"
             } else {
