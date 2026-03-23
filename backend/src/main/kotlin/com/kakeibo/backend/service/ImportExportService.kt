@@ -237,7 +237,7 @@ class ImportExportService(
         val writer = PdfWriter(baos)
         val pdfDoc = PdfDocument(writer)
         val document = Document(pdfDoc)
-        val font = PdfFontFactory.createFont("HeiseiKakuGo-W5", "Identity-H")
+        val font = createJapaneseFont()
         document.setFont(font)
         document.setFontSize(10f)
 
@@ -684,6 +684,25 @@ class ImportExportService(
         table.addCell(pdfCell("¥${String.format("%,d", totalExpense)}", font, header = true, align = TextAlignment.RIGHT))
         table.addCell(pdfCell("¥${String.format("%,d", totalIncome - totalExpense)}", font, header = true, align = TextAlignment.RIGHT))
         document.add(table)
+    }
+
+    private fun createJapaneseFont(): PdfFont {
+        val fontPaths = listOf(
+            "/usr/share/fonts/noto/NotoSansCJK-Regular.ttc,0",           // Alpine
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc,0",  // Debian/Ubuntu
+        )
+        for (path in fontPaths) {
+            val filePath = path.substringBefore(",")
+            if (java.io.File(filePath).exists()) {
+                return PdfFontFactory.createFont(
+                    path,
+                    "Identity-H",
+                    PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED
+                )
+            }
+        }
+        logger.warn("No system Japanese font found, falling back to CID font (may not render correctly)")
+        return PdfFontFactory.createFont("HeiseiKakuGo-W5", "Identity-H")
     }
 
     private fun pdfCell(text: String, font: PdfFont, header: Boolean = false, align: TextAlignment = TextAlignment.LEFT): Cell {

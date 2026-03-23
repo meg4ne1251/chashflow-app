@@ -22,7 +22,7 @@ RUN ./gradlew :backend:jar --no-daemon
 # ============================================
 FROM eclipse-temurin:21-jre-alpine
 
-RUN apk add --no-cache curl tini \
+RUN apk add --no-cache curl tini font-noto-cjk \
     && addgroup -S app \
     && adduser -S app -G app
 
