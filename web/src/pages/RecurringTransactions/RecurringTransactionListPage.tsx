@@ -37,7 +37,7 @@ export default function RecurringTransactionListPage() {
 
   const form = useForm<RecurringTransactionFormData>({
     resolver: zodFormResolver(recurringTransactionSchema),
-    defaultValues: { type: 'expense', amount: EMPTY_NUMBER, category_id: '', account_id: '', memo: '', frequency: 'monthly', interval: 1, day_of_month: 1, day_of_week: undefined, start_date: '', end_date: '', is_active: true },
+    defaultValues: { name: '', type: 'expense', amount: EMPTY_NUMBER, category_id: '', account_id: '', memo: '', frequency: 'monthly', interval: 1, day_of_month: 1, day_of_week: undefined, start_date: '', end_date: '', is_active: true },
   });
 
   const watchType = form.watch('type');
@@ -46,14 +46,14 @@ export default function RecurringTransactionListPage() {
 
   const openCreate = () => {
     setEditing(null);
-    form.reset({ type: 'expense', amount: EMPTY_NUMBER, category_id: '', account_id: '', memo: '', frequency: 'monthly', interval: 1, day_of_month: 1, day_of_week: undefined, start_date: '', end_date: '', is_active: true });
+    form.reset({ name: '', type: 'expense', amount: EMPTY_NUMBER, category_id: '', account_id: '', memo: '', frequency: 'monthly', interval: 1, day_of_month: 1, day_of_week: undefined, start_date: '', end_date: '', is_active: true });
     setDialogOpen(true);
   };
 
   const openEdit = (r: RecurringTransactionResponse) => {
     setEditing(r);
     form.reset({
-      type: r.type, amount: r.amount, category_id: r.category_id, account_id: r.account_id, memo: r.memo || '',
+      name: r.name || '', type: r.type, amount: r.amount, category_id: r.category_id, account_id: r.account_id, memo: r.memo || '',
       frequency: r.frequency, interval: r.interval ?? 1, day_of_month: r.day_of_month ?? 1, day_of_week: r.day_of_week ?? undefined,
       start_date: r.start_date, end_date: r.end_date || '', is_active: r.is_active,
     });
@@ -62,7 +62,7 @@ export default function RecurringTransactionListPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: RecurringTransactionFormData) => recurringTransactionApi.create({
-      ...data, memo: data.memo || undefined, end_date: data.end_date || undefined,
+      ...data, name: data.name || undefined, memo: data.memo || undefined, end_date: data.end_date || undefined,
       day_of_week: data.frequency === 'weekly' ? (data.day_of_week ?? undefined) : undefined,
       day_of_month: data.frequency !== 'weekly' ? (data.day_of_month ?? undefined) : undefined,
       month_of_year: undefined,
@@ -73,7 +73,7 @@ export default function RecurringTransactionListPage() {
 
   const updateMutation = useMutation({
     mutationFn: (data: RecurringTransactionFormData) => recurringTransactionApi.update(editing!.id, {
-      ...data, memo: data.memo || undefined, end_date: data.end_date || undefined, version: editing!.version,
+      ...data, name: data.name || undefined, memo: data.memo || undefined, end_date: data.end_date || undefined, version: editing!.version,
       day_of_week: data.frequency === 'weekly' ? (data.day_of_week ?? undefined) : undefined,
       day_of_month: data.frequency !== 'weekly' ? (data.day_of_month ?? undefined) : undefined,
       month_of_year: undefined,
@@ -118,6 +118,7 @@ export default function RecurringTransactionListPage() {
           <TableHead>
             <TableRow>
               <TableCell>種別</TableCell>
+              <TableCell>名前</TableCell>
               <TableCell>カテゴリ</TableCell>
               <TableCell>口座</TableCell>
               <TableCell>頻度</TableCell>
@@ -130,12 +131,13 @@ export default function RecurringTransactionListPage() {
           </TableHead>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={9} align="center"><CircularProgress /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} align="center"><CircularProgress /></TableCell></TableRow>
             ) : items?.length === 0 ? (
-              <TableRow><TableCell colSpan={9} align="center"><Typography color="text.secondary">定期取引がありません</Typography></TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} align="center"><Typography color="text.secondary">定期取引がありません</Typography></TableCell></TableRow>
             ) : items?.map((r) => (
               <TableRow key={r.id} hover sx={{ opacity: r.is_active ? 1 : 0.5 }}>
                 <TableCell><Chip label={r.type === 'income' ? '収入' : '支出'} color={r.type === 'income' ? 'success' : 'error'} size="small" /></TableCell>
+                <TableCell sx={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name || '-'}</TableCell>
                 <TableCell>{getCategoryName(r.category_id)}</TableCell>
                 <TableCell>{getAccountName(r.account_id)}</TableCell>
                 <TableCell>{freqLabel(r)}</TableCell>
@@ -158,6 +160,7 @@ export default function RecurringTransactionListPage() {
         <DialogContent>
           <Box component="form" id="recurring-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
             <Stack spacing={2}>
+              <TextField fullWidth label="名前（任意）" {...form.register('name')} error={!!form.formState.errors.name} helperText={form.formState.errors.name?.message} />
               <Controller name="type" control={form.control} render={({ field }) => (
                 <FormControl fullWidth>
                   <InputLabel>種別</InputLabel>
