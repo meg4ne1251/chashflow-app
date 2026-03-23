@@ -102,9 +102,9 @@ class ImportExportService(
         var skippedCount = 0
         val errors = mutableListOf<ImportError>()
 
-        // Pre-load all categories and accounts to avoid N+1 queries during row processing
-        val allCategories = categoryRepository.findAll()
-        val allAccounts = accountRepository.findAll()
+        // Pre-load all categories and accounts (including deleted) to avoid N+1 queries
+        val allCategories = categoryRepository.findAll(includeDeleted = true)
+        val allAccounts = accountRepository.findAll(includeDeleted = true)
 
         for ((index, row) in rows.withIndex()) {
             val rowNum = index + 2
@@ -118,43 +118,54 @@ class ImportExportService(
             try {
                 transaction {
                     val dateStr = row["date"]!!
+                    val dateTime = try {
+                        LocalDateTime.parse(dateStr)
+                    } catch (_: Exception) {
+                        LocalDate.parse(dateStr).atStartOfDay()
+                    }
                     val type = normalizeType(row["type"]!!)
                     val amount = kotlin.math.abs(row["amount"]!!.toLong())
-                    val categoryName = row["category"]!!.trim()
-                    val accountName = row["account"]!!.trim()
+                    val categoryName = row["category"]?.trim()
+                    val accountName = row["account"]?.trim()
                     val name = row["name"]?.trim()
                     val memo = row["memo"]?.trim()
 
-                    // Find or fallback category using pre-loaded data
-                    val category = allCategories
-                        .firstOrNull { it[Categories.name] == categoryName && it[Categories.type] == type }
-                        ?: allCategories.firstOrNull { it[Categories.name] == categoryName }
+                    // Find category (null if not specified)
+                    val categoryId = if (!categoryName.isNullOrEmpty()) {
+                        val category = allCategories
+                            .firstOrNull { it[Categories.name] == categoryName && it[Categories.type] == type }
+                            ?: allCategories.firstOrNull { it[Categories.name] == categoryName }
 
-                    if (category == null) {
-                        errors.add(ImportError(rowNum, "category", "カテゴリ「${categoryName}」が見つかりません"))
-                        skippedCount++
-                        return@transaction
-                    }
+                        if (category == null) {
+                            errors.add(ImportError(rowNum, "category", "カテゴリ「${categoryName}」が見つかりません"))
+                            skippedCount++
+                            return@transaction
+                        }
+                        category[Categories.id]
+                    } else null
 
-                    // Find account using pre-loaded data
-                    val account = allAccounts
-                        .firstOrNull { it[Accounts.name] == accountName }
+                    // Find account (null if not specified)
+                    val accountId = if (!accountName.isNullOrEmpty()) {
+                        val account = allAccounts
+                            .firstOrNull { it[Accounts.name] == accountName }
 
-                    if (account == null) {
-                        errors.add(ImportError(rowNum, "account", "アカウント「${accountName}」が見つかりません"))
-                        skippedCount++
-                        return@transaction
-                    }
+                        if (account == null) {
+                            errors.add(ImportError(rowNum, "account", "アカウント「${accountName}」が見つかりません"))
+                            skippedCount++
+                            return@transaction
+                        }
+                        account[Accounts.id]
+                    } else null
 
                     transactionRepository.create(
                         id = UUID.randomUUID(),
                         type = type,
                         amount = amount,
                         currency = "JPY",
-                        date = LocalDate.parse(dateStr).atStartOfDay(),
+                        date = dateTime,
                         memo = memo,
-                        categoryId = category[Categories.id],
-                        accountId = account[Accounts.id],
+                        categoryId = categoryId,
+                        accountId = accountId,
                         name = name
                     )
                     importedCount++
@@ -183,11 +194,9 @@ class ImportExportService(
         )
         val (transactions, _) = transactionRepository.findAll(filter, page = null, size = Int.MAX_VALUE, sortField = "date", sortDirection = "asc")
 
-        // Batch-load all categories, accounts, and tags to avoid N+1 queries
-        val allCategories = categoryRepository.findAll().associate { it[Categories.id] to it[Categories.name] }
-        val allAccounts = accountRepository.findAll().associate {
-            it[Accounts.id] to if (it[Accounts.deletedAt] == null) it[Accounts.name] else ""
-        }
+        // Batch-load all categories, accounts (including deleted) and tags to avoid N+1 queries
+        val allCategories = categoryRepository.findAll(includeDeleted = true).associate { it[Categories.id] to it[Categories.name] }
+        val allAccounts = accountRepository.findAll(includeDeleted = true).associate { it[Accounts.id] to it[Accounts.name] }
         val txIds = transactions.map { it[Transactions.id] }
         val tagIdsByTx = if (txIds.isNotEmpty()) transactionTagRepository.findByTransactionIds(txIds) else emptyMap()
         val allTagIds = tagIdsByTx.values.flatten().distinct()
@@ -479,8 +488,6 @@ class ImportExportService(
             val amount = row["amount"]!!.toLongOrNull()
             if (amount == null) errors.add(ImportError(rowNum, "amount", "金額は整数で入力してください"))
         }
-        if (row["category"].isNullOrBlank()) errors.add(ImportError(rowNum, "category", "カテゴリは必須です"))
-        if (row["account"].isNullOrBlank()) errors.add(ImportError(rowNum, "account", "アカウントは必須です"))
 
         return errors
     }
