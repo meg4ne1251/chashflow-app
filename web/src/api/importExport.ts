@@ -7,20 +7,18 @@ import type {
 } from '@/types';
 
 export const importExportApi = {
-  previewExcel: (file: File, columnMapping: Record<string, string>) => {
+  previewCsv: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('column_mapping', JSON.stringify(columnMapping));
-    return apiClient.post<ImportPreviewResponse>('/import/excel/preview', formData, {
+    return apiClient.post<ImportPreviewResponse>('/import/csv/preview', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
 
-  importExcel: (file: File, columnMapping: Record<string, string>) => {
+  importCsv: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('column_mapping', JSON.stringify(columnMapping));
-    return apiClient.post<ImportResultResponse>('/import/excel', formData, {
+    return apiClient.post<ImportResultResponse>('/import/csv', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },

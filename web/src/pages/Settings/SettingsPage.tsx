@@ -72,7 +72,7 @@ export default function SettingsPage() {
   });
 
   const importMutation = useMutation({
-    mutationFn: (file: File) => importExportApi.importExcel(file, {}),
+    mutationFn: (file: File) => importExportApi.importCsv(file),
     onSuccess: (resp) => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
@@ -123,8 +123,8 @@ export default function SettingsPage() {
       setError('ファイルサイズが上限（10MB）を超えています');
       return;
     }
-    if (!file.name.endsWith('.xlsx')) {
-      setError('対応形式は .xlsx のみです');
+    if (!file.name.endsWith('.csv')) {
+      setError('対応形式は .csv のみです');
       return;
     }
     importMutation.mutate(file);
@@ -224,12 +224,12 @@ export default function SettingsPage() {
             onClick={() => fileInputRef.current?.click()}
             disabled={importMutation.isPending}
           >
-            Excelインポート
+            CSVインポート
           </Button>
-          <input ref={fileInputRef} type="file" accept=".xlsx" hidden onChange={handleImportFile} />
+          <input ref={fileInputRef} type="file" accept=".csv" hidden onChange={handleImportFile} />
         </Stack>
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          対応形式: .xlsx（ファイルサイズ上限: 10MB、最大行数: 10,000行）
+          対応形式: .csv（ファイルサイズ上限: 10MB、最大行数: 10,000行）
         </Typography>
       </Paper>
 

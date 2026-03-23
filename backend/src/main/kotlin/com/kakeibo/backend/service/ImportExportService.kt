@@ -51,13 +51,13 @@ class ImportExportService(
     }
 
     /**
-     * Preview Excel import (returns parsed rows without persisting)
+     * Preview CSV import (returns parsed rows without persisting)
      */
-    fun previewExcelImport(inputStream: InputStream, fileSize: Long = 0): ImportPreviewResponse {
+    fun previewCsvImport(inputStream: InputStream, fileSize: Long = 0): ImportPreviewResponse {
         if (fileSize > MAX_IMPORT_FILE_SIZE) {
             throw InvalidRequestException("ファイルサイズが上限(10MB)を超えています")
         }
-        val rows = parseExcel(inputStream)
+        val rows = parseCsv(inputStream)
         if (rows.size > MAX_IMPORT_ROWS) {
             throw InvalidRequestException("行数が上限(${MAX_IMPORT_ROWS}行)を超えています")
         }
@@ -88,13 +88,13 @@ class ImportExportService(
     }
 
     /**
-     * Import transactions from Excel
+     * Import transactions from CSV
      */
-    fun importExcel(inputStream: InputStream, fileSize: Long = 0): ImportResultResponse {
+    fun importCsv(inputStream: InputStream, fileSize: Long = 0): ImportResultResponse {
         if (fileSize > MAX_IMPORT_FILE_SIZE) {
             throw InvalidRequestException("ファイルサイズが上限(10MB)を超えています")
         }
-        val rows = parseExcel(inputStream)
+        val rows = parseCsv(inputStream)
         if (rows.size > MAX_IMPORT_ROWS) {
             throw InvalidRequestException("行数が上限(${MAX_IMPORT_ROWS}行)を超えています")
         }
@@ -392,17 +392,15 @@ class ImportExportService(
 
     // ===== Private Helpers =====
 
-    private fun parseExcel(inputStream: InputStream): List<Map<String, String?>> {
+    private fun parseCsv(inputStream: InputStream): List<Map<String, String?>> {
         try {
-            val workbook = org.apache.poi.xssf.usermodel.XSSFWorkbook(inputStream)
-            val sheet = workbook.getSheetAt(0)
-            val rows = mutableListOf<Map<String, String?>>()
-
-            // Expected columns: 日付, 種別, 金額, カテゴリ, アカウント, メモ, タグ
-            val headerRow = sheet.getRow(0) ?: return emptyList()
-            val headers = (0 until headerRow.lastCellNum).map { idx ->
-                headerRow.getCell(idx)?.stringCellValue?.trim() ?: ""
+            val reader = inputStream.bufferedReader(Charsets.UTF_8)
+            var headerLine = reader.readLine() ?: return emptyList()
+            // Strip UTF-8 BOM if present
+            if (headerLine.startsWith("\uFEFF")) {
+                headerLine = headerLine.removePrefix("\uFEFF")
             }
+            val headers = parseCsvLine(headerLine).map { it.trim() }
 
             val colMap = mapOf(
                 "日付" to "date", "date" to "date",
@@ -415,34 +413,60 @@ class ImportExportService(
                 "タグ" to "tags", "tags" to "tags"
             )
 
-            for (rowNum in 1..sheet.lastRowNum) {
-                val row = sheet.getRow(rowNum) ?: continue
+            val rows = mutableListOf<Map<String, String?>>()
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                val values = parseCsvLine(line!!)
                 val data = mutableMapOf<String, String?>()
                 for ((idx, header) in headers.withIndex()) {
                     val key = colMap[header.lowercase()] ?: continue
-                    val cell = row.getCell(idx)
-                    data[key] = when (cell?.cellType) {
-                        org.apache.poi.ss.usermodel.CellType.NUMERIC -> {
-                            if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell)) {
-                                cell.localDateTimeCellValue.toLocalDate().toString()
-                            } else {
-                                cell.numericCellValue.toLong().toString()
-                            }
-                        }
-                        org.apache.poi.ss.usermodel.CellType.STRING -> cell.stringCellValue?.trim()
-                        else -> null
-                    }
+                    val value = values.getOrNull(idx)?.trim()
+                    data[key] = if (value.isNullOrEmpty()) null else value
                 }
                 if (data.isNotEmpty() && data.values.any { it != null }) {
                     rows.add(data)
                 }
             }
-            workbook.close()
             return rows
         } catch (e: Exception) {
-            logger.error("Excel parse error", e)
-            throw InvalidRequestException("Excelファイルの読み込みに失敗しました。ファイル形式を確認してください。")
+            logger.error("CSV parse error", e)
+            throw InvalidRequestException("CSVファイルの読み込みに失敗しました。ファイル形式を確認してください。")
         }
+    }
+
+    private fun parseCsvLine(line: String): List<String> {
+        val fields = mutableListOf<String>()
+        val sb = StringBuilder()
+        var inQuotes = false
+        var i = 0
+        while (i < line.length) {
+            val c = line[i]
+            if (inQuotes) {
+                if (c == '"') {
+                    if (i + 1 < line.length && line[i + 1] == '"') {
+                        sb.append('"')
+                        i += 2
+                        continue
+                    } else {
+                        inQuotes = false
+                    }
+                } else {
+                    sb.append(c)
+                }
+            } else {
+                when (c) {
+                    ',' -> {
+                        fields.add(sb.toString())
+                        sb.clear()
+                    }
+                    '"' -> inQuotes = true
+                    else -> sb.append(c)
+                }
+            }
+            i++
+        }
+        fields.add(sb.toString())
+        return fields
     }
 
     private fun validateImportRow(row: Map<String, String?>, rowNum: Int = 0): List<ImportError> {

@@ -57,9 +57,6 @@ dependencies {
     // Logging
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
-    // Excel import
-    implementation("org.apache.poi:poi-ooxml:5.3.0")
-
     // PDF generation
     implementation("com.itextpdf:itext-core:8.0.5")
     implementation("com.itextpdf:font-asian:8.0.5")

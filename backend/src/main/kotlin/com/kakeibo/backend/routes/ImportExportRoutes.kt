@@ -14,7 +14,7 @@ import java.io.ByteArrayInputStream
 fun Route.importExportRoutes(importExportService: ImportExportService) {
   rateLimit(RateLimitName("import-export")) {
     route("/import") {
-        post("/excel/preview") {
+        post("/csv/preview") {
             val multipart = call.receiveMultipart()
             var fileBytes: ByteArray? = null
 
@@ -31,11 +31,11 @@ fun Route.importExportRoutes(importExportService: ImportExportService) {
             val bytes = fileBytes
                 ?: throw com.kakeibo.backend.middleware.InvalidRequestException("ファイルがアップロードされていません")
 
-            val response = importExportService.previewExcelImport(ByteArrayInputStream(bytes), bytes.size.toLong())
+            val response = importExportService.previewCsvImport(ByteArrayInputStream(bytes), bytes.size.toLong())
             call.respond(HttpStatusCode.OK, response)
         }
 
-        post("/excel") {
+        post("/csv") {
             val multipart = call.receiveMultipart()
             var fileBytes: ByteArray? = null
 
@@ -52,7 +52,7 @@ fun Route.importExportRoutes(importExportService: ImportExportService) {
             val bytes = fileBytes
                 ?: throw com.kakeibo.backend.middleware.InvalidRequestException("ファイルがアップロードされていません")
 
-            val response = importExportService.importExcel(ByteArrayInputStream(bytes), bytes.size.toLong())
+            val response = importExportService.importCsv(ByteArrayInputStream(bytes), bytes.size.toLong())
             call.respond(HttpStatusCode.OK, response)
         }
     }
