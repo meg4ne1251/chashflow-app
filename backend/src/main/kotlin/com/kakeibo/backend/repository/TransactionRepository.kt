@@ -7,6 +7,7 @@ import com.kakeibo.backend.db.Accounts
 import com.kakeibo.backend.db.Tags
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.javatime.month
+import org.jetbrains.exposed.sql.javatime.year
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -265,24 +266,24 @@ class TransactionRepository {
     fun getMonthlySummary(year: Int, month: Int): Pair<Long, Long> = transaction {
         val startDate = LocalDate.of(year, month, 1)
         val endDate = startDate.plusMonths(1).minusDays(1)
-        val startDateTime = startDate.atStartOfDay()
-        val endDateTime = endDate.atTime(LocalTime.MAX)
+        val amountSum = Transactions.amount.sum()
 
-        val income = Transactions.select(Transactions.amount.sum())
+        var income = 0L
+        var expense = 0L
+        Transactions.select(Transactions.type, amountSum)
             .where {
-                (Transactions.type eq "income") and
-                        (Transactions.date greaterEq startDateTime) and
-                        (Transactions.date lessEq endDateTime) and
+                (Transactions.type inList listOf("income", "expense")) and
+                        (Transactions.date greaterEq startDate.atStartOfDay()) and
+                        (Transactions.date lessEq endDate.atTime(LocalTime.MAX)) and
                         Transactions.deletedAt.isNull()
-            }.singleOrNull()?.get(Transactions.amount.sum()) ?: 0L
-
-        val expense = Transactions.select(Transactions.amount.sum())
-            .where {
-                (Transactions.type eq "expense") and
-                        (Transactions.date greaterEq startDateTime) and
-                        (Transactions.date lessEq endDateTime) and
-                        Transactions.deletedAt.isNull()
-            }.singleOrNull()?.get(Transactions.amount.sum()) ?: 0L
+            }
+            .groupBy(Transactions.type)
+            .forEach { row ->
+                when (row[Transactions.type]) {
+                    "income" -> income = row[amountSum] ?: 0L
+                    "expense" -> expense = row[amountSum] ?: 0L
+                }
+            }
 
         Pair(income, expense)
     }
@@ -343,6 +344,42 @@ class TransactionRepository {
                     row[Transactions.categoryId]!!,
                     row[Categories.name],
                     row[Transactions.amount.sum()] ?: 0L
+                )
+            }
+    }
+
+    data class CategoryMonthAmount(val categoryId: UUID, val categoryName: String, val yearMonth: String, val type: String, val amount: Long)
+
+    /**
+     * Batch query: category breakdown across a date range, grouped by month and type.
+     * Replaces N months × 2 types individual queries in getTrends.
+     */
+    fun getCategoryBreakdownRange(fromYear: Int, fromMonth: Int, toYear: Int, toMonth: Int): List<CategoryMonthAmount> = transaction {
+        val startDate = LocalDate.of(fromYear, fromMonth, 1)
+        val endDate = LocalDate.of(toYear, toMonth, 1).plusMonths(1).minusDays(1)
+        val monthExpr = Transactions.date.month()
+        val yearExpr = Transactions.date.year()
+        val amountSum = Transactions.amount.sum()
+
+        (Transactions innerJoin Categories)
+            .select(Transactions.categoryId, Categories.name, yearExpr, monthExpr, Transactions.type, amountSum)
+            .where {
+                (Transactions.type inList listOf("income", "expense")) and
+                        (Transactions.date greaterEq startDate.atStartOfDay()) and
+                        (Transactions.date lessEq endDate.atTime(LocalTime.MAX)) and
+                        Transactions.deletedAt.isNull() and
+                        Categories.deletedAt.isNull()
+            }
+            .groupBy(Transactions.categoryId, Categories.name, yearExpr, monthExpr, Transactions.type)
+            .map { row ->
+                val y = row[yearExpr]
+                val m = row[monthExpr]
+                CategoryMonthAmount(
+                    categoryId = row[Transactions.categoryId]!!,
+                    categoryName = row[Categories.name],
+                    yearMonth = String.format("%04d-%02d", y, m),
+                    type = row[Transactions.type],
+                    amount = row[amountSum] ?: 0L
                 )
             }
     }

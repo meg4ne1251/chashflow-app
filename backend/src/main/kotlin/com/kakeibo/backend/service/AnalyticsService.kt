@@ -205,21 +205,29 @@ class AnalyticsService(
             val fromYm = YearMonth.parse(from)
             val toYm = YearMonth.parse(to)
 
+            // Single batch query instead of N months × 2 types
+            val allData = transactionRepository.getCategoryBreakdownRange(
+                fromYm.year, fromYm.monthValue, toYm.year, toYm.monthValue
+            )
+
+            // Group by yearMonth, then build CategoryTotals per category
+            val dataByMonth = allData.groupBy { it.yearMonth }
+
             val trendItems = mutableListOf<TrendItem>()
             var current = fromYm
             while (!current.isAfter(toYm)) {
                 val yearMonth = current.toString()
-                val incomeBreakdown = transactionRepository.getCategoryBreakdown(current.year, current.monthValue, "income")
-                val expenseBreakdown = transactionRepository.getCategoryBreakdown(current.year, current.monthValue, "expense")
+                val monthData = dataByMonth[yearMonth] ?: emptyList()
 
-                val categoryMap = mutableMapOf<String, CategoryTotals>() // id -> CategoryTotals
-                incomeBreakdown.forEach { (id, name, amount) ->
-                    val existing = categoryMap[id.toString()]
-                    categoryMap[id.toString()] = CategoryTotals(name, amount, existing?.expense ?: 0L)
-                }
-                expenseBreakdown.forEach { (id, name, amount) ->
-                    val existing = categoryMap[id.toString()]
-                    categoryMap[id.toString()] = CategoryTotals(name, existing?.income ?: 0L, amount)
+                val categoryMap = mutableMapOf<String, CategoryTotals>()
+                monthData.forEach { item ->
+                    val id = item.categoryId.toString()
+                    val existing = categoryMap[id]
+                    categoryMap[id] = when (item.type) {
+                        "income" -> CategoryTotals(item.categoryName, item.amount, existing?.expense ?: 0L)
+                        "expense" -> CategoryTotals(item.categoryName, existing?.income ?: 0L, item.amount)
+                        else -> existing ?: CategoryTotals(item.categoryName, 0L, 0L)
+                    }
                 }
 
                 trendItems.add(TrendItem(
