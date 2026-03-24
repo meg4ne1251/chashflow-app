@@ -281,7 +281,7 @@ class RecurringTransactionService(
         if (!ValidationRules.validateUuid(request.category_id))
             errors.add(FieldError("category_id", "カテゴリIDの形式が不正です"))
         if (!ValidationRules.validateUuid(request.account_id))
-            errors.add(FieldError("account_id", "アカウントIDの形式が不正です"))
+            errors.add(FieldError("account_id", "決済手段IDの形式が不正です"))
         if (errors.isNotEmpty()) throw ValidationException("入力内容にエラーがあります", errors)
     }
 }

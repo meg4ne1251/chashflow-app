@@ -80,8 +80,8 @@ class AccountService(
         val id = if (request.id != null) UUID.fromString(request.id) else UUID.randomUUID()
 
         if (accountRepository.existsByName(request.name.trim())) {
-            throw ValidationException("同一名称のアカウントが既に存在します",
-                listOf(FieldError("name", "アカウント名が重複しています")))
+            throw ValidationException("同一名称の決済手段が既に存在します",
+                listOf(FieldError("name", "決済手段名が重複しています")))
         }
 
         val row = accountRepository.create(
@@ -100,8 +100,8 @@ class AccountService(
         val uuid = UUID.fromString(id)
 
         if (accountRepository.existsByName(request.name.trim(), uuid)) {
-            throw ValidationException("同一名称のアカウントが既に存在します",
-                listOf(FieldError("name", "アカウント名が重複しています")))
+            throw ValidationException("同一名称の決済手段が既に存在します",
+                listOf(FieldError("name", "決済手段名が重複しています")))
         }
 
         val currentVersion = request.version
@@ -115,7 +115,7 @@ class AccountService(
 
         if (row == null) {
             val existing = accountRepository.findById(uuid)
-                ?: throw NotFoundException("アカウントが見つかりません")
+                ?: throw NotFoundException("決済手段が見つかりません")
             throw ConflictException("バージョン競合が発生しました")
         }
 
@@ -125,7 +125,7 @@ class AccountService(
     fun delete(id: String, version: Int) {
         val uuid = UUID.fromString(id)
         val existing = accountRepository.findActiveById(uuid)
-            ?: throw NotFoundException("アカウントが見つかりません")
+            ?: throw NotFoundException("決済手段が見つかりません")
 
         if (!accountRepository.softDelete(uuid, version)) {
             throw ConflictException("バージョン競合が発生しました")
@@ -160,11 +160,11 @@ class AccountService(
 
     private fun validateRequest(request: AccountRequest) {
         val errors = mutableListOf<FieldError>()
-        if (request.name.isBlank()) errors.add(FieldError("name", "アカウント名を入力してください"))
+        if (request.name.isBlank()) errors.add(FieldError("name", "決済手段名を入力してください"))
         if (request.name.length > ValidationRules.ACCOUNT_NAME_MAX_LENGTH)
-            errors.add(FieldError("name", "アカウント名は${ValidationRules.ACCOUNT_NAME_MAX_LENGTH}文字以下で入力してください"))
+            errors.add(FieldError("name", "決済手段名は${ValidationRules.ACCOUNT_NAME_MAX_LENGTH}文字以下で入力してください"))
         if (request.type !in com.kakeibo.shared.model.AccountType.entries.map { it.value })
-            errors.add(FieldError("type", "アカウント種別が不正です"))
+            errors.add(FieldError("type", "決済手段種別が不正です"))
         if (errors.isNotEmpty()) throw ValidationException("入力内容にエラーがあります", errors)
     }
 }

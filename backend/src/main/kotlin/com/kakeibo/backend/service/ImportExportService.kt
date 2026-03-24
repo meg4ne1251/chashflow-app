@@ -152,7 +152,7 @@ class ImportExportService(
                             .firstOrNull { it[Accounts.name] == accountName }
 
                         if (account == null) {
-                            errors.add(ImportError(rowNum, "account", "アカウント「${accountName}」が見つかりません"))
+                            errors.add(ImportError(rowNum, "account", "決済手段「${accountName}」が見つかりません"))
                             skippedCount++
                             return@transaction
                         }
@@ -209,7 +209,7 @@ class ImportExportService(
         val sb = StringBuilder()
         // UTF-8 BOM for Excel compatibility
         sb.append('\uFEFF')
-        sb.appendLine("日付,種別,金額,名前,カテゴリ,アカウント,メモ,タグ,作成日時,更新日時")
+        sb.appendLine("日付,種別,金額,名前,カテゴリ,決済手段,メモ,タグ,作成日時,更新日時")
 
         for (tx in transactions) {
             val catName = allCategories[tx[Transactions.categoryId]] ?: ""
@@ -512,7 +512,7 @@ class ImportExportService(
                 "金額" to "amount", "amount" to "amount",
                 "名前" to "name", "name" to "name",
                 "カテゴリ" to "category", "category" to "category",
-                "アカウント" to "account", "account" to "account",
+                "アカウント" to "account", "決済手段" to "account", "account" to "account",
                 "メモ" to "memo", "memo" to "memo",
                 "タグ" to "tags", "tags" to "tags"
             )

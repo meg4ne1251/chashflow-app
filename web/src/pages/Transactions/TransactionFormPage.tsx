@@ -331,8 +331,8 @@ export default function TransactionFormPage() {
                 control={control}
                 render={({ field }) => (
                   <FormControl fullWidth>
-                    <InputLabel>アカウント</InputLabel>
-                    <Select {...field} label="アカウント">
+                    <InputLabel>決済手段</InputLabel>
+                    <Select {...field} label="決済手段">
                       <MenuItem value="">
                         <em>未選択</em>
                       </MenuItem>

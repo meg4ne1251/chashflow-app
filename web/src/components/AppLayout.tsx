@@ -57,7 +57,7 @@ const mainNavItems: NavItem[] = [
 
 const masterNavItems: NavItem[] = [
   { label: 'カテゴリ', path: '/categories', icon: <CategoryIcon /> },
-  { label: 'アカウント', path: '/accounts', icon: <AccountBalanceIcon /> },
+  { label: '決済手段', path: '/accounts', icon: <AccountBalanceIcon /> },
   { label: 'タグ', path: '/tags', icon: <LabelIcon /> },
   { label: 'テンプレート', path: '/templates', icon: <TemplateIcon /> },
   { label: '定期取引', path: '/recurring', icon: <RepeatIcon /> },

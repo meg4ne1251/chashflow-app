@@ -298,8 +298,8 @@ export default function TransactionListPage() {
                 </Select>
               </FormControl>
               <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>アカウント</InputLabel>
-                <Select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} label="アカウント">
+                <InputLabel>決済手段</InputLabel>
+                <Select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} label="決済手段">
                   <MenuItem value="">すべて</MenuItem>
                   {accounts?.filter((a) => !a.deleted_at).map((a) => (
                     <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
@@ -369,7 +369,7 @@ export default function TransactionListPage() {
                 <TableCell>種別</TableCell>
                 <TableCell>名前</TableCell>
                 <TableCell>カテゴリ</TableCell>
-                <TableCell>アカウント</TableCell>
+                <TableCell>決済手段</TableCell>
                 <TableCell>メモ</TableCell>
                 <TableCell>タグ</TableCell>
                 <TableCell align="right">金額</TableCell>

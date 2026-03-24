@@ -134,7 +134,7 @@ export default function TemplateListPage() {
                 <FormControl fullWidth><InputLabel>カテゴリ（任意）</InputLabel><Select {...field} label="カテゴリ（任意）"><MenuItem value="">未設定</MenuItem>{filteredCategories.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}</Select></FormControl>
               )} />
               <Controller name="account_id" control={form.control} render={({ field }) => (
-                <FormControl fullWidth><InputLabel>アカウント（任意）</InputLabel><Select {...field} label="アカウント（任意）"><MenuItem value="">未設定</MenuItem>{accounts?.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}</Select></FormControl>
+                <FormControl fullWidth><InputLabel>決済手段（任意）</InputLabel><Select {...field} label="決済手段（任意）"><MenuItem value="">未設定</MenuItem>{accounts?.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}</Select></FormControl>
               )} />
               <TextField fullWidth label="メモ（任意）" {...form.register('memo')} />
               <Controller name="tag_ids" control={form.control} render={({ field }) => (

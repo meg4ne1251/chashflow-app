@@ -52,8 +52,8 @@ export const transactionSchema = z.object({
 });
 
 export const transferSchema = z.object({
-  from_account_id: z.string().regex(UUID_PATTERN, '出金元アカウントを選択してください'),
-  to_account_id: z.string().regex(UUID_PATTERN, '入金先アカウントを選択してください'),
+  from_account_id: z.string().regex(UUID_PATTERN, '出金元決済手段を選択してください'),
+  to_account_id: z.string().regex(UUID_PATTERN, '入金先決済手段を選択してください'),
   amount: z
     .number({ error: '金額を入力してください' })
     .int('整数で入力してください')
@@ -63,12 +63,12 @@ export const transferSchema = z.object({
   memo: z.string().max(500).optional().or(z.literal('')),
   currency: z.string().default('JPY'),
 }).refine((data) => data.from_account_id !== data.to_account_id, {
-  message: '出金元と入金先は異なるアカウントを選択してください',
+  message: '出金元と入金先は異なる決済手段を選択してください',
   path: ['to_account_id'],
 });
 
 export const accountSchema = z.object({
-  name: z.string().min(1, 'アカウント名を入力してください').max(100),
+  name: z.string().min(1, '決済手段名を入力してください').max(100),
   type: z.enum(['cash', 'bank', 'credit_card', 'e_money', 'other']),
   initial_balance: z.number().int('整数で入力してください').default(0),
   currency: z.string().default('JPY'),
@@ -120,7 +120,7 @@ export const recurringTransactionSchema = z.object({
     .max(9_999_999_999),
   currency: z.string().default('JPY'),
   category_id: z.string().regex(UUID_PATTERN, 'カテゴリを選択してください'),
-  account_id: z.string().regex(UUID_PATTERN, 'アカウントを選択してください'),
+  account_id: z.string().regex(UUID_PATTERN, '決済手段を選択してください'),
   memo: z.string().max(500).optional().or(z.literal('')),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
   interval: z.number().int().min(1).default(1),

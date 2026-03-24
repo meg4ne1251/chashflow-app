@@ -356,7 +356,7 @@ class TransactionService(
 
         request.account_id?.let {
             if (!ValidationRules.validateUuid(it))
-                errors.add(FieldError("account_id", "アカウントIDの形式が不正です"))
+                errors.add(FieldError("account_id", "決済手段IDの形式が不正です"))
         }
 
         request.name?.let {

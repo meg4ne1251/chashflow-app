@@ -104,11 +104,11 @@ class TransferService(
         val errors = mutableListOf<FieldError>()
 
         if (!ValidationRules.validateUuid(request.from_account_id))
-            errors.add(FieldError("from_account_id", "出金元アカウントIDの形式が不正です"))
+            errors.add(FieldError("from_account_id", "出金元決済手段IDの形式が不正です"))
         if (!ValidationRules.validateUuid(request.to_account_id))
-            errors.add(FieldError("to_account_id", "入金先アカウントIDの形式が不正です"))
+            errors.add(FieldError("to_account_id", "入金先決済手段IDの形式が不正です"))
         if (request.from_account_id == request.to_account_id)
-            errors.add(FieldError("to_account_id", "出金元と入金先に同一アカウントは指定できません"))
+            errors.add(FieldError("to_account_id", "出金元と入金先に同一決済手段は指定できません"))
 
         ValidationRules.validateAmount(request.amount)?.let {
             errors.add(FieldError("amount", it))

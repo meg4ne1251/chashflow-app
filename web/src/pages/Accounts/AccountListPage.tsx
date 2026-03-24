@@ -53,19 +53,19 @@ export default function AccountListPage() {
   const createMutation = useMutation({
     mutationFn: (data: AccountFormData) => accountApi.create(data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['accounts'] }); setDialogOpen(false); },
-    onError: () => setError('アカウントの作成に失敗しました'),
+    onError: () => setError('決済手段の作成に失敗しました'),
   });
 
   const updateMutation = useMutation({
     mutationFn: (data: AccountFormData) => accountApi.update(editing!.id, { ...data, version: editing!.version }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['accounts'] }); setDialogOpen(false); },
-    onError: () => setError('アカウントの更新に失敗しました'),
+    onError: () => setError('決済手段の更新に失敗しました'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (a: AccountResponse) => accountApi.delete(a.id, a.version),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['accounts'] }); setDeleteConfirm(null); },
-    onError: () => setError('アカウントの削除に失敗しました'),
+    onError: () => setError('決済手段の削除に失敗しました'),
   });
 
   const onSubmit = (data: AccountFormData) => {
@@ -116,7 +116,7 @@ export default function AccountListPage() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" fontWeight={700}>アカウント管理</Typography>
+        <Typography variant="h5" fontWeight={700}>決済手段管理</Typography>
         <Button variant="contained" startIcon={<Add />} onClick={openCreate}>追加</Button>
       </Box>
 
@@ -158,11 +158,11 @@ export default function AccountListPage() {
       </TableContainer>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editing ? 'アカウントの編集' : 'アカウントの追加'}</DialogTitle>
+        <DialogTitle>{editing ? '決済手段の編集' : '決済手段の追加'}</DialogTitle>
         <DialogContent>
           <Box component="form" id="account-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
             <Stack spacing={2}>
-              <TextField fullWidth label="アカウント名" {...form.register('name')} error={!!form.formState.errors.name} helperText={form.formState.errors.name?.message} />
+              <TextField fullWidth label="決済手段名" {...form.register('name')} error={!!form.formState.errors.name} helperText={form.formState.errors.name?.message} />
               <Controller name="type" control={form.control} render={({ field }) => (
                 <FormControl fullWidth>
                   <InputLabel>種別</InputLabel>
@@ -215,7 +215,7 @@ export default function AccountListPage() {
       </Dialog>
 
       <Dialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)}>
-        <DialogTitle>アカウントの削除</DialogTitle>
+        <DialogTitle>決済手段の削除</DialogTitle>
         <DialogContent>
           <Typography>
             「{deleteConfirm?.name}」を削除しますか？
