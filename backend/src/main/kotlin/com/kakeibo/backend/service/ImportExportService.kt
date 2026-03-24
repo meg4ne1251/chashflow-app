@@ -614,7 +614,8 @@ class ImportExportService(
         val year = parts[0].toInt()
         val month = parts[1].toInt()
         val (income, expense) = transactionRepository.getMonthlySummary(year, month)
-        val breakdown = transactionRepository.getCategoryBreakdown(year, month, "expense")
+        val expenseBreakdown = transactionRepository.getCategoryBreakdown(year, month, "expense")
+        val incomeBreakdown = transactionRepository.getCategoryBreakdown(year, month, "income")
 
         document.add(
             Paragraph("月次レポート: $yearMonth")
@@ -623,6 +624,7 @@ class ImportExportService(
                 .setMarginBottom(20f)
         )
 
+        // === 収支サマリー ===
         val summaryTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(1f, 1f)))
             .useAllAvailableWidth().setMarginBottom(20f)
         summaryTable.addHeaderCell(pdfCell("項目", font, header = true))
@@ -635,24 +637,131 @@ class ImportExportService(
         summaryTable.addCell(pdfCell("¥${String.format("%,d", income - expense)}", font, align = TextAlignment.RIGHT))
         document.add(summaryTable)
 
-        if (breakdown.isNotEmpty()) {
+        // === 前月比較 ===
+        val prevDate = java.time.LocalDate.of(year, month, 1).minusMonths(1)
+        val (prevIncome, prevExpense) = transactionRepository.getMonthlySummary(prevDate.year, prevDate.monthValue)
+        val prevYearMonth = String.format("%04d-%02d", prevDate.year, prevDate.monthValue)
+        document.add(
+            Paragraph("前月比較（$prevYearMonth）")
+                .setFont(font).setFontSize(14f).setMarginBottom(10f)
+        )
+        val compTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(1f, 1f, 1f, 1f)))
+            .useAllAvailableWidth().setMarginBottom(20f)
+        compTable.addHeaderCell(pdfCell("項目", font, header = true))
+        compTable.addHeaderCell(pdfCell("当月", font, header = true))
+        compTable.addHeaderCell(pdfCell("前月", font, header = true))
+        compTable.addHeaderCell(pdfCell("増減", font, header = true))
+
+        for ((label, cur, prev) in listOf(
+            Triple("収入", income, prevIncome),
+            Triple("支出", expense, prevExpense),
+            Triple("収支", income - expense, prevIncome - prevExpense)
+        )) {
+            val diff = cur - prev
+            val diffStr = "${if (diff >= 0) "+" else ""}${String.format("%,d", diff)}"
+            compTable.addCell(pdfCell(label, font))
+            compTable.addCell(pdfCell("¥${String.format("%,d", cur)}", font, align = TextAlignment.RIGHT))
+            compTable.addCell(pdfCell("¥${String.format("%,d", prev)}", font, align = TextAlignment.RIGHT))
+            compTable.addCell(pdfCell("¥$diffStr", font, align = TextAlignment.RIGHT))
+        }
+        document.add(compTable)
+
+        // === カテゴリ別支出 ===
+        if (expenseBreakdown.isNotEmpty()) {
+            val expenseTotal = expenseBreakdown.sumOf { it.third }
             document.add(
                 Paragraph("カテゴリ別支出")
                     .setFont(font).setFontSize(14f).setMarginBottom(10f)
             )
-            val breakdownTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(1f, 1f)))
-                .useAllAvailableWidth()
+            val breakdownTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(2f, 1f, 1f)))
+                .useAllAvailableWidth().setMarginBottom(20f)
             breakdownTable.addHeaderCell(pdfCell("カテゴリ", font, header = true))
             breakdownTable.addHeaderCell(pdfCell("金額", font, header = true))
-            for ((_, name, amount) in breakdown) {
+            breakdownTable.addHeaderCell(pdfCell("割合", font, header = true))
+            for ((_, name, amount) in expenseBreakdown) {
+                val pct = if (expenseTotal > 0) amount.toDouble() / expenseTotal * 100.0 else 0.0
                 breakdownTable.addCell(pdfCell(name, font))
                 breakdownTable.addCell(pdfCell("¥${String.format("%,d", amount)}", font, align = TextAlignment.RIGHT))
+                breakdownTable.addCell(pdfCell("${String.format("%.1f", pct)}%", font, align = TextAlignment.RIGHT))
             }
             document.add(breakdownTable)
+        }
+
+        // === カテゴリ別収入 ===
+        if (incomeBreakdown.isNotEmpty()) {
+            val incomeTotal = incomeBreakdown.sumOf { it.third }
+            document.add(
+                Paragraph("カテゴリ別収入")
+                    .setFont(font).setFontSize(14f).setMarginBottom(10f)
+            )
+            val incomeTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(2f, 1f, 1f)))
+                .useAllAvailableWidth().setMarginBottom(20f)
+            incomeTable.addHeaderCell(pdfCell("カテゴリ", font, header = true))
+            incomeTable.addHeaderCell(pdfCell("金額", font, header = true))
+            incomeTable.addHeaderCell(pdfCell("割合", font, header = true))
+            for ((_, name, amount) in incomeBreakdown) {
+                val pct = if (incomeTotal > 0) amount.toDouble() / incomeTotal * 100.0 else 0.0
+                incomeTable.addCell(pdfCell(name, font))
+                incomeTable.addCell(pdfCell("¥${String.format("%,d", amount)}", font, align = TextAlignment.RIGHT))
+                incomeTable.addCell(pdfCell("${String.format("%.1f", pct)}%", font, align = TextAlignment.RIGHT))
+            }
+            document.add(incomeTable)
+        }
+
+        // === 予算消化状況 ===
+        val budgets = budgetRepository.findByYearMonth(yearMonth)
+        if (budgets.isNotEmpty()) {
+            val spentByCategory = transactionRepository.sumAllCategoriesByMonth(yearMonth)
+            val allCategories = categoryRepository.findAll()
+            val categoryNameMap = allCategories.associate { it[com.kakeibo.backend.db.Categories.id] to it[com.kakeibo.backend.db.Categories.name] }
+
+            document.add(
+                Paragraph("予算消化状況")
+                    .setFont(font).setFontSize(14f).setMarginBottom(10f)
+            )
+            val budgetTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(2f, 1f, 1f, 1f, 1f)))
+                .useAllAvailableWidth()
+            budgetTable.addHeaderCell(pdfCell("カテゴリ", font, header = true))
+            budgetTable.addHeaderCell(pdfCell("予算", font, header = true))
+            budgetTable.addHeaderCell(pdfCell("実績", font, header = true))
+            budgetTable.addHeaderCell(pdfCell("残り", font, header = true))
+            budgetTable.addHeaderCell(pdfCell("消化率", font, header = true))
+
+            var totalBudget = 0L
+            var totalSpent = 0L
+            for (row in budgets) {
+                val catId = row[com.kakeibo.backend.db.Budgets.categoryId]
+                val budgetAmount = row[com.kakeibo.backend.db.Budgets.amount]
+                val spent = spentByCategory[catId] ?: 0L
+                val remaining = budgetAmount - spent
+                val rate = if (budgetAmount > 0) spent.toDouble() / budgetAmount * 100.0 else 0.0
+                val catName = categoryNameMap[catId] ?: "不明"
+
+                totalBudget += budgetAmount
+                totalSpent += spent
+
+                budgetTable.addCell(pdfCell(catName, font))
+                budgetTable.addCell(pdfCell("¥${String.format("%,d", budgetAmount)}", font, align = TextAlignment.RIGHT))
+                budgetTable.addCell(pdfCell("¥${String.format("%,d", spent)}", font, align = TextAlignment.RIGHT))
+                budgetTable.addCell(pdfCell("¥${String.format("%,d", remaining)}", font, align = TextAlignment.RIGHT))
+                budgetTable.addCell(pdfCell("${String.format("%.1f", rate)}%", font, align = TextAlignment.RIGHT))
+            }
+
+            val totalRemaining = totalBudget - totalSpent
+            val totalRate = if (totalBudget > 0) totalSpent.toDouble() / totalBudget * 100.0 else 0.0
+            budgetTable.addCell(pdfCell("合計", font, header = true))
+            budgetTable.addCell(pdfCell("¥${String.format("%,d", totalBudget)}", font, header = true, align = TextAlignment.RIGHT))
+            budgetTable.addCell(pdfCell("¥${String.format("%,d", totalSpent)}", font, header = true, align = TextAlignment.RIGHT))
+            budgetTable.addCell(pdfCell("¥${String.format("%,d", totalRemaining)}", font, header = true, align = TextAlignment.RIGHT))
+            budgetTable.addCell(pdfCell("${String.format("%.1f", totalRate)}%", font, header = true, align = TextAlignment.RIGHT))
+            document.add(budgetTable)
         }
     }
 
     private fun writeYearlyPdfReport(document: Document, font: PdfFont, year: Int) {
+        // Batch-load monthly summaries to avoid 12 separate queries
+        val monthlySummaries = transactionRepository.getYearlyMonthlySummary(year)
+
         document.add(
             Paragraph("年間レポート: ${year}年")
                 .setFont(font).setFontSize(18f)
@@ -660,6 +769,11 @@ class ImportExportService(
                 .setMarginBottom(20f)
         )
 
+        // === 月別収支推移 ===
+        document.add(
+            Paragraph("月別収支推移")
+                .setFont(font).setFontSize(14f).setMarginBottom(10f)
+        )
         val table = PdfTable(UnitValue.createPercentArray(floatArrayOf(1f, 1f, 1f, 1f)))
             .useAllAvailableWidth().setMarginBottom(20f)
         table.addHeaderCell(pdfCell("月", font, header = true))
@@ -670,7 +784,7 @@ class ImportExportService(
         var totalIncome = 0L
         var totalExpense = 0L
         for (month in 1..12) {
-            val (income, expense) = transactionRepository.getMonthlySummary(year, month)
+            val (income, expense) = monthlySummaries[month] ?: Pair(0L, 0L)
             totalIncome += income
             totalExpense += expense
             table.addCell(pdfCell("${month}月", font))
@@ -684,6 +798,102 @@ class ImportExportService(
         table.addCell(pdfCell("¥${String.format("%,d", totalExpense)}", font, header = true, align = TextAlignment.RIGHT))
         table.addCell(pdfCell("¥${String.format("%,d", totalIncome - totalExpense)}", font, header = true, align = TextAlignment.RIGHT))
         document.add(table)
+
+        // === カテゴリ別年間支出 ===
+        val yearlySpentByCategory = transactionRepository.sumAllCategoriesByYear(year)
+        if (yearlySpentByCategory.isNotEmpty()) {
+            val allCategories = categoryRepository.findAll()
+            val categoryNameMap = allCategories.associate { it[com.kakeibo.backend.db.Categories.id] to it[com.kakeibo.backend.db.Categories.name] }
+
+            val sortedCategories = yearlySpentByCategory
+                .filter { (_, total) -> total > 0 }
+                .entries
+                .sortedByDescending { it.value }
+            val categoryTotal = sortedCategories.sumOf { it.value }
+
+            document.add(
+                Paragraph("カテゴリ別年間支出")
+                    .setFont(font).setFontSize(14f).setMarginBottom(10f)
+            )
+            val catTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(2f, 1f, 1f)))
+                .useAllAvailableWidth().setMarginBottom(20f)
+            catTable.addHeaderCell(pdfCell("カテゴリ", font, header = true))
+            catTable.addHeaderCell(pdfCell("金額", font, header = true))
+            catTable.addHeaderCell(pdfCell("割合", font, header = true))
+            for ((catId, amount) in sortedCategories) {
+                val catName = categoryNameMap[catId] ?: "不明"
+                val pct = if (categoryTotal > 0) amount.toDouble() / categoryTotal * 100.0 else 0.0
+                catTable.addCell(pdfCell(catName, font))
+                catTable.addCell(pdfCell("¥${String.format("%,d", amount)}", font, align = TextAlignment.RIGHT))
+                catTable.addCell(pdfCell("${String.format("%.1f", pct)}%", font, align = TextAlignment.RIGHT))
+            }
+            catTable.addCell(pdfCell("合計", font, header = true))
+            catTable.addCell(pdfCell("¥${String.format("%,d", categoryTotal)}", font, header = true, align = TextAlignment.RIGHT))
+            catTable.addCell(pdfCell("100.0%", font, header = true, align = TextAlignment.RIGHT))
+            document.add(catTable)
+        }
+
+        // === 年間予算消化状況 ===
+        // Pre-load all categories and collect budgets for each month
+        val allCategories = categoryRepository.findAll()
+        val categoryNameMap = allCategories.associate { it[com.kakeibo.backend.db.Categories.id] to it[com.kakeibo.backend.db.Categories.name] }
+
+        data class BudgetAccum(var totalBudget: Long = 0L, var totalSpent: Long = 0L)
+        val budgetByCategory = mutableMapOf<java.util.UUID, BudgetAccum>()
+
+        for (month in 1..12) {
+            val ym = String.format("%04d-%02d", year, month)
+            val budgets = budgetRepository.findByYearMonth(ym)
+            if (budgets.isEmpty()) continue
+            val spentByCategory = transactionRepository.sumAllCategoriesByMonth(ym)
+            for (row in budgets) {
+                val catId = row[com.kakeibo.backend.db.Budgets.categoryId]
+                val budgetAmount = row[com.kakeibo.backend.db.Budgets.amount]
+                val spent = spentByCategory[catId] ?: 0L
+                val accum = budgetByCategory.getOrPut(catId) { BudgetAccum() }
+                accum.totalBudget += budgetAmount
+                accum.totalSpent += spent
+            }
+        }
+
+        if (budgetByCategory.isNotEmpty()) {
+            document.add(
+                Paragraph("年間予算消化状況")
+                    .setFont(font).setFontSize(14f).setMarginBottom(10f)
+            )
+            val budgetTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(2f, 1f, 1f, 1f, 1f)))
+                .useAllAvailableWidth()
+            budgetTable.addHeaderCell(pdfCell("カテゴリ", font, header = true))
+            budgetTable.addHeaderCell(pdfCell("予算計", font, header = true))
+            budgetTable.addHeaderCell(pdfCell("実績計", font, header = true))
+            budgetTable.addHeaderCell(pdfCell("残り", font, header = true))
+            budgetTable.addHeaderCell(pdfCell("消化率", font, header = true))
+
+            var grandBudget = 0L
+            var grandSpent = 0L
+            for ((catId, accum) in budgetByCategory.entries.sortedByDescending { it.value.totalSpent }) {
+                val catName = categoryNameMap[catId] ?: "不明"
+                val remaining = accum.totalBudget - accum.totalSpent
+                val rate = if (accum.totalBudget > 0) accum.totalSpent.toDouble() / accum.totalBudget * 100.0 else 0.0
+                grandBudget += accum.totalBudget
+                grandSpent += accum.totalSpent
+
+                budgetTable.addCell(pdfCell(catName, font))
+                budgetTable.addCell(pdfCell("¥${String.format("%,d", accum.totalBudget)}", font, align = TextAlignment.RIGHT))
+                budgetTable.addCell(pdfCell("¥${String.format("%,d", accum.totalSpent)}", font, align = TextAlignment.RIGHT))
+                budgetTable.addCell(pdfCell("¥${String.format("%,d", remaining)}", font, align = TextAlignment.RIGHT))
+                budgetTable.addCell(pdfCell("${String.format("%.1f", rate)}%", font, align = TextAlignment.RIGHT))
+            }
+
+            val grandRemaining = grandBudget - grandSpent
+            val grandRate = if (grandBudget > 0) grandSpent.toDouble() / grandBudget * 100.0 else 0.0
+            budgetTable.addCell(pdfCell("合計", font, header = true))
+            budgetTable.addCell(pdfCell("¥${String.format("%,d", grandBudget)}", font, header = true, align = TextAlignment.RIGHT))
+            budgetTable.addCell(pdfCell("¥${String.format("%,d", grandSpent)}", font, header = true, align = TextAlignment.RIGHT))
+            budgetTable.addCell(pdfCell("¥${String.format("%,d", grandRemaining)}", font, header = true, align = TextAlignment.RIGHT))
+            budgetTable.addCell(pdfCell("${String.format("%.1f", grandRate)}%", font, header = true, align = TextAlignment.RIGHT))
+            document.add(budgetTable)
+        }
     }
 
     private fun createJapaneseFont(): PdfFont {
