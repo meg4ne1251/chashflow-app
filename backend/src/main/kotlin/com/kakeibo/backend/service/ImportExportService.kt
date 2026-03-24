@@ -20,6 +20,8 @@ import com.itextpdf.layout.element.Paragraph
 import com.itextpdf.layout.element.Table as PdfTable
 import com.itextpdf.layout.properties.TextAlignment
 import com.itextpdf.layout.properties.UnitValue
+import com.itextpdf.kernel.colors.DeviceRgb
+import com.itextpdf.kernel.pdf.canvas.PdfCanvas
 import org.slf4j.LoggerFactory
 import java.io.*
 import java.time.LocalDate
@@ -50,6 +52,32 @@ class ImportExportService(
     companion object {
         private val MAX_IMPORT_FILE_SIZE = ValidationRules.MAX_IMPORT_FILE_SIZE
         private val MAX_IMPORT_ROWS = ValidationRules.MAX_IMPORT_ROWS
+
+        private val COLOR_TITLE = DeviceRgb(26, 35, 126)
+        private val COLOR_SECTION = DeviceRgb(21, 101, 192)
+        private val COLOR_HEADER_BG = DeviceRgb(33, 150, 243)
+        private val COLOR_INCOME = DeviceRgb(46, 125, 50)
+        private val COLOR_EXPENSE = DeviceRgb(198, 40, 40)
+        private val COLOR_POSITIVE = DeviceRgb(46, 125, 50)
+        private val COLOR_NEGATIVE = DeviceRgb(198, 40, 40)
+        private val COLOR_BUDGET_OK = DeviceRgb(46, 125, 50)
+        private val COLOR_BUDGET_WARN = DeviceRgb(255, 152, 0)
+        private val COLOR_BUDGET_OVER = DeviceRgb(198, 40, 40)
+
+        private val PIE_COLORS = listOf(
+            DeviceRgb(66, 133, 244),
+            DeviceRgb(234, 67, 53),
+            DeviceRgb(251, 188, 4),
+            DeviceRgb(52, 168, 83),
+            DeviceRgb(255, 109, 0),
+            DeviceRgb(171, 71, 188),
+            DeviceRgb(0, 172, 193),
+            DeviceRgb(124, 179, 66),
+            DeviceRgb(236, 64, 122),
+            DeviceRgb(63, 81, 181),
+            DeviceRgb(121, 85, 72),
+            DeviceRgb(158, 158, 158)
+        )
     }
 
     /**
@@ -247,14 +275,14 @@ class ImportExportService(
                     "年月が必要です",
                     listOf(FieldError("year_month", "指定してください"))
                 )
-                writeMonthlyPdfReport(document, font, ym)
+                writeMonthlyPdfReport(document, pdfDoc, font, ym)
             }
             "yearly" -> {
                 val y = year ?: throw ValidationException(
                     "年が必要です",
                     listOf(FieldError("year", "指定してください"))
                 )
-                writeYearlyPdfReport(document, font, y)
+                writeYearlyPdfReport(document, pdfDoc, font, y)
             }
             else -> throw ValidationException(
                 "レポートタイプが不正です",
@@ -609,7 +637,7 @@ class ImportExportService(
         }
     }
 
-    private fun writeMonthlyPdfReport(document: Document, font: PdfFont, yearMonth: String) {
+    private fun writeMonthlyPdfReport(document: Document, pdfDoc: PdfDocument, font: PdfFont, yearMonth: String) {
         val parts = yearMonth.split("-")
         val year = parts[0].toInt()
         val month = parts[1].toInt()
@@ -617,24 +645,31 @@ class ImportExportService(
         val expenseBreakdown = transactionRepository.getCategoryBreakdown(year, month, "expense")
         val incomeBreakdown = transactionRepository.getCategoryBreakdown(year, month, "income")
 
+        // Pre-load categories for colors and names
+        val allCategories = categoryRepository.findAll()
+        val categoryColorMap = allCategories.associate { it[Categories.id] to it[Categories.color] }
+        val categoryNameMap = allCategories.associate { it[Categories.id] to it[Categories.name] }
+
         document.add(
             Paragraph("月次レポート: $yearMonth")
-                .setFont(font).setFontSize(18f)
+                .setFont(font).setFontSize(18f).setFontColor(COLOR_TITLE)
                 .setTextAlignment(TextAlignment.CENTER)
                 .setMarginBottom(20f)
         )
 
         // === 収支サマリー ===
+        val balance = income - expense
+        val balanceColor = if (balance >= 0) COLOR_POSITIVE else COLOR_NEGATIVE
         val summaryTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(1f, 1f)))
             .useAllAvailableWidth().setMarginBottom(20f)
         summaryTable.addHeaderCell(pdfCell("項目", font, header = true))
         summaryTable.addHeaderCell(pdfCell("金額", font, header = true))
         summaryTable.addCell(pdfCell("収入合計", font))
-        summaryTable.addCell(pdfCell("¥${String.format("%,d", income)}", font, align = TextAlignment.RIGHT))
+        summaryTable.addCell(pdfCell("¥${String.format("%,d", income)}", font, align = TextAlignment.RIGHT, textColor = COLOR_INCOME))
         summaryTable.addCell(pdfCell("支出合計", font))
-        summaryTable.addCell(pdfCell("¥${String.format("%,d", expense)}", font, align = TextAlignment.RIGHT))
+        summaryTable.addCell(pdfCell("¥${String.format("%,d", expense)}", font, align = TextAlignment.RIGHT, textColor = COLOR_EXPENSE))
         summaryTable.addCell(pdfCell("収支", font))
-        summaryTable.addCell(pdfCell("¥${String.format("%,d", income - expense)}", font, align = TextAlignment.RIGHT))
+        summaryTable.addCell(pdfCell("¥${String.format("%,d", balance)}", font, align = TextAlignment.RIGHT, textColor = balanceColor))
         document.add(summaryTable)
 
         // === 前月比較 ===
@@ -643,7 +678,7 @@ class ImportExportService(
         val prevYearMonth = String.format("%04d-%02d", prevDate.year, prevDate.monthValue)
         document.add(
             Paragraph("前月比較（$prevYearMonth）")
-                .setFont(font).setFontSize(14f).setMarginBottom(10f)
+                .setFont(font).setFontSize(14f).setFontColor(COLOR_SECTION).setMarginBottom(10f)
         )
         val compTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(1f, 1f, 1f, 1f)))
             .useAllAvailableWidth().setMarginBottom(20f)
@@ -659,10 +694,11 @@ class ImportExportService(
         )) {
             val diff = cur - prev
             val diffStr = "${if (diff >= 0) "+" else ""}${String.format("%,d", diff)}"
+            val diffColor = if (diff >= 0) COLOR_POSITIVE else COLOR_NEGATIVE
             compTable.addCell(pdfCell(label, font))
             compTable.addCell(pdfCell("¥${String.format("%,d", cur)}", font, align = TextAlignment.RIGHT))
             compTable.addCell(pdfCell("¥${String.format("%,d", prev)}", font, align = TextAlignment.RIGHT))
-            compTable.addCell(pdfCell("¥$diffStr", font, align = TextAlignment.RIGHT))
+            compTable.addCell(pdfCell("¥$diffStr", font, align = TextAlignment.RIGHT, textColor = diffColor))
         }
         document.add(compTable)
 
@@ -671,7 +707,7 @@ class ImportExportService(
             val expenseTotal = expenseBreakdown.sumOf { it.third }
             document.add(
                 Paragraph("カテゴリ別支出")
-                    .setFont(font).setFontSize(14f).setMarginBottom(10f)
+                    .setFont(font).setFontSize(14f).setFontColor(COLOR_SECTION).setMarginBottom(10f)
             )
             val breakdownTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(2f, 1f, 1f)))
                 .useAllAvailableWidth().setMarginBottom(20f)
@@ -681,7 +717,7 @@ class ImportExportService(
             for ((_, name, amount) in expenseBreakdown) {
                 val pct = if (expenseTotal > 0) amount.toDouble() / expenseTotal * 100.0 else 0.0
                 breakdownTable.addCell(pdfCell(name, font))
-                breakdownTable.addCell(pdfCell("¥${String.format("%,d", amount)}", font, align = TextAlignment.RIGHT))
+                breakdownTable.addCell(pdfCell("¥${String.format("%,d", amount)}", font, align = TextAlignment.RIGHT, textColor = COLOR_EXPENSE))
                 breakdownTable.addCell(pdfCell("${String.format("%.1f", pct)}%", font, align = TextAlignment.RIGHT))
             }
             document.add(breakdownTable)
@@ -692,7 +728,7 @@ class ImportExportService(
             val incomeTotal = incomeBreakdown.sumOf { it.third }
             document.add(
                 Paragraph("カテゴリ別収入")
-                    .setFont(font).setFontSize(14f).setMarginBottom(10f)
+                    .setFont(font).setFontSize(14f).setFontColor(COLOR_SECTION).setMarginBottom(10f)
             )
             val incomeTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(2f, 1f, 1f)))
                 .useAllAvailableWidth().setMarginBottom(20f)
@@ -702,7 +738,7 @@ class ImportExportService(
             for ((_, name, amount) in incomeBreakdown) {
                 val pct = if (incomeTotal > 0) amount.toDouble() / incomeTotal * 100.0 else 0.0
                 incomeTable.addCell(pdfCell(name, font))
-                incomeTable.addCell(pdfCell("¥${String.format("%,d", amount)}", font, align = TextAlignment.RIGHT))
+                incomeTable.addCell(pdfCell("¥${String.format("%,d", amount)}", font, align = TextAlignment.RIGHT, textColor = COLOR_INCOME))
                 incomeTable.addCell(pdfCell("${String.format("%.1f", pct)}%", font, align = TextAlignment.RIGHT))
             }
             document.add(incomeTable)
@@ -712,12 +748,10 @@ class ImportExportService(
         val budgets = budgetRepository.findByYearMonth(yearMonth)
         if (budgets.isNotEmpty()) {
             val spentByCategory = transactionRepository.sumAllCategoriesByMonth(yearMonth)
-            val allCategories = categoryRepository.findAll()
-            val categoryNameMap = allCategories.associate { it[com.kakeibo.backend.db.Categories.id] to it[com.kakeibo.backend.db.Categories.name] }
 
             document.add(
                 Paragraph("予算消化状況")
-                    .setFont(font).setFontSize(14f).setMarginBottom(10f)
+                    .setFont(font).setFontSize(14f).setFontColor(COLOR_SECTION).setMarginBottom(10f)
             )
             val budgetTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(2f, 1f, 1f, 1f, 1f)))
                 .useAllAvailableWidth()
@@ -730,12 +764,18 @@ class ImportExportService(
             var totalBudget = 0L
             var totalSpent = 0L
             for (row in budgets) {
-                val catId = row[com.kakeibo.backend.db.Budgets.categoryId]
-                val budgetAmount = row[com.kakeibo.backend.db.Budgets.amount]
+                val catId = row[Budgets.categoryId]
+                val budgetAmount = row[Budgets.amount]
                 val spent = spentByCategory[catId] ?: 0L
                 val remaining = budgetAmount - spent
                 val rate = if (budgetAmount > 0) spent.toDouble() / budgetAmount * 100.0 else 0.0
                 val catName = categoryNameMap[catId] ?: "不明"
+                val rateColor = when {
+                    rate > 100.0 -> COLOR_BUDGET_OVER
+                    rate >= 80.0 -> COLOR_BUDGET_WARN
+                    else -> COLOR_BUDGET_OK
+                }
+                val remainingColor = if (remaining < 0) COLOR_NEGATIVE else null
 
                 totalBudget += budgetAmount
                 totalSpent += spent
@@ -743,8 +783,8 @@ class ImportExportService(
                 budgetTable.addCell(pdfCell(catName, font))
                 budgetTable.addCell(pdfCell("¥${String.format("%,d", budgetAmount)}", font, align = TextAlignment.RIGHT))
                 budgetTable.addCell(pdfCell("¥${String.format("%,d", spent)}", font, align = TextAlignment.RIGHT))
-                budgetTable.addCell(pdfCell("¥${String.format("%,d", remaining)}", font, align = TextAlignment.RIGHT))
-                budgetTable.addCell(pdfCell("${String.format("%.1f", rate)}%", font, align = TextAlignment.RIGHT))
+                budgetTable.addCell(pdfCell("¥${String.format("%,d", remaining)}", font, align = TextAlignment.RIGHT, textColor = remainingColor))
+                budgetTable.addCell(pdfCell("${String.format("%.1f", rate)}%", font, align = TextAlignment.RIGHT, textColor = rateColor))
             }
 
             val totalRemaining = totalBudget - totalSpent
@@ -756,15 +796,36 @@ class ImportExportService(
             budgetTable.addCell(pdfCell("${String.format("%.1f", totalRate)}%", font, header = true, align = TextAlignment.RIGHT))
             document.add(budgetTable)
         }
+
+        // === 円グラフページ ===
+        if (expenseBreakdown.isNotEmpty()) {
+            val expenseTotal = expenseBreakdown.sumOf { it.third }
+            val expensePieData = expenseBreakdown.mapIndexed { idx, (catId, name, amount) ->
+                val color = hexToDeviceRgb(categoryColorMap[catId]) ?: PIE_COLORS[idx % PIE_COLORS.size]
+                Triple(name, amount, color)
+            }
+            drawPieChartPage(pdfDoc, font, "支出内訳", expensePieData, expenseTotal)
+        }
+        if (incomeBreakdown.isNotEmpty()) {
+            val incomeTotal = incomeBreakdown.sumOf { it.third }
+            val incomePieData = incomeBreakdown.mapIndexed { idx, (catId, name, amount) ->
+                val color = hexToDeviceRgb(categoryColorMap[catId]) ?: PIE_COLORS[idx % PIE_COLORS.size]
+                Triple(name, amount, color)
+            }
+            drawPieChartPage(pdfDoc, font, "収入内訳", incomePieData, incomeTotal)
+        }
     }
 
-    private fun writeYearlyPdfReport(document: Document, font: PdfFont, year: Int) {
-        // Batch-load monthly summaries to avoid 12 separate queries
+    private fun writeYearlyPdfReport(document: Document, pdfDoc: PdfDocument, font: PdfFont, year: Int) {
+        // Batch-load monthly summaries and categories
         val monthlySummaries = transactionRepository.getYearlyMonthlySummary(year)
+        val allCategories = categoryRepository.findAll()
+        val categoryNameMap = allCategories.associate { it[Categories.id] to it[Categories.name] }
+        val categoryColorMap = allCategories.associate { it[Categories.id] to it[Categories.color] }
 
         document.add(
             Paragraph("年間レポート: ${year}年")
-                .setFont(font).setFontSize(18f)
+                .setFont(font).setFontSize(18f).setFontColor(COLOR_TITLE)
                 .setTextAlignment(TextAlignment.CENTER)
                 .setMarginBottom(20f)
         )
@@ -772,7 +833,7 @@ class ImportExportService(
         // === 月別収支推移 ===
         document.add(
             Paragraph("月別収支推移")
-                .setFont(font).setFontSize(14f).setMarginBottom(10f)
+                .setFont(font).setFontSize(14f).setFontColor(COLOR_SECTION).setMarginBottom(10f)
         )
         val table = PdfTable(UnitValue.createPercentArray(floatArrayOf(1f, 1f, 1f, 1f)))
             .useAllAvailableWidth().setMarginBottom(20f)
@@ -787,10 +848,12 @@ class ImportExportService(
             val (income, expense) = monthlySummaries[month] ?: Pair(0L, 0L)
             totalIncome += income
             totalExpense += expense
+            val monthBalance = income - expense
+            val monthBalColor = if (monthBalance >= 0) COLOR_POSITIVE else COLOR_NEGATIVE
             table.addCell(pdfCell("${month}月", font))
-            table.addCell(pdfCell("¥${String.format("%,d", income)}", font, align = TextAlignment.RIGHT))
-            table.addCell(pdfCell("¥${String.format("%,d", expense)}", font, align = TextAlignment.RIGHT))
-            table.addCell(pdfCell("¥${String.format("%,d", income - expense)}", font, align = TextAlignment.RIGHT))
+            table.addCell(pdfCell("¥${String.format("%,d", income)}", font, align = TextAlignment.RIGHT, textColor = COLOR_INCOME))
+            table.addCell(pdfCell("¥${String.format("%,d", expense)}", font, align = TextAlignment.RIGHT, textColor = COLOR_EXPENSE))
+            table.addCell(pdfCell("¥${String.format("%,d", monthBalance)}", font, align = TextAlignment.RIGHT, textColor = monthBalColor))
         }
 
         table.addCell(pdfCell("合計", font, header = true))
@@ -801,19 +864,17 @@ class ImportExportService(
 
         // === カテゴリ別年間支出 ===
         val yearlySpentByCategory = transactionRepository.sumAllCategoriesByYear(year)
-        if (yearlySpentByCategory.isNotEmpty()) {
-            val allCategories = categoryRepository.findAll()
-            val categoryNameMap = allCategories.associate { it[com.kakeibo.backend.db.Categories.id] to it[com.kakeibo.backend.db.Categories.name] }
+        val sortedCategories = yearlySpentByCategory
+            .filter { (_, total) -> total > 0 }
+            .entries
+            .sortedByDescending { it.value }
 
-            val sortedCategories = yearlySpentByCategory
-                .filter { (_, total) -> total > 0 }
-                .entries
-                .sortedByDescending { it.value }
+        if (sortedCategories.isNotEmpty()) {
             val categoryTotal = sortedCategories.sumOf { it.value }
 
             document.add(
                 Paragraph("カテゴリ別年間支出")
-                    .setFont(font).setFontSize(14f).setMarginBottom(10f)
+                    .setFont(font).setFontSize(14f).setFontColor(COLOR_SECTION).setMarginBottom(10f)
             )
             val catTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(2f, 1f, 1f)))
                 .useAllAvailableWidth().setMarginBottom(20f)
@@ -824,7 +885,7 @@ class ImportExportService(
                 val catName = categoryNameMap[catId] ?: "不明"
                 val pct = if (categoryTotal > 0) amount.toDouble() / categoryTotal * 100.0 else 0.0
                 catTable.addCell(pdfCell(catName, font))
-                catTable.addCell(pdfCell("¥${String.format("%,d", amount)}", font, align = TextAlignment.RIGHT))
+                catTable.addCell(pdfCell("¥${String.format("%,d", amount)}", font, align = TextAlignment.RIGHT, textColor = COLOR_EXPENSE))
                 catTable.addCell(pdfCell("${String.format("%.1f", pct)}%", font, align = TextAlignment.RIGHT))
             }
             catTable.addCell(pdfCell("合計", font, header = true))
@@ -834,12 +895,8 @@ class ImportExportService(
         }
 
         // === 年間予算消化状況 ===
-        // Pre-load all categories and collect budgets for each month
-        val allCategories = categoryRepository.findAll()
-        val categoryNameMap = allCategories.associate { it[com.kakeibo.backend.db.Categories.id] to it[com.kakeibo.backend.db.Categories.name] }
-
         data class BudgetAccum(var totalBudget: Long = 0L, var totalSpent: Long = 0L)
-        val budgetByCategory = mutableMapOf<java.util.UUID, BudgetAccum>()
+        val budgetByCategory = mutableMapOf<UUID, BudgetAccum>()
 
         for (month in 1..12) {
             val ym = String.format("%04d-%02d", year, month)
@@ -847,8 +904,8 @@ class ImportExportService(
             if (budgets.isEmpty()) continue
             val spentByCategory = transactionRepository.sumAllCategoriesByMonth(ym)
             for (row in budgets) {
-                val catId = row[com.kakeibo.backend.db.Budgets.categoryId]
-                val budgetAmount = row[com.kakeibo.backend.db.Budgets.amount]
+                val catId = row[Budgets.categoryId]
+                val budgetAmount = row[Budgets.amount]
                 val spent = spentByCategory[catId] ?: 0L
                 val accum = budgetByCategory.getOrPut(catId) { BudgetAccum() }
                 accum.totalBudget += budgetAmount
@@ -859,7 +916,7 @@ class ImportExportService(
         if (budgetByCategory.isNotEmpty()) {
             document.add(
                 Paragraph("年間予算消化状況")
-                    .setFont(font).setFontSize(14f).setMarginBottom(10f)
+                    .setFont(font).setFontSize(14f).setFontColor(COLOR_SECTION).setMarginBottom(10f)
             )
             val budgetTable = PdfTable(UnitValue.createPercentArray(floatArrayOf(2f, 1f, 1f, 1f, 1f)))
                 .useAllAvailableWidth()
@@ -875,14 +932,20 @@ class ImportExportService(
                 val catName = categoryNameMap[catId] ?: "不明"
                 val remaining = accum.totalBudget - accum.totalSpent
                 val rate = if (accum.totalBudget > 0) accum.totalSpent.toDouble() / accum.totalBudget * 100.0 else 0.0
+                val rateColor = when {
+                    rate > 100.0 -> COLOR_BUDGET_OVER
+                    rate >= 80.0 -> COLOR_BUDGET_WARN
+                    else -> COLOR_BUDGET_OK
+                }
+                val remainingColor = if (remaining < 0) COLOR_NEGATIVE else null
                 grandBudget += accum.totalBudget
                 grandSpent += accum.totalSpent
 
                 budgetTable.addCell(pdfCell(catName, font))
                 budgetTable.addCell(pdfCell("¥${String.format("%,d", accum.totalBudget)}", font, align = TextAlignment.RIGHT))
                 budgetTable.addCell(pdfCell("¥${String.format("%,d", accum.totalSpent)}", font, align = TextAlignment.RIGHT))
-                budgetTable.addCell(pdfCell("¥${String.format("%,d", remaining)}", font, align = TextAlignment.RIGHT))
-                budgetTable.addCell(pdfCell("${String.format("%.1f", rate)}%", font, align = TextAlignment.RIGHT))
+                budgetTable.addCell(pdfCell("¥${String.format("%,d", remaining)}", font, align = TextAlignment.RIGHT, textColor = remainingColor))
+                budgetTable.addCell(pdfCell("${String.format("%.1f", rate)}%", font, align = TextAlignment.RIGHT, textColor = rateColor))
             }
 
             val grandRemaining = grandBudget - grandSpent
@@ -894,6 +957,127 @@ class ImportExportService(
             budgetTable.addCell(pdfCell("${String.format("%.1f", grandRate)}%", font, header = true, align = TextAlignment.RIGHT))
             document.add(budgetTable)
         }
+
+        // === 円グラフページ（カテゴリ別年間支出） ===
+        if (sortedCategories.isNotEmpty()) {
+            val categoryTotal = sortedCategories.sumOf { it.value }
+            val pieData = sortedCategories.mapIndexed { idx, (catId, amount) ->
+                val catName = categoryNameMap[catId] ?: "不明"
+                val color = hexToDeviceRgb(categoryColorMap[catId]) ?: PIE_COLORS[idx % PIE_COLORS.size]
+                Triple(catName, amount, color)
+            }
+            drawPieChartPage(pdfDoc, font, "カテゴリ別年間支出内訳", pieData, categoryTotal)
+        }
+    }
+
+    private fun hexToDeviceRgb(hex: String?): DeviceRgb? {
+        if (hex == null) return null
+        return try {
+            val clean = hex.removePrefix("#")
+            if (clean.length != 6) return null
+            DeviceRgb(
+                clean.substring(0, 2).toInt(16),
+                clean.substring(2, 4).toInt(16),
+                clean.substring(4, 6).toInt(16)
+            )
+        } catch (_: Exception) { null }
+    }
+
+    private fun drawPieChartPage(
+        pdfDoc: PdfDocument,
+        font: PdfFont,
+        title: String,
+        data: List<Triple<String, Long, DeviceRgb>>,
+        total: Long
+    ) {
+        if (data.isEmpty() || total == 0L) return
+
+        val page = pdfDoc.addNewPage()
+        val canvas = PdfCanvas(page)
+        val pw = page.pageSize.width
+        val ph = page.pageSize.height
+
+        // Title
+        val titleSize = 16f
+        val titleWidth = font.getWidth(title, titleSize)
+        canvas.setFillColor(COLOR_SECTION)
+        canvas.beginText()
+            .setFontAndSize(font, titleSize)
+            .moveText(((pw - titleWidth) / 2).toDouble(), (ph - 55).toDouble())
+            .showText(title)
+            .endText()
+
+        // Total amount
+        val totalText = "\u5408\u8a08: \u00a5${String.format("%,d", total)}"
+        val totalSize = 12f
+        val totalWidth = font.getWidth(totalText, totalSize)
+        canvas.setFillColor(DeviceRgb(100, 100, 100))
+        canvas.beginText()
+            .setFontAndSize(font, totalSize)
+            .moveText(((pw - totalWidth) / 2).toDouble(), (ph - 78).toDouble())
+            .showText(totalText)
+            .endText()
+
+        // Pie chart
+        val centerX = pw / 2
+        val centerY = ph - 260
+        val radius = 140f
+
+        canvas.setStrokeColor(DeviceRgb(255, 255, 255))
+        canvas.setLineWidth(2f)
+        var currentAngle = 90.0
+        for ((_, amount, color) in data) {
+            val sweep = amount.toDouble() / total * 360.0
+            if (sweep < 0.1) { currentAngle -= sweep; continue }
+            canvas.setFillColor(color)
+            drawPieSlice(canvas, centerX, centerY, radius, currentAngle, -sweep)
+            canvas.fillStroke()
+            currentAngle -= sweep
+        }
+
+        // Legend
+        var legendY = centerY - radius - 40
+        val colWidth = (pw - 80) / 2
+        val legendX1 = 45f
+        val legendX2 = 45f + colWidth
+        var col = 0
+
+        for ((name, amount, color) in data) {
+            val x = if (col == 0) legendX1 else legendX2
+            val pct = amount.toDouble() / total * 100.0
+            val label = "$name  \u00a5${String.format("%,d", amount)} (${String.format("%.1f", pct)}%)"
+
+            canvas.setFillColor(color)
+            canvas.rectangle(x.toDouble(), (legendY + 1).toDouble(), 10.0, 10.0)
+            canvas.fill()
+
+            canvas.setFillColor(DeviceRgb(51, 51, 51))
+            canvas.beginText()
+                .setFontAndSize(font, 9f)
+                .moveText((x + 15).toDouble(), (legendY + 2).toDouble())
+                .showText(label)
+                .endText()
+
+            col++
+            if (col >= 2) { col = 0; legendY -= 20 }
+        }
+
+        canvas.release()
+    }
+
+    private fun drawPieSlice(canvas: PdfCanvas, cx: Float, cy: Float, radius: Float, startAngle: Double, sweep: Double) {
+        val x1 = (cx - radius).toDouble()
+        val y1 = (cy - radius).toDouble()
+        val x2 = (cx + radius).toDouble()
+        val y2 = (cy + radius).toDouble()
+        val arcPoints = PdfCanvas.bezierArc(x1, y1, x2, y2, startAngle, sweep)
+        if (arcPoints.isEmpty()) return
+        canvas.moveTo(cx.toDouble(), cy.toDouble())
+        canvas.lineTo(arcPoints[0][0], arcPoints[0][1])
+        for (pts in arcPoints) {
+            canvas.curveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7])
+        }
+        canvas.closePath()
     }
 
     private fun createJapaneseFont(): PdfFont {
@@ -915,9 +1099,18 @@ class ImportExportService(
         return PdfFontFactory.createFont("HeiseiKakuGo-W5", "Identity-H")
     }
 
-    private fun pdfCell(text: String, font: PdfFont, header: Boolean = false, align: TextAlignment = TextAlignment.LEFT): Cell {
-        val cell = Cell().add(Paragraph(text).setFont(font))
-        if (header) cell.setBackgroundColor(ColorConstants.LIGHT_GRAY)
+    private fun pdfCell(
+        text: String,
+        font: PdfFont,
+        header: Boolean = false,
+        align: TextAlignment = TextAlignment.LEFT,
+        textColor: DeviceRgb? = null
+    ): Cell {
+        val para = Paragraph(text).setFont(font)
+        if (header) para.setFontColor(ColorConstants.WHITE)
+        if (textColor != null) para.setFontColor(textColor)
+        val cell = Cell().add(para)
+        if (header) cell.setBackgroundColor(COLOR_HEADER_BG)
         cell.setTextAlignment(align)
         return cell
     }
