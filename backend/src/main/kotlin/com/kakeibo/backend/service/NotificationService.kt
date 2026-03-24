@@ -10,6 +10,8 @@ import com.kakeibo.backend.repository.NotificationSettingRepository
 import com.kakeibo.backend.repository.TransactionRepository
 import com.kakeibo.shared.model.NotificationListResponse
 import com.kakeibo.shared.model.NotificationResponse
+import com.kakeibo.shared.model.PaginatedResponse
+import com.kakeibo.shared.model.PaginationInfo
 import org.jetbrains.exposed.sql.ResultRow
 import org.slf4j.LoggerFactory
 import java.time.DayOfWeek
@@ -49,6 +51,26 @@ class NotificationService(
         return NotificationListResponse(
             notifications = rows.map { it.toResponse() },
             unread_count = unreadCount.toInt()
+        )
+    }
+
+    fun getHistory(
+        type: String? = null,
+        isRead: Boolean? = null,
+        page: Int = 1,
+        size: Int = 50
+    ): PaginatedResponse<NotificationResponse> {
+        val (rows, totalCount) = notificationRepository.findAllPaginated(type, isRead, page, size)
+        val totalPages = ((totalCount + size - 1) / size).toInt()
+        return PaginatedResponse(
+            data = rows.map { it.toResponse() },
+            pagination = PaginationInfo(
+                page = page,
+                size = size,
+                total_count = totalCount,
+                total_pages = totalPages,
+                has_next = page < totalPages
+            )
         )
     }
 

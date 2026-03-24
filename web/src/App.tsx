@@ -19,6 +19,7 @@ const RecurringTransactionListPage = lazy(() => import('@/pages/RecurringTransac
 const AnalysisPage = lazy(() => import('@/pages/Analysis/AnalysisPage'));
 const BudgetPage = lazy(() => import('@/pages/Budgets/BudgetPage'));
 const SettingsPage = lazy(() => import('@/pages/Settings/SettingsPage'));
+const NotificationHistoryPage = lazy(() => import('@/pages/Notifications/NotificationHistoryPage'));
 
 function PageLoader() {
   return (
@@ -60,6 +61,9 @@ export default function App() {
             {/* Analytics & Budgets */}
             <Route path="/analysis" element={<AnalysisPage />} />
             <Route path="/budgets" element={<BudgetPage />} />
+
+            {/* Notifications */}
+            <Route path="/notifications" element={<NotificationHistoryPage />} />
 
             {/* Settings */}
             <Route path="/settings" element={<SettingsPage />} />

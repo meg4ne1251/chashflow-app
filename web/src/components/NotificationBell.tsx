@@ -124,6 +124,16 @@ export default function NotificationBell() {
             ))}
           </List>
         )}
+
+        <Divider />
+        <Box sx={{ textAlign: 'center', py: 1 }}>
+          <Button
+            size="small"
+            onClick={() => { handleClose(); navigate('/notifications'); }}
+          >
+            履歴を見る
+          </Button>
+        </Box>
       </Popover>
     </>
   );

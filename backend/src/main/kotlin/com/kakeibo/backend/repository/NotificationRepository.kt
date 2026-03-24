@@ -39,6 +39,23 @@ class NotificationRepository {
             .toList()
     }
 
+    fun findAllPaginated(
+        type: String? = null,
+        isRead: Boolean? = null,
+        page: Int = 1,
+        size: Int = 50
+    ): Pair<List<ResultRow>, Long> = transaction {
+        val query = Notifications.selectAll().apply {
+            type?.let { andWhere { Notifications.type eq it } }
+            isRead?.let { andWhere { Notifications.isRead eq it } }
+        }
+        val totalCount = query.count()
+        query.orderBy(Notifications.createdAt, SortOrder.DESC)
+            .limit(size)
+            .offset(((page - 1) * size).toLong())
+        Pair(query.toList(), totalCount)
+    }
+
     fun markAsRead(id: UUID): Boolean = transaction {
         Notifications.update({ Notifications.id eq id }) {
             it[isRead] = true
