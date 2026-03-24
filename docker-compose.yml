@@ -42,6 +42,7 @@ services:
 
   # --- Discord Bot ---
   bot:
+    profiles: [bot]
     build:
       context: ./bot
       dockerfile: Dockerfile
@@ -50,12 +51,12 @@ services:
       app:
         condition: service_started
     environment:
-      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?DISCORD_BOT_TOKEN is required}
-      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:?DISCORD_GUILD_ID is required}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
       DISCORD_ALLOWED_USER_ID: ${DISCORD_ALLOWED_USER_ID:-}
       API_BASE_URL: http://app:8080
-      CASHFLOW_USERNAME: ${CASHFLOW_USERNAME:?CASHFLOW_USERNAME is required}
-      CASHFLOW_PASSWORD: ${CASHFLOW_PASSWORD:?CASHFLOW_PASSWORD is required}
+      CASHFLOW_USERNAME: ${CASHFLOW_USERNAME:-}
+      CASHFLOW_PASSWORD: ${CASHFLOW_PASSWORD:-}
 
   # --- Nginx (reverse proxy + SPA host) ---
   nginx:
