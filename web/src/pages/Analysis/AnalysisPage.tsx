@@ -13,10 +13,12 @@ import { analyticsApi } from '@/api/analytics';
 import { formatCurrency, getCurrentYearMonth, getCurrentYear } from '@/utils/format';
 import type { CategoryBreakdownItem, MonthlySummaryItem } from '@/types';
 import { CHART_COLORS } from '@/constants';
+import { useMobile } from '@/hooks/useMobile';
 
 type ViewMode = 'monthly' | 'yearly' | 'comparison';
 
 export default function AnalysisPage() {
+  const isMobile = useMobile();
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [yearMonth, setYearMonth] = useState(getCurrentYearMonth());
   const [year, setYear] = useState(getCurrentYear());
@@ -79,23 +81,23 @@ export default function AnalysisPage() {
   }, [yearlyQ.data]);
 
   const renderPie = (data: { name: string; value: number; percentage: number }[], title: string, total?: number) => (
-    <Paper sx={{ p: 2, height: '100%' }}>
-      <Typography variant="h6" gutterBottom>{title}</Typography>
+    <Paper sx={{ p: isMobile ? 1.5 : 2, height: '100%' }}>
+      <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} gutterBottom>{title}</Typography>
       {total != null && <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>合計: {formatCurrency(total)}</Typography>}
       {data.length === 0 ? (
         <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>データがありません</Typography>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: 2 }}>
-          <ResponsiveContainer width="100%" height={280}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+          <ResponsiveContainer width="100%" height={isMobile ? 220 : 280}>
             <PieChart>
-              <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}
-                label={({ name, percentage }: { name?: string; percentage?: number }) => `${name ?? ''} ${(Number(percentage) || 0).toFixed(1)}%`}>
+              <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={isMobile ? 70 : 100}
+                label={isMobile ? undefined : ({ name, percentage }: { name?: string; percentage?: number }) => `${name ?? ''} ${(Number(percentage) || 0).toFixed(1)}%`}>
                 {data.map((entry: { name: string }, i: number) => <Cell key={entry.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
               </Pie>
               <Tooltip formatter={(v: unknown) => formatCurrency(Number(v))} />
             </PieChart>
           </ResponsiveContainer>
-          <Box sx={{ minWidth: 180 }}>
+          <Box sx={{ width: '100%' }}>
             {data.map((d, i) => (
               <Box key={d.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                 <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: CHART_COLORS[i % CHART_COLORS.length], flexShrink: 0 }} />
@@ -111,9 +113,9 @@ export default function AnalysisPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-        <Typography variant="h5" fontWeight={700}>分析</Typography>
-        <ToggleButtonGroup value={viewMode} exclusive onChange={(_, v) => v && setViewMode(v)} size="small">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', mb: isMobile ? 2 : 3, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 1 : 2 }}>
+        {!isMobile && <Typography variant="h5" fontWeight={700}>分析</Typography>}
+        <ToggleButtonGroup value={viewMode} exclusive onChange={(_, v) => v && setViewMode(v)} size="small" fullWidth={isMobile}>
           <ToggleButton value="monthly">月次</ToggleButton>
           <ToggleButton value="yearly">年次</ToggleButton>
           <ToggleButton value="comparison">月比較</ToggleButton>
@@ -155,13 +157,13 @@ export default function AnalysisPage() {
                 <Grid size={{ xs: 12, sm: 4 }}><Card><CardContent><Typography variant="body2" color="text.secondary">年間支出</Typography><Typography variant="h5" color="error.main" fontWeight={700}>{formatCurrency(yearlyQ.data.total_expense)}</Typography></CardContent></Card></Grid>
                 <Grid size={{ xs: 12, sm: 4 }}><Card><CardContent><Typography variant="body2" color="text.secondary">年間貯蓄</Typography><Typography variant="h5" fontWeight={700} color={yearlyQ.data.total_savings >= 0 ? 'success.main' : 'error.main'}>{formatCurrency(yearlyQ.data.total_savings)}</Typography></CardContent></Card></Grid>
               </Grid>
-              <Paper sx={{ p: 2, mb: 3 }}>
-                <Typography variant="h6" gutterBottom>月別推移</Typography>
-                <ResponsiveContainer width="100%" height={350}>
+              <Paper sx={{ p: isMobile ? 1.5 : 2, mb: 3 }}>
+                <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} gutterBottom>月別推移</Typography>
+                <ResponsiveContainer width="100%" height={isMobile ? 250 : 350}>
                   <BarChart data={yearlyBarData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
+                    <XAxis dataKey="name" fontSize={isMobile ? 11 : 12} />
+                    <YAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} fontSize={isMobile ? 11 : 12} width={isMobile ? 40 : 60} />
                     <Tooltip formatter={(v: unknown) => formatCurrency(Number(v))} />
                     <Legend />
                     <Bar dataKey="収入" fill="#4CAF50" />
@@ -169,13 +171,13 @@ export default function AnalysisPage() {
                   </BarChart>
                 </ResponsiveContainer>
               </Paper>
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom>月別収支差額</Typography>
-                <ResponsiveContainer width="100%" height={300}>
+              <Paper sx={{ p: isMobile ? 1.5 : 2 }}>
+                <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} gutterBottom>月別収支差額</Typography>
+                <ResponsiveContainer width="100%" height={isMobile ? 220 : 300}>
                   <LineChart data={yearlyBarData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
+                    <XAxis dataKey="name" fontSize={isMobile ? 11 : 12} />
+                    <YAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} fontSize={isMobile ? 11 : 12} width={isMobile ? 40 : 60} />
                     <Tooltip formatter={(v: unknown) => formatCurrency(Number(v))} />
                     <Line type="monotone" dataKey="差額" stroke="#2196F3" strokeWidth={2} dot={{ r: 4 }} />
                   </LineChart>

@@ -16,8 +16,10 @@ import { analyticsApi } from '@/api/analytics';
 import { formatCurrency, getCurrentYearMonth } from '@/utils/format';
 import { EMPTY_NUMBER } from '@/constants';
 import type { BudgetResponse, CategoryBreakdownItem } from '@/types';
+import { useMobile } from '@/hooks/useMobile';
 
 export default function BudgetPage() {
+  const isMobile = useMobile();
   const queryClient = useQueryClient();
   const [yearMonth, setYearMonth] = useState(getCurrentYearMonth());
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -96,11 +98,11 @@ export default function BudgetPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-        <Typography variant="h5" fontWeight={700}>予算管理</Typography>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <TextField label="年月" type="month" value={yearMonth} onChange={(e) => setYearMonth(e.target.value)} size="small" InputLabelProps={{ shrink: true }} />
-          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>予算追加</Button>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', mb: isMobile ? 2 : 3, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 1 : 2 }}>
+        {!isMobile && <Typography variant="h5" fontWeight={700}>予算管理</Typography>}
+        <Stack direction="row" spacing={1} alignItems="center">
+          <TextField label="年月" type="month" value={yearMonth} onChange={(e) => setYearMonth(e.target.value)} size="small" InputLabelProps={{ shrink: true }} sx={{ flex: isMobile ? 1 : undefined }} />
+          <Button variant="contained" size={isMobile ? 'small' : 'medium'} startIcon={<Add />} onClick={openCreate}>追加</Button>
         </Stack>
       </Box>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
@@ -172,7 +174,7 @@ export default function BudgetPage() {
         </Grid>
       )}
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth fullScreen={isMobile}>
         <DialogTitle>{editing ? '予算の編集' : '予算の設定'}</DialogTitle>
         <DialogContent>
           <Box component="form" id="budget-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
@@ -208,7 +210,7 @@ export default function BudgetPage() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={!!snackMsg} autoHideDuration={3000} onClose={() => setSnackMsg(null)} message={snackMsg} />
+      <Snackbar open={!!snackMsg} autoHideDuration={3000} onClose={() => setSnackMsg(null)} message={snackMsg} sx={isMobile ? { bottom: 72 } : undefined} />
     </Box>
   );
 }

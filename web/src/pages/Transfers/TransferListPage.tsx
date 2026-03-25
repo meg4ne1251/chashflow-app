@@ -7,6 +7,7 @@ import {
   TextField, Stack, FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import { Add, Edit, Delete, SwapHoriz } from '@mui/icons-material';
+import { useMobile } from '@/hooks/useMobile';
 import { useForm, Controller } from 'react-hook-form';
 import { transferSchema, type TransferFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
@@ -18,6 +19,7 @@ import type { TransferResponse } from '@/types';
 import { UNDO_TIMEOUT_MS, EMPTY_NUMBER, DEFAULT_PAGE_SIZE } from '@/constants';
 
 export default function TransferListPage() {
+  const isMobile = useMobile();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TransferResponse | null>(null);
@@ -102,49 +104,87 @@ export default function TransferListPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" fontWeight={700}>振替一覧</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={openCreate}>新規振替</Button>
-      </Box>
+      {!isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h5" fontWeight={700}>振替一覧</Typography>
+          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>新規振替</Button>
+        </Box>
+      )}
+      {isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+          <Button variant="contained" size="small" startIcon={<Add />} onClick={openCreate}>新規振替</Button>
+        </Box>
+      )}
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>日付</TableCell>
-              <TableCell>出金元</TableCell>
-              <TableCell align="center"><SwapHoriz /></TableCell>
-              <TableCell>入金先</TableCell>
-              <TableCell>メモ</TableCell>
-              <TableCell align="right">金額</TableCell>
-              <TableCell align="center">操作</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={7} align="center"><CircularProgress /></TableCell></TableRow>
-            ) : transfers?.length === 0 ? (
-              <TableRow><TableCell colSpan={7} align="center"><Typography color="text.secondary">振替がありません</Typography></TableCell></TableRow>
-            ) : transfers?.map((t) => (
-              <TableRow key={t.id} hover>
-                <TableCell>{formatDate(t.date)}</TableCell>
-                <TableCell>{t.from_account?.name || '-'}</TableCell>
-                <TableCell align="center">→</TableCell>
-                <TableCell>{t.to_account?.name || '-'}</TableCell>
-                <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.memo || '-'}</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(t.amount)}</TableCell>
-                <TableCell align="center">
-                  <IconButton size="small" onClick={() => openEdit(t)}><Edit fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error" onClick={() => handleDelete(t)}><Delete fontSize="small" /></IconButton>
-                </TableCell>
-              </TableRow>
+      {isMobile ? (
+        isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+        ) : transfers?.length === 0 ? (
+          <Typography color="text.secondary" textAlign="center" sx={{ py: 4 }}>振替がありません</Typography>
+        ) : (
+          <Stack spacing={1}>
+            {transfers?.map((t) => (
+              <Paper key={t.id} variant="outlined" sx={{ p: 1.5, cursor: 'pointer', '&:active': { bgcolor: 'action.selected' } }} onClick={() => openEdit(t)}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="body2" fontWeight={600}>{t.from_account?.name || '-'}</Typography>
+                      <SwapHoriz fontSize="small" color="action" />
+                      <Typography variant="body2" fontWeight={600}>{t.to_account?.name || '-'}</Typography>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      {formatDate(t.date)}{t.memo ? ` / ${t.memo}` : ''}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Typography variant="body2" fontWeight={700}>{formatCurrency(t.amount)}</Typography>
+                    <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDelete(t); }}><Delete fontSize="small" /></IconButton>
+                  </Box>
+                </Box>
+              </Paper>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </Stack>
+        )
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>日付</TableCell>
+                <TableCell>出金元</TableCell>
+                <TableCell align="center"><SwapHoriz /></TableCell>
+                <TableCell>入金先</TableCell>
+                <TableCell>メモ</TableCell>
+                <TableCell align="right">金額</TableCell>
+                <TableCell align="center">操作</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={7} align="center"><CircularProgress /></TableCell></TableRow>
+              ) : transfers?.length === 0 ? (
+                <TableRow><TableCell colSpan={7} align="center"><Typography color="text.secondary">振替がありません</Typography></TableCell></TableRow>
+              ) : transfers?.map((t) => (
+                <TableRow key={t.id} hover>
+                  <TableCell>{formatDate(t.date)}</TableCell>
+                  <TableCell>{t.from_account?.name || '-'}</TableCell>
+                  <TableCell align="center">→</TableCell>
+                  <TableCell>{t.to_account?.name || '-'}</TableCell>
+                  <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.memo || '-'}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(t.amount)}</TableCell>
+                  <TableCell align="center">
+                    <IconButton size="small" onClick={() => openEdit(t)}><Edit fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => handleDelete(t)}><Delete fontSize="small" /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
         <DialogTitle>{editing ? '振替の編集' : '新規振替'}</DialogTitle>
         <DialogContent>
           <Box component="form" id="transfer-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
@@ -184,6 +224,7 @@ export default function TransferListPage() {
             元に戻す
           </Button>
         }
+        sx={isMobile ? { bottom: 72 } : undefined}
       />
     </Box>
   );

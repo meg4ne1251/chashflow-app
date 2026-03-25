@@ -20,6 +20,7 @@ const AnalysisPage = lazy(() => import('@/pages/Analysis/AnalysisPage'));
 const BudgetPage = lazy(() => import('@/pages/Budgets/BudgetPage'));
 const SettingsPage = lazy(() => import('@/pages/Settings/SettingsPage'));
 const NotificationHistoryPage = lazy(() => import('@/pages/Notifications/NotificationHistoryPage'));
+const MoreMenuPage = lazy(() => import('@/pages/More/MoreMenuPage'));
 
 function PageLoader() {
   return (
@@ -67,6 +68,9 @@ export default function App() {
 
             {/* Settings */}
             <Route path="/settings" element={<SettingsPage />} />
+
+            {/* Mobile more menu */}
+            <Route path="/more" element={<MoreMenuPage />} />
           </Route>
         </Route>
 

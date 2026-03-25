@@ -6,6 +6,7 @@ import {
   TableRow, TextField, Typography, Paper, Alert, Stack, CircularProgress,
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
+import { useMobile } from '@/hooks/useMobile';
 import { useForm } from 'react-hook-form';
 import { zodFormResolver } from '@/validation/resolver';
 import { tagSchema, type TagFormData } from '@/validation/schemas';
@@ -14,6 +15,7 @@ import { transactionApi } from '@/api/transactions';
 import type { TagResponse } from '@/types';
 
 export default function TagListPage() {
+  const isMobile = useMobile();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TagResponse | null>(null);
@@ -55,49 +57,77 @@ export default function TagListPage() {
 
   const onSubmit = (data: TagFormData) => { setError(null); editing ? updateMutation.mutate(data) : createMutation.mutate(data); };
 
+  const handleDeleteClick = async (t: TagResponse) => {
+    setDeleteConfirm(t);
+    setDeleteTagTxCount(null);
+    try {
+      const res = await transactionApi.list({ tag_ids: t.id, size: 1 });
+      setDeleteTagTxCount(res.data.pagination.total_count ?? 0);
+    } catch {
+      setDeleteTagTxCount(0);
+    }
+  };
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" fontWeight={700}>タグ管理</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={openCreate}>追加</Button>
-      </Box>
+      {!isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h5" fontWeight={700}>タグ管理</Typography>
+          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>追加</Button>
+        </Box>
+      )}
+      {isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+          <Button variant="contained" size="small" startIcon={<Add />} onClick={openCreate}>追加</Button>
+        </Box>
+      )}
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>カラー</TableCell>
-              <TableCell>名前</TableCell>
-              <TableCell align="center">操作</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={3} align="center"><CircularProgress /></TableCell></TableRow>
-            ) : tags?.map((t) => (
-              <TableRow key={t.id} hover>
-                <TableCell>{t.color && <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: t.color }} />}</TableCell>
-                <TableCell>{t.name}</TableCell>
-                <TableCell align="center">
-                  <IconButton size="small" onClick={() => openEdit(t)}><Edit fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error" onClick={async () => {
-                    setDeleteConfirm(t);
-                    setDeleteTagTxCount(null);
-                    try {
-                      const res = await transactionApi.list({ tag_ids: t.id, size: 1 });
-                      setDeleteTagTxCount(res.data.pagination.total_count ?? 0);
-                    } catch {
-                      setDeleteTagTxCount(0);
-                    }
-                  }}><Delete fontSize="small" /></IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      {isMobile ? (
+        isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+        ) : (
+          <Stack spacing={1}>
+            {tags?.map((t) => (
+              <Paper key={t.id} variant="outlined" sx={{ p: 1.5, cursor: 'pointer', '&:active': { bgcolor: 'action.selected' } }} onClick={() => openEdit(t)}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  {t.color && <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: t.color, flexShrink: 0 }} />}
+                  <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }}>{t.name}</Typography>
+                  <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDeleteClick(t); }}><Delete fontSize="small" /></IconButton>
+                </Box>
+              </Paper>
+            ))}
+          </Stack>
+        )
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>カラー</TableCell>
+                <TableCell>名前</TableCell>
+                <TableCell align="center">操作</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={3} align="center"><CircularProgress /></TableCell></TableRow>
+              ) : tags?.map((t) => (
+                <TableRow key={t.id} hover>
+                  <TableCell>{t.color && <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: t.color }} />}</TableCell>
+                  <TableCell>{t.name}</TableCell>
+                  <TableCell align="center">
+                    <IconButton size="small" onClick={() => openEdit(t)}><Edit fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => handleDeleteClick(t)}><Delete fontSize="small" /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
         <DialogTitle>{editing ? 'タグの編集' : 'タグの追加'}</DialogTitle>
         <DialogContent>
           <Box component="form" id="tag-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>

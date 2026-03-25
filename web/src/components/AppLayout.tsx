@@ -40,6 +40,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useUiStore } from '@/stores/uiStore';
 import type { ThemeMode } from '@/types';
 import NotificationBell from './NotificationBell';
+import MobileBottomNav, { MOBILE_BOTTOM_NAV_HEIGHT } from './MobileBottomNav';
 
 const DRAWER_WIDTH = 260;
 
@@ -82,7 +83,10 @@ export default function AppLayout() {
   const { logout, username } = useAuthStore();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const allNavItems = [...mainNavItems, ...masterNavItems, ...analysisNavItems, ...settingsNavItems];
+  const allNavItems = [
+    ...mainNavItems, ...masterNavItems, ...analysisNavItems, ...settingsNavItems,
+    { label: 'その他', path: '/more', icon: null },
+  ];
 
   const pageTitle = useMemo(
     () => allNavItems.find((i) => i.path === location.pathname)?.label ?? '家計簿',
@@ -91,7 +95,6 @@ export default function AppLayout() {
 
   const handleNavClick = (path: string) => {
     navigate(path);
-    if (isMobile) setSidebarOpen(false);
   };
 
   const handleLogout = async () => {
@@ -150,13 +153,60 @@ export default function AppLayout() {
     </Box>
   );
 
+  // Mobile layout
+  if (isMobile) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <AppBar position="fixed" color="default" elevation={1}>
+          <Toolbar>
+            <Typography variant="h6" noWrap sx={{ flexGrow: 1 }} fontWeight={700}>
+              {pageTitle}
+            </Typography>
+            <IconButton onClick={cycleTheme} size="small" title={`テーマ: ${themeMode}`}>
+              {themeIcon}
+            </IconButton>
+            <NotificationBell />
+            <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} size="small">
+              <AccountCircle />
+            </IconButton>
+            <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
+              <MenuItem disabled>
+                <Typography variant="body2">{username || 'ユーザー'}</Typography>
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <ListItemIcon><Logout fontSize="small" /></ListItemIcon>
+                ログアウト
+              </MenuItem>
+            </Menu>
+          </Toolbar>
+        </AppBar>
+
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: 2,
+            pb: `${MOBILE_BOTTOM_NAV_HEIGHT + 16}px`,
+          }}
+        >
+          <Toolbar />
+          <Outlet />
+        </Box>
+
+        <MobileBottomNav />
+      </Box>
+    );
+  }
+
+  // Desktop layout
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <AppBar
         position="fixed"
         sx={{
           zIndex: (t) => t.zIndex.drawer + 1,
-          ...((!isMobile && sidebarOpen) && {
+          ...(sidebarOpen && {
             width: `calc(100% - ${DRAWER_WIDTH}px)`,
             ml: `${DRAWER_WIDTH}px`,
           }),
@@ -192,8 +242,8 @@ export default function AppLayout() {
       </AppBar>
 
       <Drawer
-        variant={isMobile ? 'temporary' : 'persistent'}
-        open={isMobile ? sidebarOpen : sidebarOpen}
+        variant="persistent"
+        open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         sx={{
           width: DRAWER_WIDTH,
@@ -213,8 +263,8 @@ export default function AppLayout() {
           flexGrow: 1,
           p: 3,
           transition: 'margin 0.3s',
-          ml: !isMobile && sidebarOpen ? 0 : `-${DRAWER_WIDTH}px`,
-          width: !isMobile && sidebarOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%',
+          ml: sidebarOpen ? 0 : `-${DRAWER_WIDTH}px`,
+          width: sidebarOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%',
         }}
       >
         <Toolbar />

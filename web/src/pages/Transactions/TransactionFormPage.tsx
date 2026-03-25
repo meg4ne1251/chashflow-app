@@ -30,8 +30,10 @@ import { tagApi } from '@/api/tags';
 import { suggestionApi } from '@/api/suggestions';
 import { getNow } from '@/utils/format';
 import { DEBOUNCE_DELAY_MS, AUTO_COMPLETE_CONFIDENCE_THRESHOLD, MEMO_SUGGESTION_MIN_LENGTH } from '@/constants';
+import { useMobile } from '@/hooks/useMobile';
 
 export default function TransactionFormPage() {
+  const isMobile = useMobile();
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id;
   const navigate = useNavigate();
@@ -222,10 +224,12 @@ export default function TransactionFormPage() {
   const filteredCategories = categories?.filter((c) => c.type === selectedType) || [];
 
   return (
-    <Box sx={{ maxWidth: 600, mx: 'auto' }}>
-      <Typography variant="h5" fontWeight={700} gutterBottom>
-        {isEdit ? '取引の編集' : '新規取引'}
-      </Typography>
+    <Box sx={{ maxWidth: isMobile ? '100%' : 600, mx: 'auto' }}>
+      {!isMobile && (
+        <Typography variant="h5" fontWeight={700} gutterBottom>
+          {isEdit ? '取引の編集' : '新規取引'}
+        </Typography>
+      )}
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 

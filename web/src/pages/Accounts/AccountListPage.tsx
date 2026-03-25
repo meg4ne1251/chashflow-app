@@ -8,6 +8,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import { Add, Edit, Delete, AccountBalance } from '@mui/icons-material';
+import { useMobile } from '@/hooks/useMobile';
 import { useForm, Controller } from 'react-hook-form';
 import { accountSchema, type AccountFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
@@ -18,6 +19,7 @@ import { FALLBACK_EXPENSE_CATEGORY_ID, FALLBACK_INCOME_CATEGORY_ID } from '@/con
 import type { AccountResponse } from '@/types';
 
 export default function AccountListPage() {
+  const isMobile = useMobile();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<AccountResponse | null>(null);
@@ -115,49 +117,84 @@ export default function AccountListPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" fontWeight={700}>決済手段管理</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={openCreate}>追加</Button>
-      </Box>
+      {!isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h5" fontWeight={700}>決済手段管理</Typography>
+          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>追加</Button>
+        </Box>
+      )}
+      {isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+          <Button variant="contained" size="small" startIcon={<Add />} onClick={openCreate}>追加</Button>
+        </Box>
+      )}
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>名前</TableCell>
-              <TableCell>種別</TableCell>
-              <TableCell align="right">初期残高</TableCell>
-              <TableCell align="right">現在の残高</TableCell>
-              <TableCell>表示順</TableCell>
-              <TableCell align="center">操作</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={6} align="center"><CircularProgress /></TableCell></TableRow>
-            ) : accounts?.map((a) => (
-              <TableRow key={a.id} hover>
-                <TableCell>{a.name}</TableCell>
-                <TableCell><Chip size="small" label={accountTypeLabels[a.type] || a.type} variant="outlined" /></TableCell>
-                <TableCell align="right">{formatCurrency(a.initial_balance)}</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600, color: a.balance >= 0 ? 'success.main' : 'error.main' }}>
-                  {formatCurrency(a.balance)}
-                </TableCell>
-                <TableCell>{a.sort_order}</TableCell>
-                <TableCell align="center">
-                  <Tooltip title="残高調整"><IconButton size="small" color="primary" onClick={() => openAdjust(a)}><AccountBalance fontSize="small" /></IconButton></Tooltip>
-                  <IconButton size="small" onClick={() => openEdit(a)}><Edit fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error" onClick={() => setDeleteConfirm(a)}><Delete fontSize="small" /></IconButton>
-                </TableCell>
-              </TableRow>
+      {isMobile ? (
+        isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+        ) : (
+          <Stack spacing={1}>
+            {accounts?.map((a) => (
+              <Paper key={a.id} variant="outlined" sx={{ p: 1.5, cursor: 'pointer', '&:active': { bgcolor: 'action.selected' } }} onClick={() => openEdit(a)}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" fontWeight={600}>{a.name}</Typography>
+                      <Chip size="small" label={accountTypeLabels[a.type] || a.type} variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                    </Box>
+                    <Typography variant="body1" fontWeight={700} sx={{ color: a.balance >= 0 ? 'success.main' : 'error.main', mt: 0.25 }}>
+                      {formatCurrency(a.balance)}
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" spacing={0}>
+                    <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); openAdjust(a); }}><AccountBalance fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteConfirm(a); }}><Delete fontSize="small" /></IconButton>
+                  </Stack>
+                </Box>
+              </Paper>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </Stack>
+        )
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>名前</TableCell>
+                <TableCell>種別</TableCell>
+                <TableCell align="right">初期残高</TableCell>
+                <TableCell align="right">現在の残高</TableCell>
+                <TableCell>表示順</TableCell>
+                <TableCell align="center">操作</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={6} align="center"><CircularProgress /></TableCell></TableRow>
+              ) : accounts?.map((a) => (
+                <TableRow key={a.id} hover>
+                  <TableCell>{a.name}</TableCell>
+                  <TableCell><Chip size="small" label={accountTypeLabels[a.type] || a.type} variant="outlined" /></TableCell>
+                  <TableCell align="right">{formatCurrency(a.initial_balance)}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600, color: a.balance >= 0 ? 'success.main' : 'error.main' }}>
+                    {formatCurrency(a.balance)}
+                  </TableCell>
+                  <TableCell>{a.sort_order}</TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="残高調整"><IconButton size="small" color="primary" onClick={() => openAdjust(a)}><AccountBalance fontSize="small" /></IconButton></Tooltip>
+                    <IconButton size="small" onClick={() => openEdit(a)}><Edit fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setDeleteConfirm(a)}><Delete fontSize="small" /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
         <DialogTitle>{editing ? '決済手段の編集' : '決済手段の追加'}</DialogTitle>
         <DialogContent>
           <Box component="form" id="account-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>

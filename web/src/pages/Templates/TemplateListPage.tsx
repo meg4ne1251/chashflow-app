@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import { Add, Edit, Delete, PlayArrow } from '@mui/icons-material';
+import { useMobile } from '@/hooks/useMobile';
 import { useForm, Controller } from 'react-hook-form';
 import { templateSchema, type TemplateFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
@@ -20,6 +21,7 @@ import { formatCurrency, formatDateTime } from '@/utils/format';
 import type { TemplateResponse } from '@/types';
 
 export default function TemplateListPage() {
+  const isMobile = useMobile();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -72,53 +74,90 @@ export default function TemplateListPage() {
 
   const onSubmit = (data: TemplateFormData) => { setError(null); editing ? updateMutation.mutate(data) : createMutation.mutate(data); };
 
+  const handleUseTemplate = (t: TemplateResponse) => {
+    templateApi.use(t.id).catch((err) => {
+      console.warn('Failed to record template usage:', err);
+    });
+    navigate('/transactions/new', { state: { template: t } });
+  };
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" fontWeight={700}>テンプレート管理</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={openCreate}>追加</Button>
-      </Box>
+      {!isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h5" fontWeight={700}>テンプレート管理</Typography>
+          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>追加</Button>
+        </Box>
+      )}
+      {isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+          <Button variant="contained" size="small" startIcon={<Add />} onClick={openCreate}>追加</Button>
+        </Box>
+      )}
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>名前</TableCell>
-              <TableCell>種別</TableCell>
-              <TableCell align="right">金額</TableCell>
-              <TableCell>使用回数</TableCell>
-              <TableCell>最終使用</TableCell>
-              <TableCell align="center">操作</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={6} align="center"><CircularProgress /></TableCell></TableRow>
-            ) : templates?.map((t) => (
-              <TableRow key={t.id} hover>
-                <TableCell>{t.name}</TableCell>
-                <TableCell><Chip size="small" label={t.type === 'income' ? '収入' : '支出'} color={t.type === 'income' ? 'success' : 'error'} variant="outlined" /></TableCell>
-                <TableCell align="right">{t.amount ? formatCurrency(t.amount) : '-'}</TableCell>
-                <TableCell>{t.use_count}回</TableCell>
-                <TableCell>{t.last_used_at ? formatDateTime(t.last_used_at) : '-'}</TableCell>
-                <TableCell align="center">
-                  <Tooltip title="この内容で取引を登録"><IconButton size="small" color="primary" onClick={() => {
-                    templateApi.use(t.id).catch((err) => {
-                      console.warn('Failed to record template usage:', err);
-                    });
-                    navigate('/transactions/new', { state: { template: t } });
-                  }}><PlayArrow fontSize="small" /></IconButton></Tooltip>
-                  <IconButton size="small" onClick={() => openEdit(t)}><Edit fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error" onClick={() => setDeleteConfirm(t)}><Delete fontSize="small" /></IconButton>
-                </TableCell>
-              </TableRow>
+      {isMobile ? (
+        isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+        ) : (
+          <Stack spacing={1}>
+            {templates?.map((t) => (
+              <Paper key={t.id} variant="outlined" sx={{ p: 1.5, cursor: 'pointer', '&:active': { bgcolor: 'action.selected' } }} onClick={() => openEdit(t)}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="body2" fontWeight={600}>{t.name}</Typography>
+                      <Chip size="small" label={t.type === 'income' ? '収入' : '支出'} color={t.type === 'income' ? 'success' : 'error'} variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      {t.amount ? formatCurrency(t.amount) : '金額未設定'} / {t.use_count}回使用
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" spacing={0}>
+                    <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); handleUseTemplate(t); }}><PlayArrow fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteConfirm(t); }}><Delete fontSize="small" /></IconButton>
+                  </Stack>
+                </Box>
+              </Paper>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </Stack>
+        )
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>名前</TableCell>
+                <TableCell>種別</TableCell>
+                <TableCell align="right">金額</TableCell>
+                <TableCell>使用回数</TableCell>
+                <TableCell>最終使用</TableCell>
+                <TableCell align="center">操作</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={6} align="center"><CircularProgress /></TableCell></TableRow>
+              ) : templates?.map((t) => (
+                <TableRow key={t.id} hover>
+                  <TableCell>{t.name}</TableCell>
+                  <TableCell><Chip size="small" label={t.type === 'income' ? '収入' : '支出'} color={t.type === 'income' ? 'success' : 'error'} variant="outlined" /></TableCell>
+                  <TableCell align="right">{t.amount ? formatCurrency(t.amount) : '-'}</TableCell>
+                  <TableCell>{t.use_count}回</TableCell>
+                  <TableCell>{t.last_used_at ? formatDateTime(t.last_used_at) : '-'}</TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="この内容で取引を登録"><IconButton size="small" color="primary" onClick={() => handleUseTemplate(t)}><PlayArrow fontSize="small" /></IconButton></Tooltip>
+                    <IconButton size="small" onClick={() => openEdit(t)}><Edit fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setDeleteConfirm(t)}><Delete fontSize="small" /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
         <DialogTitle>{editing ? 'テンプレートの編集' : 'テンプレートの追加'}</DialogTitle>
         <DialogContent>
           <Box component="form" id="template-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>

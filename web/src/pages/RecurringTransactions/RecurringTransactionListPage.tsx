@@ -8,6 +8,7 @@ import {
   Chip, Switch, FormControlLabel,
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
+import { useMobile } from '@/hooks/useMobile';
 import { useForm, Controller } from 'react-hook-form';
 import { recurringTransactionSchema, type RecurringTransactionFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
@@ -19,6 +20,7 @@ import { EMPTY_NUMBER } from '@/constants';
 import type { RecurringTransactionResponse } from '@/types';
 
 export default function RecurringTransactionListPage() {
+  const isMobile = useMobile();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<RecurringTransactionResponse | null>(null);
@@ -107,55 +109,94 @@ export default function RecurringTransactionListPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" fontWeight={700}>定期取引</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={openCreate}>新規定期取引</Button>
-      </Box>
+      {!isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h5" fontWeight={700}>定期取引</Typography>
+          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>新規定期取引</Button>
+        </Box>
+      )}
+      {isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+          <Button variant="contained" size="small" startIcon={<Add />} onClick={openCreate}>追加</Button>
+        </Box>
+      )}
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>種別</TableCell>
-              <TableCell>名前</TableCell>
-              <TableCell>カテゴリ</TableCell>
-              <TableCell>口座</TableCell>
-              <TableCell>頻度</TableCell>
-              <TableCell>メモ</TableCell>
-              <TableCell align="right">金額</TableCell>
-              <TableCell align="center">有効</TableCell>
-              <TableCell>次回実行</TableCell>
-              <TableCell align="center">操作</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={10} align="center"><CircularProgress /></TableCell></TableRow>
-            ) : items?.length === 0 ? (
-              <TableRow><TableCell colSpan={10} align="center"><Typography color="text.secondary">定期取引がありません</Typography></TableCell></TableRow>
-            ) : items?.map((r) => (
-              <TableRow key={r.id} hover sx={{ opacity: r.is_active ? 1 : 0.5 }}>
-                <TableCell><Chip label={r.type === 'income' ? '収入' : '支出'} color={r.type === 'income' ? 'success' : 'error'} size="small" /></TableCell>
-                <TableCell sx={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name || '-'}</TableCell>
-                <TableCell>{getCategoryName(r.category_id)}</TableCell>
-                <TableCell>{getAccountName(r.account_id)}</TableCell>
-                <TableCell>{freqLabel(r)}</TableCell>
-                <TableCell sx={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.memo || '-'}</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600, color: r.type === 'income' ? 'success.main' : 'error.main' }}>{formatCurrency(r.amount)}</TableCell>
-                <TableCell align="center"><Switch checked={r.is_active} size="small" onChange={() => toggleMutation.mutate(r)} /></TableCell>
-                <TableCell>{r.next_execution_date ? formatDate(r.next_execution_date) : '-'}</TableCell>
-                <TableCell align="center">
-                  <IconButton size="small" onClick={() => openEdit(r)}><Edit fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error" onClick={() => setDeleteConfirm(r)}><Delete fontSize="small" /></IconButton>
-                </TableCell>
-              </TableRow>
+      {isMobile ? (
+        isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+        ) : items?.length === 0 ? (
+          <Typography color="text.secondary" textAlign="center" sx={{ py: 4 }}>定期取引がありません</Typography>
+        ) : (
+          <Stack spacing={1}>
+            {items?.map((r) => (
+              <Paper key={r.id} variant="outlined" sx={{ p: 1.5, cursor: 'pointer', opacity: r.is_active ? 1 : 0.5, '&:active': { bgcolor: 'action.selected' } }} onClick={() => openEdit(r)}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="body2" fontWeight={600}>{r.name || getCategoryName(r.category_id)}</Typography>
+                      <Chip size="small" label={r.type === 'income' ? '収入' : '支出'} color={r.type === 'income' ? 'success' : 'error'} variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      {freqLabel(r)} / 次回: {r.next_execution_date ? formatDate(r.next_execution_date) : '-'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Typography variant="body2" fontWeight={700} sx={{ color: r.type === 'income' ? 'success.main' : 'error.main' }}>
+                      {formatCurrency(r.amount)}
+                    </Typography>
+                    <Switch checked={r.is_active} size="small" onClick={(e) => e.stopPropagation()} onChange={() => toggleMutation.mutate(r)} />
+                  </Box>
+                </Box>
+              </Paper>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </Stack>
+        )
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>種別</TableCell>
+                <TableCell>名前</TableCell>
+                <TableCell>カテゴリ</TableCell>
+                <TableCell>口座</TableCell>
+                <TableCell>頻度</TableCell>
+                <TableCell>メモ</TableCell>
+                <TableCell align="right">金額</TableCell>
+                <TableCell align="center">有効</TableCell>
+                <TableCell>次回実行</TableCell>
+                <TableCell align="center">操作</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={10} align="center"><CircularProgress /></TableCell></TableRow>
+              ) : items?.length === 0 ? (
+                <TableRow><TableCell colSpan={10} align="center"><Typography color="text.secondary">定期取引がありません</Typography></TableCell></TableRow>
+              ) : items?.map((r) => (
+                <TableRow key={r.id} hover sx={{ opacity: r.is_active ? 1 : 0.5 }}>
+                  <TableCell><Chip label={r.type === 'income' ? '収入' : '支出'} color={r.type === 'income' ? 'success' : 'error'} size="small" /></TableCell>
+                  <TableCell sx={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name || '-'}</TableCell>
+                  <TableCell>{getCategoryName(r.category_id)}</TableCell>
+                  <TableCell>{getAccountName(r.account_id)}</TableCell>
+                  <TableCell>{freqLabel(r)}</TableCell>
+                  <TableCell sx={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.memo || '-'}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600, color: r.type === 'income' ? 'success.main' : 'error.main' }}>{formatCurrency(r.amount)}</TableCell>
+                  <TableCell align="center"><Switch checked={r.is_active} size="small" onChange={() => toggleMutation.mutate(r)} /></TableCell>
+                  <TableCell>{r.next_execution_date ? formatDate(r.next_execution_date) : '-'}</TableCell>
+                  <TableCell align="center">
+                    <IconButton size="small" onClick={() => openEdit(r)}><Edit fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setDeleteConfirm(r)}><Delete fontSize="small" /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
         <DialogTitle>{editing ? '定期取引の編集' : '新規定期取引'}</DialogTitle>
         <DialogContent>
           <Box component="form" id="recurring-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
@@ -234,7 +275,7 @@ export default function RecurringTransactionListPage() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={!!snackMsg} autoHideDuration={3000} onClose={() => setSnackMsg(null)} message={snackMsg} />
+      <Snackbar open={!!snackMsg} autoHideDuration={3000} onClose={() => setSnackMsg(null)} message={snackMsg} sx={isMobile ? { bottom: 72 } : undefined} />
     </Box>
   );
 }

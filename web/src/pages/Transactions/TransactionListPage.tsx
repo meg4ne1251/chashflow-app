@@ -41,6 +41,7 @@ import {
   FilterList as FilterIcon,
   ContentPaste as TemplateIcon,
 } from '@mui/icons-material';
+import { useMobile } from '@/hooks/useMobile';
 import { transactionApi } from '@/api/transactions';
 import { templateApi } from '@/api/templates';
 import { categoryApi } from '@/api/categories';
@@ -52,6 +53,7 @@ import type { TransactionResponse, TemplateResponse } from '@/types';
 import { DEBOUNCE_DELAY_MS, DEFAULT_PAGE_SIZE, UNDO_TIMEOUT_MS } from '@/constants';
 
 export default function TransactionListPage() {
+  const isMobile = useMobile();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const observerRef = useRef<HTMLDivElement>(null);
@@ -213,153 +215,293 @@ export default function TransactionListPage() {
 
   const allTransactions = data?.pages.flatMap((page) => page.data.data) || [];
 
+  // Filter panel (shared between mobile/desktop)
+  const filterPanel = (
+    <Stack direction={isMobile ? 'column' : 'row'} spacing={isMobile ? 1.5 : 2} sx={{ mt: 2 }} flexWrap="wrap" useFlexGap>
+      <FormControl size="small" sx={{ minWidth: 120 }} fullWidth={isMobile}>
+        <InputLabel>種別</InputLabel>
+        <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} label="種別">
+          <MenuItem value="">すべて</MenuItem>
+          <MenuItem value="income">収入</MenuItem>
+          <MenuItem value="expense">支出</MenuItem>
+        </Select>
+      </FormControl>
+      <FormControl size="small" sx={{ minWidth: 150 }} fullWidth={isMobile}>
+        <InputLabel>カテゴリ</InputLabel>
+        <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} label="カテゴリ">
+          <MenuItem value="">すべて</MenuItem>
+          {categories?.filter((c) => !c.deleted_at).map((c) => (
+            <MenuItem key={c.id} value={c.id}>
+              {c.icon && (
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    bgcolor: c.color || 'grey.300',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mr: 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon sx={{ color: '#fff', fontSize: 14 }}>{c.icon}</Icon>
+                </Box>
+              )}
+              {c.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      <FormControl size="small" sx={{ minWidth: 150 }} fullWidth={isMobile}>
+        <InputLabel>決済手段</InputLabel>
+        <Select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} label="決済手段">
+          <MenuItem value="">すべて</MenuItem>
+          {accounts?.filter((a) => !a.deleted_at).map((a) => (
+            <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      <Stack direction="row" spacing={1} sx={{ width: isMobile ? '100%' : 'auto' }}>
+        <TextField
+          size="small"
+          type="date"
+          label="開始日"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          fullWidth={isMobile}
+        />
+        <TextField
+          size="small"
+          type="date"
+          label="終了日"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          fullWidth={isMobile}
+        />
+      </Stack>
+      <FormControl size="small" sx={{ minWidth: 150 }} fullWidth={isMobile}>
+        <InputLabel>タグ</InputLabel>
+        <Select
+          multiple
+          value={tagFilter}
+          onChange={(e) => setTagFilter(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value as string[])}
+          label="タグ"
+          renderValue={(selected) => (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {(selected as string[]).map((id) => {
+                const tag = tags?.find((t) => t.id === id);
+                return <Chip key={id} size="small" label={tag?.name ?? id} />;
+              })}
+            </Box>
+          )}
+        >
+          {tags?.map((t) => (
+            <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      <FormControl size="small" sx={{ minWidth: 150 }} fullWidth={isMobile}>
+        <InputLabel>ソート</InputLabel>
+        <Select value={sortValue} onChange={(e) => setSortValue(e.target.value)} label="ソート">
+          <MenuItem value="date,desc">日付（新しい順）</MenuItem>
+          <MenuItem value="date,asc">日付（古い順）</MenuItem>
+          <MenuItem value="amount,desc">金額（高い順）</MenuItem>
+          <MenuItem value="amount,asc">金額（低い順）</MenuItem>
+        </Select>
+      </FormControl>
+    </Stack>
+  );
+
+  // Mobile transaction card
+  const renderMobileCard = (tx: TransactionResponse) => (
+    <Card
+      key={tx.id}
+      sx={{ mb: 1, cursor: 'pointer', '&:active': { bgcolor: 'action.selected' } }}
+      onClick={() => navigate(`/transactions/${tx.id}/edit`)}
+    >
+      <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Category icon */}
+          {tx.category?.icon ? (
+            <Box
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                bgcolor: tx.category.color || 'grey.300',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Icon sx={{ color: '#fff', fontSize: 20 }}>{tx.category.icon}</Icon>
+            </Box>
+          ) : (
+            <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'grey.200', flexShrink: 0 }} />
+          )}
+
+          {/* Main info */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="body2" fontWeight={600} noWrap>
+                {tx.category?.name || tx.name || '-'}
+              </Typography>
+              <Typography
+                variant="body2"
+                fontWeight={700}
+                sx={{ color: tx.type === 'income' ? 'success.main' : 'error.main', flexShrink: 0, ml: 1 }}
+              >
+                {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+              <Typography variant="caption" color="text.secondary">
+                {formatDateTime(tx.date)}
+              </Typography>
+              {tx.account && (
+                <Typography variant="caption" color="text.secondary">
+                  {tx.account.name}
+                </Typography>
+              )}
+              {tx.memo && (
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ flex: 1 }}>
+                  {tx.memo}
+                </Typography>
+              )}
+            </Box>
+            {tx.tags.length > 0 && (
+              <Box sx={{ mt: 0.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {tx.tags.map((tag) => (
+                  <Chip
+                    key={tag.id}
+                    size="small"
+                    label={tag.name}
+                    sx={{
+                      height: 20,
+                      fontSize: '0.7rem',
+                      ...(tag.color ? { bgcolor: tag.color, color: '#fff' } : {}),
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
+
+          {/* Delete button */}
+          <IconButton
+            size="small"
+            color="error"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDelete(tx);
+            }}
+            sx={{ flexShrink: 0, ml: 0.5 }}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" fontWeight={700}>取引一覧</Typography>
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<TemplateIcon />}
-            onClick={() => setTemplateDialogOpen(true)}
-          >
-            テンプレートから登録
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/transactions/new')}
-          >
-            新規取引
-          </Button>
-        </Stack>
-      </Box>
-
-      {/* Search & Filters */}
-      <Card sx={{ mb: 2 }}>
-        <CardContent>
-          <Stack direction="row" spacing={2} alignItems="center">
+      {isMobile ? (
+        <Box sx={{ mb: 1.5 }}>
+          <Stack direction="row" spacing={1} alignItems="center">
             <TextField
               size="small"
-              placeholder="メモ検索..."
+              placeholder="検索..."
               value={keyword}
               onChange={(e) => handleKeywordChange(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon />
+                    <SearchIcon fontSize="small" />
                   </InputAdornment>
                 ),
               }}
-              sx={{ minWidth: 200 }}
+              sx={{ flex: 1 }}
             />
-            <IconButton onClick={() => setShowFilters(!showFilters)}>
+            <IconButton onClick={() => setShowFilters(!showFilters)} size="small">
               <FilterIcon color={showFilters ? 'primary' : 'inherit'} />
             </IconButton>
+            <IconButton onClick={() => setTemplateDialogOpen(true)} size="small">
+              <TemplateIcon />
+            </IconButton>
           </Stack>
-
-          {showFilters && (
-            <Stack direction="row" spacing={2} sx={{ mt: 2 }} flexWrap="wrap" useFlexGap>
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>種別</InputLabel>
-                <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} label="種別">
-                  <MenuItem value="">すべて</MenuItem>
-                  <MenuItem value="income">収入</MenuItem>
-                  <MenuItem value="expense">支出</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>カテゴリ</InputLabel>
-                <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} label="カテゴリ">
-                  <MenuItem value="">すべて</MenuItem>
-                  {categories?.filter((c) => !c.deleted_at).map((c) => (
-                    <MenuItem key={c.id} value={c.id}>
-                      {c.icon && (
-                        <Box
-                          sx={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: '50%',
-                            bgcolor: c.color || 'grey.300',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            mr: 1,
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Icon sx={{ color: '#fff', fontSize: 14 }}>{c.icon}</Icon>
-                        </Box>
-                      )}
-                      {c.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>決済手段</InputLabel>
-                <Select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} label="決済手段">
-                  <MenuItem value="">すべて</MenuItem>
-                  {accounts?.filter((a) => !a.deleted_at).map((a) => (
-                    <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <TextField
-                size="small"
-                type="date"
-                label="開始日"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                size="small"
-                type="date"
-                label="終了日"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-              />
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>タグ</InputLabel>
-                <Select
-                  multiple
-                  value={tagFilter}
-                  onChange={(e) => setTagFilter(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value as string[])}
-                  label="タグ"
-                  renderValue={(selected) => (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {(selected as string[]).map((id) => {
-                        const tag = tags?.find((t) => t.id === id);
-                        return <Chip key={id} size="small" label={tag?.name ?? id} />;
-                      })}
-                    </Box>
-                  )}
-                >
-                  {tags?.map((t) => (
-                    <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>ソート</InputLabel>
-                <Select value={sortValue} onChange={(e) => setSortValue(e.target.value)} label="ソート">
-                  <MenuItem value="date,desc">日付（新しい順）</MenuItem>
-                  <MenuItem value="date,asc">日付（古い順）</MenuItem>
-                  <MenuItem value="amount,desc">金額（高い順）</MenuItem>
-                  <MenuItem value="amount,asc">金額（低い順）</MenuItem>
-                </Select>
-              </FormControl>
+          {showFilters && filterPanel}
+        </Box>
+      ) : (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h5" fontWeight={700}>取引一覧</Typography>
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                startIcon={<TemplateIcon />}
+                onClick={() => setTemplateDialogOpen(true)}
+              >
+                テンプレートから登録
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/transactions/new')}
+              >
+                新規取引
+              </Button>
             </Stack>
-          )}
-        </CardContent>
-      </Card>
+          </Box>
 
-      {/* Transaction Table */}
+          <Card sx={{ mb: 2 }}>
+            <CardContent>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <TextField
+                  size="small"
+                  placeholder="メモ検索..."
+                  value={keyword}
+                  onChange={(e) => handleKeywordChange(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ minWidth: 200 }}
+                />
+                <IconButton onClick={() => setShowFilters(!showFilters)}>
+                  <FilterIcon color={showFilters ? 'primary' : 'inherit'} />
+                </IconButton>
+              </Stack>
+              {showFilters && filterPanel}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Transaction List */}
       {error ? (
         <Alert severity="error">取引の読み込みに失敗しました</Alert>
+      ) : isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : allTransactions.length === 0 ? (
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography color="text.secondary">取引がありません</Typography>
+        </Box>
+      ) : isMobile ? (
+        <Box>
+          {allTransactions.map(renderMobileCard)}
+        </Box>
       ) : (
         <TableContainer component={Paper}>
           <Table>
@@ -377,98 +519,84 @@ export default function TransactionListPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
-                    <CircularProgress />
+              {allTransactions.map((tx) => (
+                <TableRow key={tx.id} hover>
+                  <TableCell>{formatDateTime(tx.date)}</TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={tx.type === 'income' ? '収入' : '支出'}
+                      color={tx.type === 'income' ? 'success' : 'error'}
+                      variant="outlined"
+                    />
                   </TableCell>
-                </TableRow>
-              ) : allTransactions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
-                    <Typography color="text.secondary">取引がありません</Typography>
+                  <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {tx.name || '-'}
                   </TableCell>
-                </TableRow>
-              ) : (
-                allTransactions.map((tx) => (
-                  <TableRow key={tx.id} hover>
-                    <TableCell>{formatDateTime(tx.date)}</TableCell>
-                    <TableCell>
+                  <TableCell>
+                    {tx.category ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {tx.category.icon && (
+                          <Box
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              bgcolor: tx.category.color || 'grey.300',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Icon sx={{ color: '#fff', fontSize: 16 }}>{tx.category.icon}</Icon>
+                          </Box>
+                        )}
+                        {tx.category.name}
+                      </Box>
+                    ) : '-'}
+                  </TableCell>
+                  <TableCell>{tx.account?.name || '-'}</TableCell>
+                  <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {tx.memo || '-'}
+                  </TableCell>
+                  <TableCell>
+                    {tx.tags.map((tag) => (
                       <Chip
+                        key={tag.id}
                         size="small"
-                        label={tx.type === 'income' ? '収入' : '支出'}
-                        color={tx.type === 'income' ? 'success' : 'error'}
-                        variant="outlined"
+                        label={tag.name}
+                        sx={{
+                          mr: 0.5,
+                          mb: 0.5,
+                          ...(tag.color ? { bgcolor: tag.color, color: '#fff' } : {}),
+                        }}
                       />
-                    </TableCell>
-                    <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {tx.name || '-'}
-                    </TableCell>
-                    <TableCell>
-                      {tx.category ? (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          {tx.category.icon && (
-                            <Box
-                              sx={{
-                                width: 24,
-                                height: 24,
-                                borderRadius: '50%',
-                                bgcolor: tx.category.color || 'grey.300',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0,
-                              }}
-                            >
-                              <Icon sx={{ color: '#fff', fontSize: 16 }}>{tx.category.icon}</Icon>
-                            </Box>
-                          )}
-                          {tx.category.name}
-                        </Box>
-                      ) : '-'}
-                    </TableCell>
-                    <TableCell>{tx.account?.name || '-'}</TableCell>
-                    <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {tx.memo || '-'}
-                    </TableCell>
-                    <TableCell>
-                      {tx.tags.map((tag) => (
-                        <Chip
-                          key={tag.id}
-                          size="small"
-                          label={tag.name}
-                          sx={{
-                            mr: 0.5,
-                            mb: 0.5,
-                            ...(tag.color ? { bgcolor: tag.color, color: '#fff' } : {}),
-                          }}
-                        />
-                      ))}
-                    </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{ fontWeight: 600, color: tx.type === 'income' ? 'success.main' : 'error.main' }}
+                    ))}
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ fontWeight: 600, color: tx.type === 'income' ? 'success.main' : 'error.main' }}
+                  >
+                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                  </TableCell>
+                  <TableCell align="center">
+                    <IconButton
+                      size="small"
+                      onClick={() => navigate(`/transactions/${tx.id}/edit`)}
                     >
-                      {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                    </TableCell>
-                    <TableCell align="center">
-                      <IconButton
-                        size="small"
-                        onClick={() => navigate(`/transactions/${tx.id}/edit`)}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDelete(tx)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleDelete(tx)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
@@ -490,6 +618,7 @@ export default function TransactionListPage() {
             元に戻す
           </Button>
         }
+        sx={isMobile ? { bottom: 72 } : undefined}
       />
 
       {/* Template Selection Dialog */}
@@ -498,6 +627,7 @@ export default function TransactionListPage() {
         onClose={() => setTemplateDialogOpen(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle>テンプレートを選択</DialogTitle>
         {!templates ? (

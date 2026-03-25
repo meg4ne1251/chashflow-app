@@ -28,6 +28,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
+import { useMobile } from '@/hooks/useMobile';
 import { useForm, Controller } from 'react-hook-form';
 import { categorySchema, type CategoryFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
@@ -36,6 +37,7 @@ import type { CategoryResponse } from '@/types';
 import IconPicker from '@/components/IconPicker';
 
 export default function CategoryListPage() {
+  const isMobile = useMobile();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CategoryResponse | null>(null);
@@ -92,65 +94,95 @@ export default function CategoryListPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" fontWeight={700}>カテゴリ管理</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={openCreate}>追加</Button>
-      </Box>
+      {!isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h5" fontWeight={700}>カテゴリ管理</Typography>
+          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>追加</Button>
+        </Box>
+      )}
+      {isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+          <Button variant="contained" size="small" startIcon={<Add />} onClick={openCreate}>追加</Button>
+        </Box>
+      )}
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>アイコン</TableCell>
-              <TableCell>名前</TableCell>
-              <TableCell>種別</TableCell>
-              <TableCell>デフォルト</TableCell>
-              <TableCell>表示順</TableCell>
-              <TableCell align="center">操作</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={6} align="center"><CircularProgress /></TableCell></TableRow>
-            ) : categories?.map((c) => (
-              <TableRow key={c.id} hover>
-                <TableCell>
-                  <Box
-                    sx={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: '50%',
-                      bgcolor: c.color || 'grey.300',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
+      {isMobile ? (
+        isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+        ) : (
+          <Stack spacing={1}>
+            {categories?.map((c) => (
+              <Paper key={c.id} variant="outlined" sx={{ p: 1.5, cursor: 'pointer', '&:active': { bgcolor: 'action.selected' } }} onClick={() => openEdit(c)}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: c.color || 'grey.300', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     {c.icon && <Icon sx={{ color: '#fff', fontSize: 20 }}>{c.icon}</Icon>}
                   </Box>
-                </TableCell>
-                <TableCell>{c.name}</TableCell>
-                <TableCell>
-                  <Chip size="small" label={c.type === 'income' ? '収入' : '支出'} color={c.type === 'income' ? 'success' : 'error'} variant="outlined" />
-                </TableCell>
-                <TableCell>{c.is_default ? 'はい' : '-'}</TableCell>
-                <TableCell>{c.sort_order}</TableCell>
-                <TableCell align="center">
-                  <IconButton size="small" onClick={() => openEdit(c)}><Edit fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error" onClick={() => setDeleteConfirm(c)} disabled={c.is_default}>
-                    <Delete fontSize="small" />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" fontWeight={600}>{c.name}</Typography>
+                    <Chip size="small" label={c.type === 'income' ? '収入' : '支出'} color={c.type === 'income' ? 'success' : 'error'} variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                  </Box>
+                  <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteConfirm(c); }} disabled={c.is_default}><Delete fontSize="small" /></IconButton>
+                </Box>
+              </Paper>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </Stack>
+        )
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>アイコン</TableCell>
+                <TableCell>名前</TableCell>
+                <TableCell>種別</TableCell>
+                <TableCell>デフォルト</TableCell>
+                <TableCell>表示順</TableCell>
+                <TableCell align="center">操作</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={6} align="center"><CircularProgress /></TableCell></TableRow>
+              ) : categories?.map((c) => (
+                <TableRow key={c.id} hover>
+                  <TableCell>
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: '50%',
+                        bgcolor: c.color || 'grey.300',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {c.icon && <Icon sx={{ color: '#fff', fontSize: 20 }}>{c.icon}</Icon>}
+                    </Box>
+                  </TableCell>
+                  <TableCell>{c.name}</TableCell>
+                  <TableCell>
+                    <Chip size="small" label={c.type === 'income' ? '収入' : '支出'} color={c.type === 'income' ? 'success' : 'error'} variant="outlined" />
+                  </TableCell>
+                  <TableCell>{c.is_default ? 'はい' : '-'}</TableCell>
+                  <TableCell>{c.sort_order}</TableCell>
+                  <TableCell align="center">
+                    <IconButton size="small" onClick={() => openEdit(c)}><Edit fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setDeleteConfirm(c)} disabled={c.is_default}>
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
         <DialogTitle>{editing ? 'カテゴリの編集' : 'カテゴリの追加'}</DialogTitle>
         <DialogContent>
           <Box component="form" id="category-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>

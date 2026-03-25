@@ -8,7 +8,9 @@ import {
   Skeleton,
   Alert,
   Chip,
+  Icon,
   LinearProgress,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -24,8 +26,10 @@ import {
 } from '@mui/icons-material';
 import { analyticsApi } from '@/api';
 import { formatCurrency, formatDateTime, formatPercent } from '@/utils/format';
+import { useMobile } from '@/hooks/useMobile';
 
 export default function DashboardPage() {
+  const isMobile = useMobile();
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => analyticsApi.dashboard(),
@@ -40,82 +44,122 @@ export default function DashboardPage() {
   return (
     <Box>
       {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <TrendingUp color="success" />
-                <Typography variant="body2" color="text.secondary">今月の収入</Typography>
-              </Box>
-              {isLoading ? (
-                <Skeleton width="60%" height={40} />
-              ) : data && (
-                <Typography variant="h4" fontWeight={700} color="success.main">
-                  {formatCurrency(data.income_total)}
-                </Typography>
-              )}
-              {data?.month_over_month?.income_change_rate != null && (
-                <Typography variant="body2" color="text.secondary">
-                  前月比 {formatPercent(data.month_over_month.income_change_rate)}
-                  （{formatCurrency(data.month_over_month.income_change)}）
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
+      {isMobile ? (
+        <Card sx={{ mb: 2 }}>
+          <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+            {isLoading ? (
+              <Skeleton height={80} />
+            ) : data && (
+              <Stack spacing={1.5}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <TrendingUp color="success" fontSize="small" />
+                    <Typography variant="body2" color="text.secondary">収入</Typography>
+                  </Box>
+                  <Typography variant="body1" fontWeight={700} color="success.main">
+                    {formatCurrency(data.income_total)}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <TrendingDown color="error" fontSize="small" />
+                    <Typography variant="body2" color="text.secondary">支出</Typography>
+                  </Box>
+                  <Typography variant="body1" fontWeight={700} color="error.main">
+                    {formatCurrency(data.expense_total)}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <AccountBalanceWallet color="primary" fontSize="small" />
+                    <Typography variant="body2" color="text.secondary">収支</Typography>
+                  </Box>
+                  <Typography variant="body1" fontWeight={700} color={data.balance >= 0 ? 'success.main' : 'error.main'}>
+                    {formatCurrency(data.balance)}
+                  </Typography>
+                </Box>
+              </Stack>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <TrendingUp color="success" />
+                  <Typography variant="body2" color="text.secondary">今月の収入</Typography>
+                </Box>
+                {isLoading ? (
+                  <Skeleton width="60%" height={40} />
+                ) : data && (
+                  <Typography variant="h4" fontWeight={700} color="success.main">
+                    {formatCurrency(data.income_total)}
+                  </Typography>
+                )}
+                {data?.month_over_month?.income_change_rate != null && (
+                  <Typography variant="body2" color="text.secondary">
+                    前月比 {formatPercent(data.month_over_month.income_change_rate)}
+                    （{formatCurrency(data.month_over_month.income_change)}）
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <TrendingDown color="error" />
+                  <Typography variant="body2" color="text.secondary">今月の支出</Typography>
+                </Box>
+                {isLoading ? (
+                  <Skeleton width="60%" height={40} />
+                ) : data && (
+                  <Typography variant="h4" fontWeight={700} color="error.main">
+                    {formatCurrency(data.expense_total)}
+                  </Typography>
+                )}
+                {data?.month_over_month?.expense_change_rate != null && (
+                  <Typography variant="body2" color="text.secondary">
+                    前月比 {formatPercent(data.month_over_month.expense_change_rate)}
+                    （{formatCurrency(data.month_over_month.expense_change)}）
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <AccountBalanceWallet color="primary" />
+                  <Typography variant="body2" color="text.secondary">収支バランス</Typography>
+                </Box>
+                {isLoading ? (
+                  <Skeleton width="60%" height={40} />
+                ) : data && (
+                  <Typography
+                    variant="h4"
+                    fontWeight={700}
+                    color={data.balance >= 0 ? 'success.main' : 'error.main'}
+                  >
+                    {formatCurrency(data.balance)}
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <TrendingDown color="error" />
-                <Typography variant="body2" color="text.secondary">今月の支出</Typography>
-              </Box>
-              {isLoading ? (
-                <Skeleton width="60%" height={40} />
-              ) : data && (
-                <Typography variant="h4" fontWeight={700} color="error.main">
-                  {formatCurrency(data.expense_total)}
-                </Typography>
-              )}
-              {data?.month_over_month?.expense_change_rate != null && (
-                <Typography variant="body2" color="text.secondary">
-                  前月比 {formatPercent(data.month_over_month.expense_change_rate)}
-                  （{formatCurrency(data.month_over_month.expense_change)}）
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <AccountBalanceWallet color="primary" />
-                <Typography variant="body2" color="text.secondary">収支バランス</Typography>
-              </Box>
-              {isLoading ? (
-                <Skeleton width="60%" height={40} />
-              ) : data && (
-                <Typography
-                  variant="h4"
-                  fontWeight={700}
-                  color={data.balance >= 0 ? 'success.main' : 'error.main'}
-                >
-                  {formatCurrency(data.balance)}
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      )}
 
-      <Grid container spacing={3}>
+      <Grid container spacing={isMobile ? 2 : 3}>
         {/* Budget Consumption TOP3 */}
         <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>予算消化率 TOP3</Typography>
+              <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} gutterBottom>予算消化率 TOP3</Typography>
               {isLoading ? (
                 <Box>
                   {[0, 1, 2].map((i) => <Skeleton key={i} height={60} sx={{ mb: 1 }} />)}
@@ -169,41 +213,94 @@ export default function DashboardPage() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>直近の取引</Typography>
+              <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} gutterBottom>直近の取引</Typography>
               {isLoading ? (
                 <Box>
                   {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} height={40} sx={{ mb: 1 }} />)}
                 </Box>
               ) : data?.recent_transactions && data.recent_transactions.length > 0 ? (
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>日付</TableCell>
-                        <TableCell>カテゴリ</TableCell>
-                        <TableCell>メモ</TableCell>
-                        <TableCell align="right">金額</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {data.recent_transactions.slice(0, 10).map((tx) => (
-                        <TableRow key={tx.id}>
-                          <TableCell>{formatDateTime(tx.date)}</TableCell>
-                          <TableCell>{tx.category?.name || '-'}</TableCell>
-                          <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {tx.memo || '-'}
-                          </TableCell>
-                          <TableCell
-                            align="right"
-                            sx={{ color: tx.type === 'income' ? 'success.main' : 'error.main', fontWeight: 600 }}
+                isMobile ? (
+                  <Stack spacing={0}>
+                    {data.recent_transactions.slice(0, 10).map((tx) => (
+                      <Box
+                        key={tx.id}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          py: 1,
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                          '&:last-child': { borderBottom: 'none' },
+                        }}
+                      >
+                        {tx.category?.icon ? (
+                          <Box
+                            sx={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: '50%',
+                              bgcolor: tx.category.color || 'grey.300',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
                           >
-                            {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                          </TableCell>
+                            <Icon sx={{ color: '#fff', fontSize: 18 }}>{tx.category.icon}</Icon>
+                          </Box>
+                        ) : (
+                          <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: 'grey.200', flexShrink: 0 }} />
+                        )}
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body2" fontWeight={500} noWrap>
+                            {tx.category?.name || tx.memo || '-'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatDateTime(tx.date)}
+                          </Typography>
+                        </Box>
+                        <Typography
+                          variant="body2"
+                          fontWeight={600}
+                          sx={{ color: tx.type === 'income' ? 'success.main' : 'error.main', flexShrink: 0 }}
+                        >
+                          {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                ) : (
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>日付</TableCell>
+                          <TableCell>カテゴリ</TableCell>
+                          <TableCell>メモ</TableCell>
+                          <TableCell align="right">金額</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </TableHead>
+                      <TableBody>
+                        {data.recent_transactions.slice(0, 10).map((tx) => (
+                          <TableRow key={tx.id}>
+                            <TableCell>{formatDateTime(tx.date)}</TableCell>
+                            <TableCell>{tx.category?.name || '-'}</TableCell>
+                            <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {tx.memo || '-'}
+                            </TableCell>
+                            <TableCell
+                              align="right"
+                              sx={{ color: tx.type === 'income' ? 'success.main' : 'error.main', fontWeight: 600 }}
+                            >
+                              {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )
               ) : (
                 <Typography variant="body2" color="text.secondary">
                   取引がありません
