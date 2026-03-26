@@ -142,6 +142,7 @@ export interface TransactionRequest {
   category_id?: string;
   account_id?: string;
   tag_ids?: string[];
+  is_balance_adjustment?: boolean;
   version?: number;
 }
 
@@ -159,6 +160,7 @@ export interface TransactionResponse {
   account?: AccountResponse | null;
   tags: TagResponse[];
   is_auto_generated: boolean;
+  is_balance_adjustment: boolean;
   recurring_transaction_id?: string | null;
   version: number;
   created_at: string;

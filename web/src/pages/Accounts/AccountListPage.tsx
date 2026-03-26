@@ -96,6 +96,7 @@ export default function AccountListPage() {
     setAdjusting(true);
     try {
       await transactionApi.create({
+        name: '残高調整取引',
         type: diff > 0 ? 'income' : 'expense',
         amount: Math.abs(diff),
         date: getNow(),
@@ -103,6 +104,7 @@ export default function AccountListPage() {
         account_id: adjustTarget.id,
         memo: '残高調整',
         currency: adjustTarget.currency,
+        is_balance_adjustment: true,
       });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });

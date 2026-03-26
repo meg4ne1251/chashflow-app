@@ -134,6 +134,7 @@ data class TransactionRequest(
     val category_id: String? = null,
     val account_id: String? = null,
     val tag_ids: List<String> = emptyList(),
+    val is_balance_adjustment: Boolean = false,
     val version: Int? = null
 )
 
@@ -152,6 +153,7 @@ data class TransactionResponse(
     val account: AccountResponse? = null,
     val tags: List<TagResponse> = emptyList(),
     val is_auto_generated: Boolean,
+    val is_balance_adjustment: Boolean = false,
     val recurring_transaction_id: String? = null,
     val version: Int,
     val created_at: String,
