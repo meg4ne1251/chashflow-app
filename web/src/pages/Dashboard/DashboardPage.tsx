@@ -61,18 +61,32 @@ export default function DashboardPage() {
                     <TrendingUp color="success" fontSize="small" />
                     <Typography variant="body2" color="text.secondary">収入</Typography>
                   </Box>
-                  <Typography variant="body1" fontWeight={700} color="success.main">
-                    {formatCurrency(data.income_total)}
-                  </Typography>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="body1" fontWeight={700} color="success.main">
+                      {formatCurrency(data.income_total)}
+                    </Typography>
+                    {data.month_over_month?.income_change_rate != null && (
+                      <Typography variant="caption" color="text.secondary">
+                        前月比 {formatPercent(data.month_over_month.income_change_rate)}
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <TrendingDown color="error" fontSize="small" />
                     <Typography variant="body2" color="text.secondary">支出</Typography>
                   </Box>
-                  <Typography variant="body1" fontWeight={700} color="error.main">
-                    {formatCurrency(data.expense_total)}
-                  </Typography>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="body1" fontWeight={700} color="error.main">
+                      {formatCurrency(data.expense_total)}
+                    </Typography>
+                    {data.month_over_month?.expense_change_rate != null && (
+                      <Typography variant="caption" color="text.secondary">
+                        前月比 {formatPercent(data.month_over_month.expense_change_rate)}
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

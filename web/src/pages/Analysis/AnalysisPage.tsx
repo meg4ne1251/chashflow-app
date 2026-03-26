@@ -221,7 +221,7 @@ export default function AnalysisPage() {
               </Grid>
 
               {/* MoM Changes Table */}
-              <Typography variant="h6" sx={{ mb: 1 }}>前月比カテゴリ増減</Typography>
+              <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} sx={{ mb: 1 }}>前月比カテゴリ増減</Typography>
               <TableContainer component={Paper} sx={{ mb: 3 }}>
                 <Table size="small">
                   <TableHead>
@@ -248,7 +248,7 @@ export default function AnalysisPage() {
               </TableContainer>
 
               {/* YoY Changes Table */}
-              <Typography variant="h6" sx={{ mb: 1 }}>前年同月比カテゴリ増減</Typography>
+              <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} sx={{ mb: 1 }}>前年同月比カテゴリ増減</Typography>
               <TableContainer component={Paper}>
                 <Table size="small">
                   <TableHead>
