@@ -122,7 +122,7 @@ export default function TransactionFormPage() {
   useEffect(() => {
     if (templateData && !isEdit) {
       reset({
-        name: '',
+        name: templateData.transaction_name || '',
         type: templateData.type,
         amount: templateData.amount ?? undefined,
         date: getNow(),

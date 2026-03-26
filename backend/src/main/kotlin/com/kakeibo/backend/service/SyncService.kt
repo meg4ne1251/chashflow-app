@@ -307,6 +307,7 @@ class SyncService(
     private fun ResultRow.toTemplateResponse() = TemplateResponse(
         id = this[Templates.id].toString(),
         name = this[Templates.name],
+        transaction_name = this[Templates.transactionName],
         type = this[Templates.type],
         amount = this[Templates.amount],
         currency = this[Templates.currency],

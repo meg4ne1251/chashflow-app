@@ -41,27 +41,27 @@ export default function TemplateListPage() {
 
   const form = useForm<TemplateFormData>({
     resolver: zodFormResolver(templateSchema),
-    defaultValues: { name: '', type: 'expense', amount: undefined, currency: 'JPY', category_id: '', account_id: '', memo: '', tag_ids: [] },
+    defaultValues: { name: '', transaction_name: '', type: 'expense', amount: undefined, currency: 'JPY', category_id: '', account_id: '', memo: '', tag_ids: [] },
   });
 
   const selectedType = form.watch('type');
   const filteredCategories = categories?.filter((c) => c.type === selectedType) || [];
 
-  const openCreate = () => { setEditing(null); form.reset({ name: '', type: 'expense', amount: undefined, currency: 'JPY', category_id: '', account_id: '', memo: '', tag_ids: [] }); setDialogOpen(true); };
+  const openCreate = () => { setEditing(null); form.reset({ name: '', transaction_name: '', type: 'expense', amount: undefined, currency: 'JPY', category_id: '', account_id: '', memo: '', tag_ids: [] }); setDialogOpen(true); };
   const openEdit = (t: TemplateResponse) => {
     setEditing(t);
-    form.reset({ name: t.name, type: t.type, amount: t.amount ?? undefined, currency: t.currency, category_id: t.category_id || '', account_id: t.account_id || '', memo: t.memo || '', tag_ids: t.tags.map((tg) => tg.id) });
+    form.reset({ name: t.name, transaction_name: t.transaction_name || '', type: t.type, amount: t.amount ?? undefined, currency: t.currency, category_id: t.category_id || '', account_id: t.account_id || '', memo: t.memo || '', tag_ids: t.tags.map((tg) => tg.id) });
     setDialogOpen(true);
   };
 
   const createMutation = useMutation({
-    mutationFn: (data: TemplateFormData) => templateApi.create({ ...data, amount: data.amount ?? undefined, category_id: data.category_id || undefined, account_id: data.account_id || undefined, memo: data.memo || undefined }),
+    mutationFn: (data: TemplateFormData) => templateApi.create({ ...data, amount: data.amount ?? undefined, transaction_name: data.transaction_name || undefined, category_id: data.category_id || undefined, account_id: data.account_id || undefined, memo: data.memo || undefined }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['templates'] }); setDialogOpen(false); },
     onError: () => setError('テンプレートの作成に失敗しました'),
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: TemplateFormData) => templateApi.update(editing!.id, { ...data, amount: data.amount ?? undefined, category_id: data.category_id || undefined, account_id: data.account_id || undefined, memo: data.memo || undefined, version: editing!.version }),
+    mutationFn: (data: TemplateFormData) => templateApi.update(editing!.id, { ...data, amount: data.amount ?? undefined, transaction_name: data.transaction_name || undefined, category_id: data.category_id || undefined, account_id: data.account_id || undefined, memo: data.memo || undefined, version: editing!.version }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['templates'] }); setDialogOpen(false); },
     onError: () => setError('テンプレートの更新に失敗しました'),
   });
@@ -163,6 +163,7 @@ export default function TemplateListPage() {
           <Box component="form" id="template-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
             <Stack spacing={2}>
               <TextField fullWidth label="テンプレート名" {...form.register('name')} error={!!form.formState.errors.name} helperText={form.formState.errors.name?.message} />
+              <TextField fullWidth label="取引名（任意）" {...form.register('transaction_name')} error={!!form.formState.errors.transaction_name} helperText={form.formState.errors.transaction_name?.message || 'テンプレート使用時に取引の名前として設定されます'} />
               <Controller name="type" control={form.control} render={({ field }) => (
                 <FormControl fullWidth><InputLabel>種別</InputLabel><Select {...field} label="種別" onChange={(e) => { field.onChange(e); form.setValue('category_id', ''); }}><MenuItem value="expense">支出</MenuItem><MenuItem value="income">収入</MenuItem></Select></FormControl>
               )} />

@@ -202,6 +202,7 @@ object Budgets : Table("budgets") {
 object Templates : Table("templates") {
     val id = uuid("id")
     val name = varchar("name", 100)
+    val transactionName = varchar("transaction_name", 100).nullable()
     val type = varchar("type", 10)
     val amount = long("amount").nullable()
     val currency = varchar("currency", 3)

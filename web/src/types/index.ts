@@ -212,6 +212,7 @@ export interface TransferResponse {
 export interface TemplateRequest {
   id?: string;
   name: string;
+  transaction_name?: string;
   type?: TransactionType;
   amount?: number;
   currency?: string;
@@ -225,6 +226,7 @@ export interface TemplateRequest {
 export interface TemplateResponse {
   id: string;
   name: string;
+  transaction_name?: string | null;
   type: TransactionType;
   amount?: number | null;
   currency: string;

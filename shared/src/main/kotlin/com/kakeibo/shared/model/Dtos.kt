@@ -209,6 +209,7 @@ data class TransferResponse(
 data class TemplateRequest(
     val id: String? = null,
     val name: String,
+    val transaction_name: String? = null,
     val type: String = "expense",
     val amount: Long? = null,
     val currency: String = "JPY",
@@ -223,6 +224,7 @@ data class TemplateRequest(
 data class TemplateResponse(
     val id: String,
     val name: String,
+    val transaction_name: String? = null,
     val type: String,
     val amount: Long? = null,
     val currency: String,

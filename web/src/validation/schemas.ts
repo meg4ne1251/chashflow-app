@@ -90,6 +90,7 @@ export const tagSchema = z.object({
 
 export const templateSchema = z.object({
   name: z.string().min(1, 'テンプレート名を入力してください').max(50),
+  transaction_name: z.string().max(100).optional().or(z.literal('')),
   type: z.enum(['income', 'expense']).default('expense'),
   amount: z.preprocess(
     (val) => (typeof val === 'number' && Number.isNaN(val) ? undefined : val),

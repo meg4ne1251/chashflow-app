@@ -21,13 +21,14 @@ class TemplateRepository {
     }
 
     fun create(
-        id: UUID, name: String, type: String, amount: Long?, currency: String,
+        id: UUID, name: String, transactionName: String?, type: String, amount: Long?, currency: String,
         categoryId: UUID?, accountId: UUID?, memo: String?
     ): ResultRow = transaction {
         val now = OffsetDateTime.now()
         Templates.insert {
             it[Templates.id] = id
             it[Templates.name] = name
+            it[Templates.transactionName] = transactionName
             it[Templates.type] = type
             it[Templates.amount] = amount
             it[Templates.currency] = currency
@@ -43,13 +44,14 @@ class TemplateRepository {
     }
 
     fun update(
-        id: UUID, name: String, type: String, amount: Long?, currency: String,
+        id: UUID, name: String, transactionName: String?, type: String, amount: Long?, currency: String,
         categoryId: UUID?, accountId: UUID?, memo: String?, currentVersion: Int
     ): ResultRow? = transaction {
         val updated = Templates.update({
             (Templates.id eq id) and (Templates.version eq currentVersion) and Templates.deletedAt.isNull()
         }) {
             it[Templates.name] = name
+            it[Templates.transactionName] = transactionName
             it[Templates.type] = type
             it[Templates.amount] = amount
             it[Templates.currency] = currency

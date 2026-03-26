@@ -29,6 +29,7 @@ class TemplateService(
             val created = templateRepository.create(
                 id = id,
                 name = request.name.trim(),
+                transactionName = request.transaction_name?.trim(),
                 type = request.type,
                 amount = request.amount,
                 currency = request.currency,
@@ -57,6 +58,7 @@ class TemplateService(
             val updated = templateRepository.update(
                 id = uuid,
                 name = request.name.trim(),
+                transactionName = request.transaction_name?.trim(),
                 type = request.type,
                 amount = request.amount,
                 currency = request.currency,
@@ -100,6 +102,7 @@ class TemplateService(
         return TemplateResponse(
             id = templateId.toString(),
             name = this[Templates.name],
+            transaction_name = this[Templates.transactionName],
             type = this[Templates.type],
             amount = this[Templates.amount],
             currency = this[Templates.currency],
@@ -121,6 +124,10 @@ class TemplateService(
         if (request.name.isBlank()) errors.add(FieldError("name", "テンプレート名を入力してください"))
         if (request.name.length > ValidationRules.TEMPLATE_NAME_MAX_LENGTH)
             errors.add(FieldError("name", "テンプレート名は${ValidationRules.TEMPLATE_NAME_MAX_LENGTH}文字以下で入力してください"))
+        request.transaction_name?.let {
+            if (it.length > ValidationRules.TRANSACTION_NAME_MAX_LENGTH)
+                errors.add(FieldError("transaction_name", "取引名は${ValidationRules.TRANSACTION_NAME_MAX_LENGTH}文字以下で入力してください"))
+        }
         if (request.type !in com.kakeibo.shared.model.TransactionType.entries.map { it.value })
             errors.add(FieldError("type", "種別は income または expense を指定してください"))
         request.amount?.let { amount ->
