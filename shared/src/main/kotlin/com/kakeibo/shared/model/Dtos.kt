@@ -411,7 +411,8 @@ data class DashboardResponse(
     val balance: Long,
     val budget_consumption: List<BudgetConsumption>,
     val month_over_month: MonthComparison,
-    val recent_transactions: List<TransactionResponse>
+    val recent_transactions: List<TransactionResponse>,
+    val account_balances: List<AccountResponse> = emptyList()
 )
 
 @Serializable

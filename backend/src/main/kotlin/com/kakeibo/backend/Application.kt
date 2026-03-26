@@ -59,7 +59,7 @@ fun Application.module() {
     val transferService = TransferService(transferRepository)
     val templateService = TemplateService(templateRepository, templateTagRepository, tagRepository)
     val budgetService = BudgetService(budgetRepository, transactionRepository)
-    val analyticsService = AnalyticsService(transactionRepository, budgetRepository, categoryRepository)
+    val analyticsService = AnalyticsService(transactionRepository, budgetRepository, categoryRepository, accountService)
     val transactionService = TransactionService(
         transactionRepository, transactionTagRepository, transactionHistoryRepository,
         inputPatternRepository, categoryRepository, accountRepository, budgetRepository,

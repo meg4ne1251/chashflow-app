@@ -23,6 +23,11 @@ import {
   TrendingUp,
   TrendingDown,
   AccountBalanceWallet,
+  AccountBalance,
+  CreditCard,
+  Payments,
+  Savings,
+  MoreHoriz,
 } from '@mui/icons-material';
 import { analyticsApi } from '@/api';
 import { formatCurrency, formatDateTime, formatPercent } from '@/utils/format';
@@ -153,6 +158,59 @@ export default function DashboardPage() {
           </Grid>
         </Grid>
       )}
+
+      {/* Account Balances */}
+      <Card sx={{ mb: isMobile ? 2 : 3 }}>
+        <CardContent sx={isMobile ? { py: 1.5, '&:last-child': { pb: 1.5 } } : undefined}>
+          <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} gutterBottom>決済手段別残高</Typography>
+          {isLoading ? (
+            <Box>
+              {[0, 1, 2].map((i) => <Skeleton key={i} height={40} sx={{ mb: 1 }} />)}
+            </Box>
+          ) : data?.account_balances && data.account_balances.length > 0 ? (
+            <Stack spacing={0}>
+              {data.account_balances.map((account) => {
+                const icon = {
+                  cash: <Payments fontSize="small" />,
+                  bank: <AccountBalance fontSize="small" />,
+                  credit_card: <CreditCard fontSize="small" />,
+                  e_money: <Savings fontSize="small" />,
+                  other: <MoreHoriz fontSize="small" />,
+                }[account.type] ?? <AccountBalanceWallet fontSize="small" />;
+
+                return (
+                  <Box
+                    key={account.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      py: 1,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                      '&:last-child': { borderBottom: 'none' },
+                    }}
+                  >
+                    <Box sx={{ color: 'text.secondary', display: 'flex' }}>{icon}</Box>
+                    <Typography variant="body2" sx={{ flex: 1 }}>{account.name}</Typography>
+                    <Typography
+                      variant="body2"
+                      fontWeight={600}
+                      color={account.balance >= 0 ? 'success.main' : 'error.main'}
+                    >
+                      {account.balance >= 0 ? '+' : '-'}{formatCurrency(Math.abs(account.balance))}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Stack>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              決済手段が登録されていません
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
 
       <Grid container spacing={isMobile ? 2 : 3}>
         {/* Budget Consumption TOP3 */}

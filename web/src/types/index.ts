@@ -389,6 +389,7 @@ export interface DashboardResponse {
   budget_consumption: BudgetConsumption[];
   month_over_month: MonthComparison;
   recent_transactions: TransactionResponse[];
+  account_balances: AccountResponse[];
 }
 
 export interface BudgetConsumption {
