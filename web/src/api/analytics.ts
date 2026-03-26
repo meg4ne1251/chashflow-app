@@ -27,7 +27,5 @@ export const analyticsApi = {
     }),
 
   yearlySummary: (year: number) =>
-    apiClient.get<YearlySummaryResponse>('/analytics/yearly-summary', {
-      params: { year },
-    }),
+    apiClient.get<YearlySummaryResponse>(`/analytics/yearly/${year}`),
 };

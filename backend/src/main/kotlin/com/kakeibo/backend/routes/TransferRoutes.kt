@@ -41,6 +41,12 @@ fun Route.transferRoutes(transferService: TransferService) {
             call.respond(HttpStatusCode.OK, response)
         }
 
+        patch("/{id}/restore") {
+            val id = call.parameters["id"]!!
+            transferService.restore(id)
+            call.respond(HttpStatusCode.OK, mapOf("status" to "restored"))
+        }
+
         delete("/{id}") {
             val id = call.parameters["id"]!!
             val version = call.request.queryParameters["version"]?.toIntOrNull()

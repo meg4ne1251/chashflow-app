@@ -160,7 +160,7 @@ export default function RecurringTransactionListPage() {
                 <TableCell>種別</TableCell>
                 <TableCell>名前</TableCell>
                 <TableCell>カテゴリ</TableCell>
-                <TableCell>口座</TableCell>
+                <TableCell>決済手段</TableCell>
                 <TableCell>頻度</TableCell>
                 <TableCell>メモ</TableCell>
                 <TableCell align="right">金額</TableCell>
@@ -220,8 +220,8 @@ export default function RecurringTransactionListPage() {
               )} />
               <Controller name="account_id" control={form.control} render={({ field }) => (
                 <FormControl fullWidth error={!!form.formState.errors.account_id}>
-                  <InputLabel>口座</InputLabel>
-                  <Select {...field} label="口座">{accounts?.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}</Select>
+                  <InputLabel>決済手段</InputLabel>
+                  <Select {...field} label="決済手段">{accounts?.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}</Select>
                 </FormControl>
               )} />
               <Controller name="frequency" control={form.control} render={({ field }) => (

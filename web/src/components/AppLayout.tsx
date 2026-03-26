@@ -12,8 +12,6 @@ import {
   ListItemText,
   IconButton,
   Divider,
-  useMediaQuery,
-  useTheme,
   Menu,
   MenuItem,
 } from '@mui/material';
@@ -36,6 +34,7 @@ import {
   AccountCircle,
   Logout,
 } from '@mui/icons-material';
+import { useMobile } from '@/hooks/useMobile';
 import { useAuthStore } from '@/stores/authStore';
 import { useUiStore } from '@/stores/uiStore';
 import type { ThemeMode } from '@/types';
@@ -76,8 +75,7 @@ const settingsNavItems: NavItem[] = [
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMobile();
 
   const { sidebarOpen, setSidebarOpen, toggleSidebar, themeMode, setThemeMode } = useUiStore();
   const { logout, username } = useAuthStore();
@@ -85,6 +83,7 @@ export default function AppLayout() {
 
   const allNavItems = [
     ...mainNavItems, ...masterNavItems, ...analysisNavItems, ...settingsNavItems,
+    { label: '通知履歴', path: '/notifications', icon: null },
     { label: 'その他', path: '/more', icon: null },
   ];
 

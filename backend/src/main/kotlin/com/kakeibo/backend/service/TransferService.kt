@@ -86,6 +86,13 @@ class TransferService(
         }
     }
 
+    fun restore(id: String) {
+        val uuid = UUID.fromString(id)
+        if (!transferRepository.restore(uuid)) {
+            throw NotFoundException("振替が見つかりません")
+        }
+    }
+
     private fun ResultRow.toResponse() = TransferResponse(
         id = this[Transfers.id].toString(),
         from_account_id = this[Transfers.fromAccountId].toString(),

@@ -167,7 +167,7 @@ export default function TemplateListPage() {
                 <FormControl fullWidth><InputLabel>種別</InputLabel><Select {...field} label="種別"><MenuItem value="expense">支出</MenuItem><MenuItem value="income">収入</MenuItem></Select></FormControl>
               )} />
               <TextField fullWidth label="金額（任意）" type="number" inputProps={{ step: 1 }}
-                {...form.register('amount', { setValueAs: (v: string) => (v === '' || v == null) ? undefined : Number(v) })}
+                {...form.register('amount', { valueAsNumber: true })}
                 error={!!form.formState.errors.amount} helperText={form.formState.errors.amount?.message} />
               <Controller name="category_id" control={form.control} render={({ field }) => (
                 <FormControl fullWidth><InputLabel>カテゴリ（任意）</InputLabel><Select {...field} label="カテゴリ（任意）"><MenuItem value="">未設定</MenuItem>{filteredCategories.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}</Select></FormControl>

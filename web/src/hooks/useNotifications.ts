@@ -20,11 +20,17 @@ export function useNotifications() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
   });
 
   const markAllAsReadMutation = useMutation({
     mutationFn: () => notificationApi.markAllAsRead(),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+    onError: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });

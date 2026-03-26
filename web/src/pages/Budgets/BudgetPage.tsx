@@ -40,7 +40,7 @@ export default function BudgetPage() {
     select: (r) => r.data.filter((c) => !c.deleted_at && c.type === 'expense'),
   });
 
-  const { data: expenseBreakdown } = useQuery({
+  const { data: expenseBreakdown, error: expenseBreakdownError } = useQuery({
     queryKey: ['analytics', 'categoryBreakdown', yearMonth, 'expense'],
     queryFn: () => analyticsApi.categoryBreakdown(yearMonth, 'expense'),
     select: (r) => r.data,
@@ -106,6 +106,7 @@ export default function BudgetPage() {
         </Stack>
       </Box>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+      {expenseBreakdownError && <Alert severity="error" sx={{ mb: 2 }}>支出データの取得に失敗しました</Alert>}
 
       {/* Summary */}
       <Paper sx={{ p: 2, mb: 3 }}>

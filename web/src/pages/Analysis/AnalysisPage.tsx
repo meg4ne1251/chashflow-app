@@ -128,7 +128,7 @@ export default function AnalysisPage() {
           <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
             <TextField label="年月" type="month" value={yearMonth} onChange={(e) => setYearMonth(e.target.value)} size="small" InputLabelProps={{ shrink: true }} />
           </Stack>
-          {(expenseBreakdownQ.isLoading || incomeBreakdownQ.isLoading) ? <CircularProgress /> : (
+          {(expenseBreakdownQ.isLoading || incomeBreakdownQ.isLoading) ? <CircularProgress /> : (expenseBreakdownQ.error || incomeBreakdownQ.error) ? <Alert severity="error">データの取得に失敗しました</Alert> : (
             <>
               <Grid container spacing={2} sx={{ mb: 3 }}>
                 <Grid size={{ xs: 12, sm: 4 }}><Card><CardContent><Typography variant="body2" color="text.secondary">収入合計</Typography><Typography variant="h5" color="success.main" fontWeight={700}>{formatCurrency(incomeBreakdownQ.data?.total ?? 0)}</Typography></CardContent></Card></Grid>
@@ -194,7 +194,7 @@ export default function AnalysisPage() {
           <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
             <TextField label="基準月" type="month" value={compareMonth} onChange={(e) => setCompareMonth(e.target.value)} size="small" InputLabelProps={{ shrink: true }} />
           </Stack>
-          {comparisonQ.isLoading ? <CircularProgress /> : comparisonQ.data && (
+          {comparisonQ.isLoading ? <CircularProgress /> : comparisonQ.error ? <Alert severity="error">データの取得に失敗しました</Alert> : comparisonQ.data && (
             <>
               <Grid container spacing={2} sx={{ mb: 3 }}>
                 <Grid size={{ xs: 12, sm: 4 }}>
