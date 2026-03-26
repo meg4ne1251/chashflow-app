@@ -88,8 +88,13 @@ export default function AppLayout() {
   ];
 
   const pageTitle = useMemo(
-    () => allNavItems.find((i) => i.path === location.pathname)?.label ?? '家計簿',
-    [allNavItems, location.pathname]
+    () => {
+      if (location.pathname === '/transactions/new') return '新規取引';
+      if (location.pathname.match(/^\/transactions\/[^/]+\/edit$/)) return '取引の編集';
+      return allNavItems.find((i) => i.path === location.pathname)?.label ?? '家計簿';
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [location.pathname]
   );
 
   const handleNavClick = (path: string) => {

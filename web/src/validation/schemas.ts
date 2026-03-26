@@ -91,7 +91,10 @@ export const tagSchema = z.object({
 export const templateSchema = z.object({
   name: z.string().min(1, 'テンプレート名を入力してください').max(50),
   type: z.enum(['income', 'expense']).default('expense'),
-  amount: z.number().int().positive().max(9_999_999_999).optional().nullable(),
+  amount: z.preprocess(
+    (val) => (typeof val === 'number' && Number.isNaN(val) ? undefined : val),
+    z.number().int().positive().max(9_999_999_999).optional().nullable(),
+  ),
   currency: z.string().default('JPY'),
   category_id: z.string().regex(UUID_PATTERN).optional().nullable().or(z.literal('')),
   account_id: z.string().regex(UUID_PATTERN).optional().nullable().or(z.literal('')),

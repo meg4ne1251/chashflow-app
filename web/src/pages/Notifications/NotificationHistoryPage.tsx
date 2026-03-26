@@ -24,6 +24,7 @@ import {
 import dayjs from 'dayjs';
 import 'dayjs/locale/ja';
 import { useNotificationHistory } from '@/hooks/useNotificationHistory';
+import { useMobile } from '@/hooks/useMobile';
 import type { NotificationType } from '@/types';
 import { DEFAULT_PAGE_SIZE } from '@/constants';
 
@@ -35,6 +36,7 @@ const TYPE_LABELS: Record<NotificationType, string> = {
 };
 
 export default function NotificationHistoryPage() {
+  const isMobile = useMobile();
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [readFilter, setReadFilter] = useState<string>('');
@@ -53,7 +55,7 @@ export default function NotificationHistoryPage() {
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5" fontWeight={600}>通知履歴</Typography>
+        {!isMobile && <Typography variant="h5" fontWeight={600}>通知履歴</Typography>}
         <Button
           startIcon={<MarkAllReadIcon />}
           onClick={() => markAllAsRead()}

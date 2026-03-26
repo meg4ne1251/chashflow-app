@@ -243,7 +243,7 @@ export default function TransactionFormPage() {
                 render={({ field }) => (
                   <FormControl fullWidth>
                     <InputLabel>種別</InputLabel>
-                    <Select {...field} label="種別">
+                    <Select {...field} label="種別" onChange={(e) => { field.onChange(e); setValue('category_id', ''); }}>
                       <MenuItem value="expense">支出</MenuItem>
                       <MenuItem value="income">収入</MenuItem>
                     </Select>

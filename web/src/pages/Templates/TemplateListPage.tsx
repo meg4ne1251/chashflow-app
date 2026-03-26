@@ -164,7 +164,7 @@ export default function TemplateListPage() {
             <Stack spacing={2}>
               <TextField fullWidth label="テンプレート名" {...form.register('name')} error={!!form.formState.errors.name} helperText={form.formState.errors.name?.message} />
               <Controller name="type" control={form.control} render={({ field }) => (
-                <FormControl fullWidth><InputLabel>種別</InputLabel><Select {...field} label="種別"><MenuItem value="expense">支出</MenuItem><MenuItem value="income">収入</MenuItem></Select></FormControl>
+                <FormControl fullWidth><InputLabel>種別</InputLabel><Select {...field} label="種別" onChange={(e) => { field.onChange(e); form.setValue('category_id', ''); }}><MenuItem value="expense">支出</MenuItem><MenuItem value="income">収入</MenuItem></Select></FormControl>
               )} />
               <TextField fullWidth label="金額（任意）" type="number" inputProps={{ step: 1 }}
                 {...form.register('amount', { valueAsNumber: true })}

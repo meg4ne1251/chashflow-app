@@ -17,9 +17,11 @@ import { importExportApi, notificationSettingApi } from '@/api/importExport';
 import { clearAuthTokens } from '@/api/client';
 import { downloadBlob } from '@/utils/format';
 import { MAX_IMPORT_FILE_SIZE_BYTES } from '@/constants';
+import { useMobile } from '@/hooks/useMobile';
 import type { ImportResultResponse } from '@/types';
 
 export default function SettingsPage() {
+  const isMobile = useMobile();
   const queryClient = useQueryClient();
   const [snackMsg, setSnackMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +169,7 @@ export default function SettingsPage() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 3 }}>設定</Typography>
+      {!isMobile && <Typography variant="h5" fontWeight={700} sx={{ mb: 3 }}>設定</Typography>}
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
       {/* Password Change */}
