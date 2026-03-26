@@ -80,7 +80,7 @@ export default function TransferListPage() {
   const handleDelete = (t: TransferResponse) => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     deleteMutation.mutate(t);
-    setPendingUndo({ type: 'transfer', data: t, deletedAt: Date.now() });
+    setPendingUndo({ type: 'transfer', data: t, deleted_at: Date.now() });
     setSnackOpen(true);
     undoTimerRef.current = setTimeout(() => { clearUndo(); setSnackOpen(false); }, UNDO_TIMEOUT_MS);
   };
@@ -93,7 +93,7 @@ export default function TransferListPage() {
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
     } catch {
-      // Notify user by refreshing list to show the item hasn't been restored
+      setError('振替の復元に失敗しました');
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
     }
     clearUndo();
@@ -193,6 +193,7 @@ export default function TransferListPage() {
                 <FormControl fullWidth error={!!form.formState.errors.from_account_id}>
                   <InputLabel>出金元</InputLabel>
                   <Select {...field} label="出金元">{accounts?.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}</Select>
+                  {form.formState.errors.from_account_id && <Typography variant="caption" color="error">{form.formState.errors.from_account_id.message}</Typography>}
                 </FormControl>
               )} />
               <Controller name="to_account_id" control={form.control} render={({ field }) => (

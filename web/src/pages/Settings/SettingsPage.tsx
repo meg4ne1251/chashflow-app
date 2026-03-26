@@ -158,8 +158,8 @@ export default function SettingsPage() {
   const notifMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Parameters<typeof notificationSettingApi.update>[1] }) =>
       notificationSettingApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
       setSnackMsg('通知設定を更新しました');
     },
     onError: () => setError('通知設定の更新に失敗しました'),

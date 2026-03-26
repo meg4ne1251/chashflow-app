@@ -14,7 +14,7 @@ import { accountSchema, type AccountFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
 import { accountApi } from '@/api/accounts';
 import { transactionApi } from '@/api/transactions';
-import { accountTypeLabels, formatCurrency, getToday } from '@/utils/format';
+import { accountTypeLabels, formatCurrency, getNow } from '@/utils/format';
 import { FALLBACK_EXPENSE_CATEGORY_ID, FALLBACK_INCOME_CATEGORY_ID } from '@/constants';
 import type { AccountResponse } from '@/types';
 
@@ -98,7 +98,7 @@ export default function AccountListPage() {
       await transactionApi.create({
         type: diff > 0 ? 'income' : 'expense',
         amount: Math.abs(diff),
-        date: getToday(),
+        date: getNow(),
         category_id: diff > 0 ? FALLBACK_INCOME_CATEGORY_ID : FALLBACK_EXPENSE_CATEGORY_ID,
         account_id: adjustTarget.id,
         memo: '残高調整',

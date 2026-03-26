@@ -181,13 +181,15 @@ export default function TransactionListPage() {
   const handleDelete = (tx: TransactionResponse) => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     deleteMutation.mutate({ id: tx.id, version: tx.version });
-    setPendingUndo({ type: 'transaction', data: tx, deletedAt: Date.now() });
+    setPendingUndo({ type: 'transaction', data: tx, deleted_at: Date.now() });
     setSnackOpen(true);
     undoTimerRef.current = setTimeout(() => {
       clearUndo();
       setSnackOpen(false);
     }, UNDO_TIMEOUT_MS);
   };
+
+  const [undoError, setUndoError] = useState<string | null>(null);
 
   const handleUndo = async () => {
     if (!pendingUndo || pendingUndo.type !== 'transaction') return;
@@ -197,8 +199,7 @@ export default function TransactionListPage() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch {
-      setSnackOpen(false);
-      // Re-display as error to inform user
+      setUndoError('取引の復元に失敗しました');
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
     }
     clearUndo();
@@ -411,6 +412,7 @@ export default function TransactionListPage() {
 
   return (
     <Box>
+      {undoError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setUndoError(null)}>{undoError}</Alert>}
       {/* Header */}
       {isMobile ? (
         <Box sx={{ mb: 1.5 }}>

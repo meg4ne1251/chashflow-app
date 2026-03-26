@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Typography, Paper, Grid, Card, CardContent, TextField,
@@ -12,10 +12,9 @@ import { budgetSchema, type BudgetFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
 import { budgetApi } from '@/api/budgets';
 import { categoryApi } from '@/api/categories';
-import { analyticsApi } from '@/api/analytics';
 import { formatCurrency, getCurrentYearMonth } from '@/utils/format';
 import { EMPTY_NUMBER } from '@/constants';
-import type { BudgetResponse, CategoryBreakdownItem } from '@/types';
+import type { BudgetResponse } from '@/types';
 import { useMobile } from '@/hooks/useMobile';
 
 export default function BudgetPage() {
@@ -39,21 +38,6 @@ export default function BudgetPage() {
     queryFn: () => categoryApi.list(),
     select: (r) => r.data.filter((c) => !c.deleted_at && c.type === 'expense'),
   });
-
-  const { data: expenseBreakdown, error: expenseBreakdownError } = useQuery({
-    queryKey: ['analytics', 'categoryBreakdown', yearMonth, 'expense'],
-    queryFn: () => analyticsApi.categoryBreakdown(yearMonth, 'expense'),
-    select: (r) => r.data,
-  });
-
-  // Map of category_id -> actual spent amount
-  const spentByCategory = useMemo(() => {
-    const map = new Map<string, number>();
-    expenseBreakdown?.breakdown?.forEach((c: CategoryBreakdownItem) => {
-      map.set(c.category_id, c.amount);
-    });
-    return map;
-  }, [expenseBreakdown]);
 
   const form = useForm<BudgetFormData>({
     resolver: zodFormResolver(budgetSchema),
@@ -93,7 +77,7 @@ export default function BudgetPage() {
   const onSubmit = (data: BudgetFormData) => { setError(null); upsertMutation.mutate(data); };
 
   const totalBudget = budgets?.reduce((s, b) => s + b.amount, 0) ?? 0;
-  const totalSpent = budgets?.reduce((s, b) => s + (spentByCategory.get(b.category_id) ?? 0), 0) ?? 0;
+  const totalSpent = budgets?.reduce((s, b) => s + b.spent, 0) ?? 0;
   const totalPct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
   return (
@@ -106,7 +90,6 @@ export default function BudgetPage() {
         </Stack>
       </Box>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-      {expenseBreakdownError && <Alert severity="error" sx={{ mb: 2 }}>支出データの取得に失敗しました</Alert>}
 
       {/* Summary */}
       <Paper sx={{ p: 2, mb: 3 }}>
@@ -137,7 +120,7 @@ export default function BudgetPage() {
       ) : (
         <Grid container spacing={2}>
           {budgets?.map((b) => {
-            const spent = spentByCategory.get(b.category_id) ?? 0;
+            const spent = b.spent;
             const pct = b.amount > 0 ? (spent / b.amount) * 100 : 0;
             const remaining = b.amount - spent;
             return (

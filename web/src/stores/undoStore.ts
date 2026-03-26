@@ -4,7 +4,7 @@ import type { TransactionResponse, TransferResponse } from '@/types';
 interface UndoItem {
   type: 'transaction' | 'transfer';
   data: TransactionResponse | TransferResponse;
-  deletedAt: number;
+  deleted_at: number;
 }
 
 interface UndoState {
