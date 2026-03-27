@@ -73,6 +73,10 @@ export const accountSchema = z.object({
   initial_balance: z.number().int('整数で入力してください').default(0),
   currency: z.string().default('JPY'),
   sort_order: z.number().int().default(0),
+  payment_day: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.number().int().min(1, '1〜31の範囲で入力してください').max(31, '1〜31の範囲で入力してください').nullable().default(null),
+  ),
 });
 
 export const categorySchema = z.object({

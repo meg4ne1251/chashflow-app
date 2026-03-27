@@ -87,7 +87,8 @@ fun Application.module() {
     val notificationSettingService = NotificationSettingService(notificationSettingRepository)
     val notificationService = NotificationService(
         notificationRepository, notificationSettingRepository,
-        budgetRepository, transactionRepository, categoryRepository
+        budgetRepository, transactionRepository, categoryRepository,
+        accountRepository
     )
 
     // Plugins

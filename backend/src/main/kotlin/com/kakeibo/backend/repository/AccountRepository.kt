@@ -27,7 +27,7 @@ class AccountRepository {
         }.singleOrNull()
     }
 
-    fun create(id: UUID, name: String, type: String, initialBalance: Long, currency: String, sortOrder: Int): ResultRow = transaction {
+    fun create(id: UUID, name: String, type: String, initialBalance: Long, currency: String, sortOrder: Int, paymentDay: Int? = null): ResultRow = transaction {
         val now = OffsetDateTime.now()
         Accounts.insert {
             it[Accounts.id] = id
@@ -36,6 +36,7 @@ class AccountRepository {
             it[Accounts.initialBalance] = initialBalance
             it[Accounts.currency] = currency
             it[Accounts.sortOrder] = sortOrder
+            it[Accounts.paymentDay] = paymentDay
             it[Accounts.version] = 1
             it[Accounts.createdAt] = now
             it[Accounts.updatedAt] = now
@@ -43,7 +44,7 @@ class AccountRepository {
         findById(id)!!
     }
 
-    fun update(id: UUID, name: String, type: String, initialBalance: Long, currency: String, sortOrder: Int, currentVersion: Int): ResultRow? = transaction {
+    fun update(id: UUID, name: String, type: String, initialBalance: Long, currency: String, sortOrder: Int, currentVersion: Int, paymentDay: Int? = null): ResultRow? = transaction {
         val now = OffsetDateTime.now()
         val updated = Accounts.update({
             (Accounts.id eq id) and (Accounts.version eq currentVersion) and Accounts.deletedAt.isNull()
@@ -53,10 +54,19 @@ class AccountRepository {
             it[Accounts.initialBalance] = initialBalance
             it[Accounts.currency] = currency
             it[Accounts.sortOrder] = sortOrder
+            it[Accounts.paymentDay] = paymentDay
             it[Accounts.version] = currentVersion + 1
             it[Accounts.updatedAt] = now
         }
         if (updated > 0) findById(id) else null
+    }
+
+    fun findCreditCardsWithPaymentDay(): List<ResultRow> = transaction {
+        Accounts.selectAll().where {
+            (Accounts.type eq "credit_card") and
+            Accounts.paymentDay.isNotNull() and
+            Accounts.deletedAt.isNull()
+        }.toList()
     }
 
     fun softDelete(id: UUID, currentVersion: Int): Boolean = transaction {

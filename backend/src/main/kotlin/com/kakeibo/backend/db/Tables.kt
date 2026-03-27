@@ -39,6 +39,7 @@ object Accounts : Table("accounts") {
     val initialBalance = long("initial_balance")
     val currency = varchar("currency", 3)
     val sortOrder = integer("sort_order")
+    val paymentDay = integer("payment_day").nullable()
     val version = integer("version")
     val createdAt = timestampWithTimeZone("created_at")
     val updatedAt = timestampWithTimeZone("updated_at")

@@ -4,7 +4,7 @@
 export type TransactionType = 'income' | 'expense';
 export type AccountType = 'cash' | 'bank' | 'credit_card' | 'e_money' | 'other';
 export type Frequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
-export type NotificationType = 'input_remind' | 'budget_alert';
+export type NotificationType = 'input_remind' | 'budget_alert' | 'credit_card_payment';
 export type ReminderFrequency = 'daily' | 'weekly' | 'biweekly' | 'custom';
 export type SyncOperation = 'create' | 'update' | 'delete';
 export type ThemeMode = 'light' | 'dark' | 'system';
@@ -64,6 +64,7 @@ export interface AccountRequest {
   initial_balance?: number;
   currency?: string;
   sort_order?: number;
+  payment_day?: number | null;
   version?: number;
 }
 
@@ -74,6 +75,7 @@ export interface AccountResponse {
   initial_balance: number;
   currency: string;
   sort_order: number;
+  payment_day?: number | null;
   balance: number;
   version: number;
   created_at: string;

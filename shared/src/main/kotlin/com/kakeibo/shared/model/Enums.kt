@@ -46,7 +46,8 @@ enum class Frequency(val value: String) {
 @Serializable
 enum class NotificationType(val value: String) {
     INPUT_REMIND("input_remind"),
-    BUDGET_ALERT("budget_alert");
+    BUDGET_ALERT("budget_alert"),
+    CREDIT_CARD_PAYMENT("credit_card_payment");
 
     companion object {
         fun fromValue(value: String): NotificationType =

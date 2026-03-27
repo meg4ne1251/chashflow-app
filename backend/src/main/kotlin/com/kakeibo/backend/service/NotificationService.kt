@@ -1,8 +1,10 @@
 package com.kakeibo.backend.service
 
+import com.kakeibo.backend.db.Accounts
 import com.kakeibo.backend.db.Budgets
 import com.kakeibo.backend.db.Categories
 import com.kakeibo.backend.db.Notifications
+import com.kakeibo.backend.repository.AccountRepository
 import com.kakeibo.backend.repository.BudgetRepository
 import com.kakeibo.backend.repository.CategoryRepository
 import com.kakeibo.backend.repository.NotificationRepository
@@ -25,7 +27,8 @@ class NotificationService(
     private val notificationSettingRepository: NotificationSettingRepository,
     private val budgetRepository: BudgetRepository,
     private val transactionRepository: TransactionRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val accountRepository: AccountRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -170,6 +173,41 @@ class NotificationService(
                 message = "「${categoryName}」の予算消化率が${rateStr}%に達しました（閾値: ${thresholdPercent}%）[${categoryId}]"
             )
             logger.info("予算アラート通知を生成しました: $categoryName ($rateStr%)")
+        }
+    }
+
+    fun checkAndGenerateCreditCardPaymentReminders() {
+        val setting = notificationSettingRepository.findByType("credit_card_payment") ?: return
+        val isEnabled = setting[com.kakeibo.backend.db.NotificationSettings.isEnabled]
+        if (!isEnabled) return
+
+        val now = ZonedDateTime.now(TARGET_ZONE)
+        val today = now.toLocalDate()
+        val reminderTarget = today.plusDays(3)
+        val targetDay = reminderTarget.dayOfMonth
+
+        val creditCards = accountRepository.findCreditCardsWithPaymentDay()
+        if (creditCards.isEmpty()) return
+
+        for (card in creditCards) {
+            val paymentDay = card[Accounts.paymentDay] ?: continue
+            if (paymentDay != targetDay) continue
+
+            val cardName = card[Accounts.name]
+            val cardId = card[Accounts.id].toString()
+
+            // Avoid duplicate per card per day
+            if (notificationRepository.existsTodayByTypeAndMessageContaining(
+                    "credit_card_payment", cardId
+                )) continue
+
+            val paymentDateStr = String.format("%d/%d", reminderTarget.monthValue, reminderTarget.dayOfMonth)
+            notificationRepository.create(
+                type = "credit_card_payment",
+                title = "クレジットカード引落し予定",
+                message = "「${cardName}」の引落し日が3日後（${paymentDateStr}）です。口座残高を確認してください。[${cardId}]"
+            )
+            logger.info("クレジットカード引落しリマインダーを生成しました: $cardName ($paymentDateStr)")
         }
     }
 

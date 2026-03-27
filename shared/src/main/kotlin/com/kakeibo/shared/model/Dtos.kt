@@ -50,6 +50,7 @@ data class AccountRequest(
     val initial_balance: Long = 0,
     val currency: String = "JPY",
     val sort_order: Int = 0,
+    val payment_day: Int? = null,
     val version: Int? = null
 )
 
@@ -61,6 +62,7 @@ data class AccountResponse(
     val initial_balance: Long,
     val currency: String,
     val sort_order: Int,
+    val payment_day: Int? = null,
     val balance: Long,
     val version: Int,
     val created_at: String,

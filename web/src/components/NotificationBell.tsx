@@ -16,6 +16,7 @@ import {
   Notifications as NotificationsIcon,
   EditNote as InputRemindIcon,
   WarningAmber as BudgetAlertIcon,
+  CreditCard as CreditCardIcon,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -46,6 +47,8 @@ export default function NotificationBell() {
       navigate('/transactions');
     } else if (type === 'budget_alert') {
       navigate('/budgets');
+    } else if (type === 'credit_card_payment') {
+      navigate('/accounts');
     }
   };
 
@@ -103,6 +106,8 @@ export default function NotificationBell() {
                 <ListItemIcon sx={{ minWidth: 40 }}>
                   {notification.type === 'input_remind' ? (
                     <InputRemindIcon color="primary" />
+                  ) : notification.type === 'credit_card_payment' ? (
+                    <CreditCardIcon color="info" />
                   ) : (
                     <BudgetAlertIcon color="warning" />
                   )}

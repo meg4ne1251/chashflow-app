@@ -84,13 +84,15 @@ class AccountService(
                 listOf(FieldError("name", "決済手段名が重複しています")))
         }
 
+        val paymentDay = if (request.type == "credit_card") request.payment_day else null
         val row = accountRepository.create(
             id = id,
             name = request.name.trim(),
             type = request.type,
             initialBalance = request.initial_balance,
             currency = request.currency,
-            sortOrder = request.sort_order
+            sortOrder = request.sort_order,
+            paymentDay = paymentDay
         )
         return row.toResponse()
     }
@@ -107,10 +109,12 @@ class AccountService(
         val currentVersion = request.version
             ?: throw ValidationException("バージョンを指定してください", listOf(FieldError("version", "version は必須です")))
 
+        val paymentDay = if (request.type == "credit_card") request.payment_day else null
         val row = accountRepository.update(
             id = uuid, name = request.name.trim(), type = request.type,
             initialBalance = request.initial_balance, currency = request.currency,
-            sortOrder = request.sort_order, currentVersion = currentVersion
+            sortOrder = request.sort_order, currentVersion = currentVersion,
+            paymentDay = paymentDay
         )
 
         if (row == null) {
@@ -150,6 +154,7 @@ class AccountService(
             initial_balance = initialBalance,
             currency = this[Accounts.currency],
             sort_order = this[Accounts.sortOrder],
+            payment_day = this[Accounts.paymentDay],
             balance = precomputedBalance ?: calculateBalance(id, initialBalance),
             version = this[Accounts.version],
             created_at = this[Accounts.createdAt].toString(),

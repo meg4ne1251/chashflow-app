@@ -19,6 +19,7 @@ import {
 import {
   EditNote as InputRemindIcon,
   WarningAmber as BudgetAlertIcon,
+  CreditCard as CreditCardIcon,
   DoneAll as MarkAllReadIcon,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
@@ -33,6 +34,7 @@ dayjs.locale('ja');
 const TYPE_LABELS: Record<NotificationType, string> = {
   input_remind: '入力リマインダー',
   budget_alert: '予算アラート',
+  credit_card_payment: 'クレカ引落し',
 };
 
 export default function NotificationHistoryPage() {
@@ -76,6 +78,7 @@ export default function NotificationHistoryPage() {
             <MenuItem value="">すべて</MenuItem>
             <MenuItem value="input_remind">入力リマインダー</MenuItem>
             <MenuItem value="budget_alert">予算アラート</MenuItem>
+            <MenuItem value="credit_card_payment">クレカ引落し</MenuItem>
           </Select>
         </FormControl>
         <FormControl size="small" sx={{ minWidth: 140 }}>
@@ -117,6 +120,8 @@ export default function NotificationHistoryPage() {
                 <ListItemIcon sx={{ minWidth: 40 }}>
                   {n.type === 'input_remind' ? (
                     <InputRemindIcon color="primary" />
+                  ) : n.type === 'credit_card_payment' ? (
+                    <CreditCardIcon color="info" />
                   ) : (
                     <BudgetAlertIcon color="warning" />
                   )}

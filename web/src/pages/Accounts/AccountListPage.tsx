@@ -37,18 +37,20 @@ export default function AccountListPage() {
 
   const form = useForm<AccountFormData>({
     resolver: zodFormResolver(accountSchema),
-    defaultValues: { name: '', type: 'cash', initial_balance: 0, currency: 'JPY', sort_order: 0 },
+    defaultValues: { name: '', type: 'cash', initial_balance: 0, currency: 'JPY', sort_order: 0, payment_day: null },
   });
+
+  const watchedType = form.watch('type');
 
   const openCreate = () => {
     setEditing(null);
-    form.reset({ name: '', type: 'cash', initial_balance: 0, currency: 'JPY', sort_order: 0 });
+    form.reset({ name: '', type: 'cash', initial_balance: 0, currency: 'JPY', sort_order: 0, payment_day: null });
     setDialogOpen(true);
   };
 
   const openEdit = (a: AccountResponse) => {
     setEditing(a);
-    form.reset({ name: a.name, type: a.type, initial_balance: a.initial_balance, currency: a.currency, sort_order: a.sort_order });
+    form.reset({ name: a.name, type: a.type, initial_balance: a.initial_balance, currency: a.currency, sort_order: a.sort_order, payment_day: a.payment_day ?? null });
     setDialogOpen(true);
   };
 
@@ -145,6 +147,9 @@ export default function AccountListPage() {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="body2" fontWeight={600}>{a.name}</Typography>
                       <Chip size="small" label={accountTypeLabels[a.type] || a.type} variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                      {a.type === 'credit_card' && a.payment_day && (
+                        <Chip size="small" label={`毎月${a.payment_day}日引落し`} variant="outlined" color="info" sx={{ height: 20, fontSize: '0.7rem' }} />
+                      )}
                     </Box>
                     <Typography variant="body1" fontWeight={700} sx={{ color: a.balance >= 0 ? 'success.main' : 'error.main', mt: 0.25 }}>
                       {formatCurrency(a.balance)}
@@ -166,6 +171,7 @@ export default function AccountListPage() {
               <TableRow>
                 <TableCell>名前</TableCell>
                 <TableCell>種別</TableCell>
+                <TableCell>引落し日</TableCell>
                 <TableCell align="right">初期残高</TableCell>
                 <TableCell align="right">現在の残高</TableCell>
                 <TableCell>表示順</TableCell>
@@ -174,11 +180,12 @@ export default function AccountListPage() {
             </TableHead>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} align="center"><CircularProgress /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} align="center"><CircularProgress /></TableCell></TableRow>
               ) : accounts?.map((a) => (
                 <TableRow key={a.id} hover>
                   <TableCell>{a.name}</TableCell>
                   <TableCell><Chip size="small" label={accountTypeLabels[a.type] || a.type} variant="outlined" /></TableCell>
+                  <TableCell>{a.type === 'credit_card' && a.payment_day ? `毎月${a.payment_day}日` : '—'}</TableCell>
                   <TableCell align="right">{formatCurrency(a.initial_balance)}</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 600, color: a.balance >= 0 ? 'success.main' : 'error.main' }}>
                     {formatCurrency(a.balance)}
@@ -216,6 +223,17 @@ export default function AccountListPage() {
                 {...form.register('initial_balance', { valueAsNumber: true })}
                 error={!!form.formState.errors.initial_balance}
                 helperText={form.formState.errors.initial_balance?.message} />
+              {watchedType === 'credit_card' && (
+                <TextField
+                  fullWidth
+                  label="引落し日（毎月）"
+                  type="number"
+                  inputProps={{ min: 1, max: 31, step: 1 }}
+                  {...form.register('payment_day', { valueAsNumber: true })}
+                  error={!!form.formState.errors.payment_day}
+                  helperText={form.formState.errors.payment_day?.message || '1〜31の日付を入力（引落し日の3日前に通知されます）'}
+                />
+              )}
               <TextField fullWidth label="表示順" type="number" {...form.register('sort_order', { valueAsNumber: true })} />
             </Stack>
           </Box>

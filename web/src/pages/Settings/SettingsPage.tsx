@@ -358,7 +358,7 @@ export default function SettingsPage() {
           <Paper key={setting.id} variant="outlined" sx={{ p: 2, mb: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
               <Typography fontWeight={600}>
-                {setting.type === 'input_remind' ? '入力リマインダー' : '予算アラート'}
+                {setting.type === 'input_remind' ? '入力リマインダー' : setting.type === 'credit_card_payment' ? 'クレジットカード引落しリマインダー' : '予算アラート'}
               </Typography>
               <FormControlLabel
                 control={
@@ -445,6 +445,11 @@ export default function SettingsPage() {
                   予算の使用率がこの値を超えた場合にアラートを表示します。
                 </Typography>
               </Stack>
+            )}
+            {setting.type === 'credit_card_payment' && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                各クレジットカードに設定された引落し日の3日前に通知します。引落し日は決済手段管理で設定できます。
+              </Typography>
             )}
           </Paper>
         ))}
