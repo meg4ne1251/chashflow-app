@@ -31,6 +31,7 @@ import { suggestionApi } from '@/api/suggestions';
 import { getNow } from '@/utils/format';
 import { DEBOUNCE_DELAY_MS, AUTO_COMPLETE_CONFIDENCE_THRESHOLD, MEMO_SUGGESTION_MIN_LENGTH } from '@/constants';
 import { useMobile } from '@/hooks/useMobile';
+import CalculatorAmountField from '@/components/CalculatorAmountField';
 
 export default function TransactionFormPage() {
   const isMobile = useMobile();
@@ -263,14 +264,19 @@ export default function TransactionFormPage() {
                 helperText={errors.name?.message}
               />
 
-              <TextField
-                fullWidth
-                label="金額"
-                type="number"
-                inputProps={{ step: 1, min: 1 }}
-                {...register('amount', { valueAsNumber: true })}
-                error={!!errors.amount}
-                helperText={errors.amount?.message}
+              <Controller
+                name="amount"
+                control={control}
+                render={({ field }) => (
+                  <CalculatorAmountField
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    inputRef={field.ref}
+                    error={!!errors.amount}
+                    helperText={errors.amount?.message}
+                  />
+                )}
               />
 
               <TextField
