@@ -84,6 +84,7 @@ export default function TransactionFormPage() {
     reset,
     setValue,
     formState: { errors, isSubmitting },
+    setFocus,
   } = useForm<TransactionFormData>({
     resolver: zodFormResolver(transactionSchema),
     defaultValues: {
@@ -132,8 +133,10 @@ export default function TransactionFormPage() {
         currency: templateData.currency || 'JPY',
         tag_ids: templateData.tags.map((t) => t.id),
       });
+      // Auto-focus amount field so user can immediately type and press Enter
+      setTimeout(() => setFocus('amount'), 0);
     }
-  }, [templateData, isEdit, reset]);
+  }, [templateData, isEdit, reset, setFocus]);
 
   // Memo auto-complete (debounced)
   const handleMemoChange = (value: string) => {
