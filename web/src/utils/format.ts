@@ -60,6 +60,15 @@ export function getCurrentYear(): number {
 }
 
 /**
+ * Shift a YYYY-MM string by the given number of months (+1 = next, -1 = previous)
+ */
+export function shiftYearMonth(yearMonth: string, delta: number): string {
+  const [y, m] = yearMonth.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
  * Get today's date as YYYY-MM-DD
  */
 export function getToday(): string {

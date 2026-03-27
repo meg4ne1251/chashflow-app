@@ -4,13 +4,15 @@ import {
   Box, Typography, Paper, Grid, ToggleButtonGroup, ToggleButton,
   CircularProgress, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, TextField, Stack, Card, CardContent, Alert,
+  IconButton,
 } from '@mui/material';
+import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, LineChart, Line,
 } from 'recharts';
 import { analyticsApi } from '@/api/analytics';
-import { formatCurrency, getCurrentYearMonth, getCurrentYear } from '@/utils/format';
+import { formatCurrency, getCurrentYearMonth, getCurrentYear, shiftYearMonth } from '@/utils/format';
 import type { CategoryBreakdownItem, MonthlySummaryItem } from '@/types';
 import { CHART_COLORS } from '@/constants';
 import { useMobile } from '@/hooks/useMobile';
@@ -125,8 +127,10 @@ export default function AnalysisPage() {
       {/* ===== MONTHLY VIEW ===== */}
       {viewMode === 'monthly' && (
         <>
-          <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
+            <IconButton size="small" onClick={() => setYearMonth(shiftYearMonth(yearMonth, -1))}><ChevronLeft /></IconButton>
             <TextField label="年月" type="month" value={yearMonth} onChange={(e) => setYearMonth(e.target.value)} size="small" InputLabelProps={{ shrink: true }} />
+            <IconButton size="small" onClick={() => setYearMonth(shiftYearMonth(yearMonth, 1))}><ChevronRight /></IconButton>
           </Stack>
           {(expenseBreakdownQ.isLoading || incomeBreakdownQ.isLoading) ? <CircularProgress /> : (expenseBreakdownQ.error || incomeBreakdownQ.error) ? <Alert severity="error">データの取得に失敗しました</Alert> : (
             <>
@@ -147,8 +151,10 @@ export default function AnalysisPage() {
       {/* ===== YEARLY VIEW ===== */}
       {viewMode === 'yearly' && (
         <>
-          <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
+            <IconButton size="small" onClick={() => setYear((y) => y - 1)}><ChevronLeft /></IconButton>
             <TextField label="年" type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} size="small" inputProps={{ min: 2000, max: 2100 }} sx={{ width: 120 }} />
+            <IconButton size="small" onClick={() => setYear((y) => y + 1)}><ChevronRight /></IconButton>
           </Stack>
           {yearlyQ.isLoading ? <CircularProgress /> : yearlyQ.error ? <Alert severity="error">データの取得に失敗しました</Alert> : yearlyQ.data && (
             <>
@@ -191,8 +197,10 @@ export default function AnalysisPage() {
       {/* ===== COMPARISON VIEW ===== */}
       {viewMode === 'comparison' && (
         <>
-          <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
+            <IconButton size="small" onClick={() => setCompareMonth(shiftYearMonth(compareMonth, -1))}><ChevronLeft /></IconButton>
             <TextField label="基準月" type="month" value={compareMonth} onChange={(e) => setCompareMonth(e.target.value)} size="small" InputLabelProps={{ shrink: true }} />
+            <IconButton size="small" onClick={() => setCompareMonth(shiftYearMonth(compareMonth, 1))}><ChevronRight /></IconButton>
           </Stack>
           {comparisonQ.isLoading ? <CircularProgress /> : comparisonQ.error ? <Alert severity="error">データの取得に失敗しました</Alert> : comparisonQ.data && (
             <>

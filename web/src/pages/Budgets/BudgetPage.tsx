@@ -6,13 +6,13 @@ import {
   DialogActions, Button, Stack, FormControl, InputLabel, Select,
   MenuItem, Alert, CircularProgress, Snackbar,
 } from '@mui/material';
-import { Add, Edit, Delete, ContentCopy } from '@mui/icons-material';
+import { Add, Edit, Delete, ContentCopy, ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { budgetSchema, type BudgetFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
 import { budgetApi } from '@/api/budgets';
 import { categoryApi } from '@/api/categories';
-import { formatCurrency, getCurrentYearMonth } from '@/utils/format';
+import { formatCurrency, getCurrentYearMonth, shiftYearMonth } from '@/utils/format';
 import { EMPTY_NUMBER } from '@/constants';
 import type { BudgetResponse } from '@/types';
 import { useMobile } from '@/hooks/useMobile';
@@ -108,7 +108,9 @@ export default function BudgetPage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', mb: isMobile ? 2 : 3, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 1 : 2 }}>
         {!isMobile && <Typography variant="h5" fontWeight={700}>予算管理</Typography>}
         <Stack direction="row" spacing={1} alignItems="center">
+          <IconButton size="small" onClick={() => setYearMonth(shiftYearMonth(yearMonth, -1))}><ChevronLeft /></IconButton>
           <TextField label="年月" type="month" value={yearMonth} onChange={(e) => setYearMonth(e.target.value)} size="small" InputLabelProps={{ shrink: true }} sx={{ flex: isMobile ? 1 : undefined }} />
+          <IconButton size="small" onClick={() => setYearMonth(shiftYearMonth(yearMonth, 1))}><ChevronRight /></IconButton>
           <Button variant="outlined" size={isMobile ? 'small' : 'medium'} startIcon={<ContentCopy />} onClick={() => { setCopyFrom(''); setCopyDialogOpen(true); }}>コピー</Button>
           <Button variant="contained" size={isMobile ? 'small' : 'medium'} startIcon={<Add />} onClick={openCreate}>追加</Button>
         </Stack>
