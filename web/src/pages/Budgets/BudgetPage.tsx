@@ -6,7 +6,7 @@ import {
   DialogActions, Button, Stack, FormControl, InputLabel, Select,
   MenuItem, Alert, CircularProgress, Snackbar,
 } from '@mui/material';
-import { Add, Edit, Delete } from '@mui/icons-material';
+import { Add, Edit, Delete, ContentCopy } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { budgetSchema, type BudgetFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
@@ -26,6 +26,8 @@ export default function BudgetPage() {
   const [error, setError] = useState<string | null>(null);
   const [snackMsg, setSnackMsg] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<BudgetResponse | null>(null);
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [copyFrom, setCopyFrom] = useState('');
 
   const { data: budgets, isLoading } = useQuery({
     queryKey: ['budgets', yearMonth],
@@ -74,6 +76,27 @@ export default function BudgetPage() {
     onError: () => setError('予算の削除に失敗しました'),
   });
 
+  const copyMutation = useMutation({
+    mutationFn: async (sourceMonth: string) => {
+      const source = await budgetApi.list(sourceMonth);
+      if (source.data.length === 0) throw new Error('empty');
+      return budgetApi.upsert({
+        budgets: source.data.map((b) => ({
+          category_id: b.category_id,
+          year_month: yearMonth,
+          amount: b.amount,
+          currency: b.currency,
+        })),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      setCopyDialogOpen(false);
+      setSnackMsg('予算をコピーしました');
+    },
+    onError: (err) => setError(err instanceof Error && err.message === 'empty' ? 'コピー元の月に予算がありません' : '予算のコピーに失敗しました'),
+  });
+
   const onSubmit = (data: BudgetFormData) => { setError(null); upsertMutation.mutate(data); };
 
   const totalBudget = budgets?.reduce((s, b) => s + b.amount, 0) ?? 0;
@@ -86,6 +109,7 @@ export default function BudgetPage() {
         {!isMobile && <Typography variant="h5" fontWeight={700}>予算管理</Typography>}
         <Stack direction="row" spacing={1} alignItems="center">
           <TextField label="年月" type="month" value={yearMonth} onChange={(e) => setYearMonth(e.target.value)} size="small" InputLabelProps={{ shrink: true }} sx={{ flex: isMobile ? 1 : undefined }} />
+          <Button variant="outlined" size={isMobile ? 'small' : 'medium'} startIcon={<ContentCopy />} onClick={() => { setCopyFrom(''); setCopyDialogOpen(true); }}>コピー</Button>
           <Button variant="contained" size={isMobile ? 'small' : 'medium'} startIcon={<Add />} onClick={openCreate}>追加</Button>
         </Stack>
       </Box>
@@ -191,6 +215,26 @@ export default function BudgetPage() {
         <DialogActions>
           <Button onClick={() => setDeleteConfirm(null)}>キャンセル</Button>
           <Button color="error" variant="contained" onClick={() => { if (deleteConfirm) { deleteMutation.mutate(deleteConfirm); setDeleteConfirm(null); } }}>削除</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Copy from another month */}
+      <Dialog open={copyDialogOpen} onClose={() => setCopyDialogOpen(false)} maxWidth="xs" fullWidth fullScreen={isMobile}>
+        <DialogTitle>他の月から予算をコピー</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            コピー元の月を選択してください。選択した月の予算が {yearMonth} にコピーされます。
+          </Typography>
+          <TextField fullWidth label="コピー元の月" type="month" value={copyFrom} onChange={(e) => setCopyFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
+          {copyFrom === yearMonth && (
+            <Alert severity="warning" sx={{ mt: 1 }}>コピー元とコピー先が同じ月です</Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCopyDialogOpen(false)}>キャンセル</Button>
+          <Button variant="contained" disabled={!copyFrom || copyFrom === yearMonth || copyMutation.isPending} onClick={() => copyMutation.mutate(copyFrom)}>
+            {copyMutation.isPending ? <CircularProgress size={20} /> : 'コピー'}
+          </Button>
         </DialogActions>
       </Dialog>
 
