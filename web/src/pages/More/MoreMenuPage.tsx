@@ -8,6 +8,7 @@ import {
   BookmarkBorder as TemplateIcon,
   Repeat as RepeatIcon,
   Savings as SavingsIcon,
+  SavingsOutlined as SavingsGoalIcon,
   Settings as SettingsIcon,
   Notifications as NotificationsIcon,
 } from '@mui/icons-material';
@@ -20,6 +21,7 @@ const menuItems = [
   { label: 'テンプレート', path: '/templates', icon: <TemplateIcon />, color: '#0288d1' },
   { label: '定期取引', path: '/recurring', icon: <RepeatIcon />, color: '#7b1fa2' },
   { label: '予算', path: '/budgets', icon: <SavingsIcon />, color: '#c62828' },
+  { label: '貯蓄目標', path: '/savings-goals', icon: <SavingsGoalIcon />, color: '#2e7d32' },
   { label: '設定', path: '/settings', icon: <SettingsIcon />, color: '#546e7a' },
   { label: '通知履歴', path: '/notifications', icon: <NotificationsIcon />, color: '#f57c00' },
 ];

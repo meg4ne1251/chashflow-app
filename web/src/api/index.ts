@@ -8,6 +8,7 @@ export { templateApi } from './templates';
 export { transferApi } from './transfers';
 export { recurringTransactionApi } from './recurringTransactions';
 export { budgetApi } from './budgets';
+export { savingsGoalApi } from './savingsGoals';
 export { analyticsApi } from './analytics';
 export { suggestionApi } from './suggestions';
 export { importExportApi, notificationSettingApi } from './importExport';

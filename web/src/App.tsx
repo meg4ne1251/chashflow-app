@@ -18,6 +18,7 @@ const TemplateListPage = lazy(() => import('@/pages/Templates/TemplateListPage')
 const RecurringTransactionListPage = lazy(() => import('@/pages/RecurringTransactions/RecurringTransactionListPage'));
 const AnalysisPage = lazy(() => import('@/pages/Analysis/AnalysisPage'));
 const BudgetPage = lazy(() => import('@/pages/Budgets/BudgetPage'));
+const SavingsGoalPage = lazy(() => import('@/pages/SavingsGoals/SavingsGoalPage'));
 const SettingsPage = lazy(() => import('@/pages/Settings/SettingsPage'));
 const NotificationHistoryPage = lazy(() => import('@/pages/Notifications/NotificationHistoryPage'));
 const MoreMenuPage = lazy(() => import('@/pages/More/MoreMenuPage'));
@@ -62,6 +63,7 @@ export default function App() {
             {/* Analytics & Budgets */}
             <Route path="/analysis" element={<AnalysisPage />} />
             <Route path="/budgets" element={<BudgetPage />} />
+            <Route path="/savings-goals" element={<SavingsGoalPage />} />
 
             {/* Notifications */}
             <Route path="/notifications" element={<NotificationHistoryPage />} />

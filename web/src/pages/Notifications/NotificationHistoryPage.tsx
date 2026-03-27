@@ -35,6 +35,7 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   input_remind: '入力リマインダー',
   budget_alert: '予算アラート',
   credit_card_payment: 'クレカ引落し',
+  savings_goal_achieved: '貯蓄目標達成',
 };
 
 export default function NotificationHistoryPage() {

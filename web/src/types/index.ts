@@ -4,7 +4,8 @@
 export type TransactionType = 'income' | 'expense';
 export type AccountType = 'cash' | 'bank' | 'credit_card' | 'e_money' | 'other';
 export type Frequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
-export type NotificationType = 'input_remind' | 'budget_alert' | 'credit_card_payment';
+export type NotificationType = 'input_remind' | 'budget_alert' | 'credit_card_payment' | 'savings_goal_achieved';
+export type SavingsGoalStatus = 'active' | 'achieved' | 'cancelled';
 export type ReminderFrequency = 'daily' | 'weekly' | 'biweekly' | 'custom';
 export type SyncOperation = 'create' | 'update' | 'delete';
 export type ThemeMode = 'light' | 'dark' | 'system';
@@ -327,6 +328,58 @@ export interface BudgetUpsertRequest {
 }
 
 // =========================================
+// Savings Goal
+// =========================================
+export interface SavingsGoalRequest {
+  id?: string;
+  name: string;
+  target_amount: number;
+  current_amount?: number;
+  currency?: string;
+  deadline?: string | null;
+  account_id?: string | null;
+  icon?: string | null;
+  color?: string | null;
+  sort_order?: number;
+  version?: number;
+}
+
+export interface SavingsGoalResponse {
+  id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  currency: string;
+  deadline?: string | null;
+  account_id?: string | null;
+  account?: AccountResponse | null;
+  icon?: string | null;
+  color?: string | null;
+  sort_order: number;
+  status: SavingsGoalStatus;
+  progress_rate: number;
+  remaining_amount: number;
+  monthly_recommended?: number | null;
+  achieved_at?: string | null;
+  version: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
+export interface SavingsGoalSummary {
+  id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  progress_rate: number;
+  icon?: string | null;
+  color?: string | null;
+  deadline?: string | null;
+  monthly_recommended?: number | null;
+}
+
+// =========================================
 // Notification Settings
 // =========================================
 export interface NotificationSettingRequest {
@@ -394,6 +447,7 @@ export interface DashboardResponse {
   month_over_month: MonthComparison;
   recent_transactions: TransactionResponse[];
   account_balances: AccountResponse[];
+  savings_goals: SavingsGoalSummary[];
 }
 
 export interface BudgetConsumption {

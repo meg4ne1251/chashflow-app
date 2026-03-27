@@ -261,6 +261,29 @@ object Notifications : Table("notifications") {
 }
 
 // =========================================
+// Savings Goals
+// =========================================
+object SavingsGoals : Table("savings_goals") {
+    val id = uuid("id")
+    val name = varchar("name", 100)
+    val targetAmount = long("target_amount")
+    val currentAmount = long("current_amount")
+    val currency = varchar("currency", 3)
+    val deadline = date("deadline").nullable()
+    val accountId = uuid("account_id").references(Accounts.id).nullable()
+    val icon = varchar("icon", 50).nullable()
+    val color = varchar("color", 7).nullable()
+    val sortOrder = integer("sort_order")
+    val status = varchar("status", 20)
+    val achievedAt = timestampWithTimeZone("achieved_at").nullable()
+    val version = integer("version")
+    val createdAt = timestampWithTimeZone("created_at")
+    val updatedAt = timestampWithTimeZone("updated_at")
+    val deletedAt = timestampWithTimeZone("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+// =========================================
 // Notification Settings
 // =========================================
 object NotificationSettings : Table("notification_settings") {

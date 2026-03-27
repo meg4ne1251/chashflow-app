@@ -44,10 +44,24 @@ enum class Frequency(val value: String) {
 }
 
 @Serializable
+enum class SavingsGoalStatus(val value: String) {
+    ACTIVE("active"),
+    ACHIEVED("achieved"),
+    CANCELLED("cancelled");
+
+    companion object {
+        fun fromValue(value: String): SavingsGoalStatus =
+            entries.find { it.value == value }
+                ?: throw IllegalArgumentException("Invalid savings goal status: $value")
+    }
+}
+
+@Serializable
 enum class NotificationType(val value: String) {
     INPUT_REMIND("input_remind"),
     BUDGET_ALERT("budget_alert"),
-    CREDIT_CARD_PAYMENT("credit_card_payment");
+    CREDIT_CARD_PAYMENT("credit_card_payment"),
+    SAVINGS_GOAL_ACHIEVED("savings_goal_achieved");
 
     companion object {
         fun fromValue(value: String): NotificationType =

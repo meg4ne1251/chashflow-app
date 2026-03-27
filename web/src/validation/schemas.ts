@@ -118,6 +118,22 @@ export const budgetSchema = z.object({
   currency: z.string().default('JPY'),
 });
 
+export const savingsGoalSchema = z.object({
+  name: z.string().min(1, '目標名を入力してください').max(100),
+  target_amount: z
+    .number({ error: '目標額を入力してください' })
+    .int('整数で入力してください')
+    .positive('目標額は0より大きい値を指定してください')
+    .max(9_999_999_999),
+  current_amount: z.number().int().min(0).default(0),
+  currency: z.string().default('JPY'),
+  deadline: z.string().optional().or(z.literal('')).nullable(),
+  account_id: z.string().regex(UUID_PATTERN).optional().nullable().or(z.literal('')),
+  icon: z.string().max(50).optional().or(z.literal('')),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, '色は#RRGGBB形式で入力してください').optional().or(z.literal('')),
+  sort_order: z.number().int().default(0),
+});
+
 export const recurringTransactionSchema = z.object({
   name: z.string().max(100, '名前は100文字以下です').optional().or(z.literal('')),
   type: z.enum(['income', 'expense']),
@@ -151,4 +167,5 @@ export type CategoryFormData = z.infer<typeof categorySchema>;
 export type TagFormData = z.infer<typeof tagSchema>;
 export type TemplateFormData = z.infer<typeof templateSchema>;
 export type BudgetFormData = z.infer<typeof budgetSchema>;
+export type SavingsGoalFormData = z.infer<typeof savingsGoalSchema>;
 export type RecurringTransactionFormData = z.infer<typeof recurringTransactionSchema>;

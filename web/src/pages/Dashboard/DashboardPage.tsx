@@ -28,6 +28,7 @@ import {
   Payments,
   Savings,
   MoreHoriz,
+  SavingsOutlined,
 } from '@mui/icons-material';
 import { analyticsApi } from '@/api';
 import { formatCurrency, formatDateTime, formatPercent } from '@/utils/format';
@@ -225,6 +226,67 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Savings Goals */}
+      {!isLoading && data?.savings_goals && data.savings_goals.length > 0 && (
+        <Card sx={{ mb: isMobile ? 2 : 3 }}>
+          <CardContent sx={isMobile ? { py: 1.5, '&:last-child': { pb: 1.5 } } : undefined}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <SavingsOutlined color="primary" fontSize="small" />
+              <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600}>貯蓄目標</Typography>
+            </Box>
+            <Stack spacing={1.5}>
+              {data.savings_goals.slice(0, 3).map((goal) => (
+                <Box key={goal.id}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {goal.icon && (
+                        <Icon sx={{ fontSize: 16, color: goal.color || 'action.active' }}>{goal.icon}</Icon>
+                      )}
+                      <Typography variant="body2">{goal.name}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2">
+                        {formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={`${Math.round(goal.progress_rate)}%`}
+                        color={
+                          goal.progress_rate >= 100
+                            ? 'success'
+                            : goal.progress_rate >= 60
+                              ? 'primary'
+                              : 'default'
+                        }
+                      />
+                    </Box>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={Math.min(goal.progress_rate, 100)}
+                    color={
+                      goal.progress_rate >= 100
+                        ? 'success'
+                        : goal.progress_rate >= 60
+                          ? 'primary'
+                          : goal.progress_rate >= 30
+                            ? 'warning'
+                            : 'error'
+                    }
+                    sx={{ height: 8, borderRadius: 4 }}
+                  />
+                  {goal.monthly_recommended != null && (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      月あたり推奨: {formatCurrency(goal.monthly_recommended)}
+                    </Typography>
+                  )}
+                </Box>
+              ))}
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
 
       <Grid container spacing={isMobile ? 2 : 3}>
         {/* Budget Consumption TOP3 */}

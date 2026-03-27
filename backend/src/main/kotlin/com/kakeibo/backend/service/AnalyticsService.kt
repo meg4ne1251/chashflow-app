@@ -15,7 +15,8 @@ class AnalyticsService(
     private val transactionRepository: TransactionRepository,
     private val budgetRepository: BudgetRepository,
     private val categoryRepository: CategoryRepository,
-    private val accountService: AccountService
+    private val accountService: AccountService,
+    private val savingsGoalService: SavingsGoalService? = null
 ) {
     private companion object {
         private const val CACHE_TTL_MS = 5 * 60 * 1000L // 5 minutes
@@ -158,6 +159,9 @@ class AnalyticsService(
             // Account balances
             val accountBalances = accountService.getAll()
 
+            // Active savings goals
+            val savingsGoals = savingsGoalService?.getActiveSummaries() ?: emptyList()
+
             DashboardResponse(
                 income_total = income,
                 expense_total = expense,
@@ -170,7 +174,8 @@ class AnalyticsService(
                     expense_change_rate = expenseChangeRate
                 ),
                 recent_transactions = recentTxs,
-                account_balances = accountBalances
+                account_balances = accountBalances,
+                savings_goals = savingsGoals
             )
         }
     }

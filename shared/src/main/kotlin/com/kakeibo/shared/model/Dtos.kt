@@ -330,6 +330,61 @@ data class BudgetUpsertRequest(
 )
 
 // =========================================
+// Savings Goal DTOs
+// =========================================
+@Serializable
+data class SavingsGoalRequest(
+    val id: String? = null,
+    val name: String,
+    val target_amount: Long,
+    val current_amount: Long = 0,
+    val currency: String = "JPY",
+    val deadline: String? = null,
+    val account_id: String? = null,
+    val icon: String? = null,
+    val color: String? = null,
+    val sort_order: Int = 0,
+    val version: Int? = null
+)
+
+@Serializable
+data class SavingsGoalResponse(
+    val id: String,
+    val name: String,
+    val target_amount: Long,
+    val current_amount: Long,
+    val currency: String,
+    val deadline: String? = null,
+    val account_id: String? = null,
+    val account: AccountResponse? = null,
+    val icon: String? = null,
+    val color: String? = null,
+    val sort_order: Int,
+    val status: String,
+    val progress_rate: Double,
+    val remaining_amount: Long,
+    val monthly_recommended: Long? = null,
+    val achieved_at: String? = null,
+    val version: Int,
+    val created_at: String,
+    val updated_at: String,
+    val deleted_at: String? = null
+)
+
+@Serializable
+data class SavingsGoalSummary(
+    val id: String,
+    val name: String,
+    val target_amount: Long,
+    val current_amount: Long,
+    val progress_rate: Double,
+    val icon: String? = null,
+    val color: String? = null,
+    val deadline: String? = null,
+    val monthly_recommended: Long? = null
+)
+
+// =========================================
 // Notification Settings DTOs
 // =========================================
 @Serializable
@@ -416,7 +471,8 @@ data class DashboardResponse(
     val budget_consumption: List<BudgetConsumption>,
     val month_over_month: MonthComparison,
     val recent_transactions: List<TransactionResponse>,
-    val account_balances: List<AccountResponse> = emptyList()
+    val account_balances: List<AccountResponse> = emptyList(),
+    val savings_goals: List<SavingsGoalSummary> = emptyList()
 )
 
 @Serializable

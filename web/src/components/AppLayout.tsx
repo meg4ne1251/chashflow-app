@@ -27,6 +27,7 @@ import {
   Repeat as RepeatIcon,
   BarChart as BarChartIcon,
   Savings as SavingsIcon,
+  SavingsOutlined as SavingsGoalIcon,
   Settings as SettingsIcon,
   Brightness4,
   Brightness7,
@@ -66,6 +67,7 @@ const masterNavItems: NavItem[] = [
 const analysisNavItems: NavItem[] = [
   { label: '分析', path: '/analysis', icon: <BarChartIcon /> },
   { label: '予算', path: '/budgets', icon: <SavingsIcon /> },
+  { label: '貯蓄目標', path: '/savings-goals', icon: <SavingsGoalIcon /> },
 ];
 
 const settingsNavItems: NavItem[] = [

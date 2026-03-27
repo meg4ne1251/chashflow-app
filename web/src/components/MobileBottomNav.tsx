@@ -22,7 +22,7 @@ function routeToTab(pathname: string): number {
   if (pathname === '/analysis') return 3;
   if (pathname === '/more') return 4;
   // Pages accessible from "More" menu
-  if (['/transfers', '/categories', '/accounts', '/tags', '/templates', '/recurring', '/budgets', '/settings', '/notifications'].includes(pathname)) return 4;
+  if (['/transfers', '/categories', '/accounts', '/tags', '/templates', '/recurring', '/budgets', '/savings-goals', '/settings', '/notifications'].includes(pathname)) return 4;
   return 0;
 }
 

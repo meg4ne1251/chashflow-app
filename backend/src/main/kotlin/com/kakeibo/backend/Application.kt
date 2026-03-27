@@ -48,6 +48,7 @@ fun Application.module() {
     val recurringTransactionRepository = RecurringTransactionRepository()
     val recurringTransactionTagRepository = RecurringTransactionTagRepository()
     val budgetRepository = BudgetRepository()
+    val savingsGoalRepository = SavingsGoalRepository()
     val notificationSettingRepository = NotificationSettingRepository()
     val inputPatternRepository = InputPatternRepository()
 
@@ -59,7 +60,12 @@ fun Application.module() {
     val transferService = TransferService(transferRepository)
     val templateService = TemplateService(templateRepository, templateTagRepository, tagRepository)
     val budgetService = BudgetService(budgetRepository, transactionRepository, categoryRepository)
-    val analyticsService = AnalyticsService(transactionRepository, budgetRepository, categoryRepository, accountService)
+    val notificationRepository = NotificationRepository()
+    val savingsGoalService = SavingsGoalService(
+        savingsGoalRepository, accountRepository,
+        notificationRepository, notificationSettingRepository
+    )
+    val analyticsService = AnalyticsService(transactionRepository, budgetRepository, categoryRepository, accountService, savingsGoalService)
     val transactionService = TransactionService(
         transactionRepository, transactionTagRepository, transactionHistoryRepository,
         inputPatternRepository, categoryRepository, accountRepository, budgetRepository,
@@ -83,7 +89,6 @@ fun Application.module() {
         inputPatternRepository, transactionHistoryRepository
     )
     val suggestionService = SuggestionService(transactionRepository, inputPatternRepository)
-    val notificationRepository = NotificationRepository()
     val notificationSettingService = NotificationSettingService(notificationSettingRepository)
     val notificationService = NotificationService(
         notificationRepository, notificationSettingRepository,
@@ -185,6 +190,7 @@ fun Application.module() {
                 templateRoutes(templateService)
                 recurringTransactionRoutes(recurringTransactionService)
                 budgetRoutes(budgetService)
+                savingsGoalRoutes(savingsGoalService)
                 analyticsRoutes(analyticsService)
                 syncRoutes(syncService)
                 importExportRoutes(importExportService)
