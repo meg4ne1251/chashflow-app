@@ -266,7 +266,7 @@ export default function SettingsPage() {
       </Paper>
 
       {/* Backup/Restore */}
-      <Paper sx={{ p: 3.0 }}>
+      <Paper sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <Backup color="primary" />
           <Typography variant="h6">バックアップ / 復元</Typography>
@@ -463,7 +463,7 @@ export default function SettingsPage() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={!!snackMsg} autoHideDuration={3000} onClose={() => setSnackMsg(null)} message={snackMsg} />
+      <Snackbar open={!!snackMsg} autoHideDuration={3000} onClose={() => setSnackMsg(null)} message={snackMsg} sx={isMobile ? { bottom: 72 } : undefined} />
     </Box>
   );
 }

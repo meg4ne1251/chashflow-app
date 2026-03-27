@@ -335,7 +335,7 @@ export default function TransactionFormPage() {
                         </MenuItem>
                       ))}
                     </Select>
-                                  </FormControl>
+                  </FormControl>
                 )}
               />
 

@@ -29,9 +29,6 @@ export default function MoreMenuPage() {
 
   return (
     <Box>
-      <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
-        その他
-      </Typography>
       <Grid container spacing={1.5}>
         {menuItems.map((item) => (
           <Grid size={{ xs: 4 }} key={item.path}>

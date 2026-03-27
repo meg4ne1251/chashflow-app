@@ -54,7 +54,7 @@ export default function NotificationHistoryPage() {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+      <Stack direction="row" justifyContent={isMobile ? 'flex-end' : 'space-between'} alignItems="center" mb={2}>
         {!isMobile && <Typography variant="h5" fontWeight={600}>通知履歴</Typography>}
         <Button
           startIcon={<MarkAllReadIcon />}
