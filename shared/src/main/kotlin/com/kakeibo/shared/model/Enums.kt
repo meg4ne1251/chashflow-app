@@ -20,7 +20,8 @@ enum class AccountType(val value: String) {
     BANK("bank"),
     CREDIT_CARD("credit_card"),
     E_MONEY("e_money"),
-    OTHER("other");
+    OTHER("other"),
+    SAVINGS("savings");
 
     companion object {
         fun fromValue(value: String): AccountType =

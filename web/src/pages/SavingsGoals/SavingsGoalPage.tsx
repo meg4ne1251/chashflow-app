@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import { Add, Edit, Delete, SavingsOutlined, EmojiEvents } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
-import { savingsGoalSchema, type SavingsGoalFormData } from '@/validation/schemas';
+import { savingsGoalSchema, savingsDepositSchema, type SavingsGoalFormData, type SavingsDepositFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
 import { savingsGoalApi } from '@/api/savingsGoals';
 import { accountApi } from '@/api/accounts';
@@ -23,8 +23,7 @@ export default function SavingsGoalPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<SavingsGoalResponse | null>(null);
-  const [amountDialog, setAmountDialog] = useState<SavingsGoalResponse | null>(null);
-  const [amountValue, setAmountValue] = useState('');
+  const [depositDialog, setDepositDialog] = useState<SavingsGoalResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [snackMsg, setSnackMsg] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<SavingsGoalResponse | null>(null);
@@ -39,22 +38,29 @@ export default function SavingsGoalPage() {
   const { data: accounts } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => accountApi.list(),
-    select: (r) => r.data.filter((a) => !a.deleted_at),
+    select: (r) => r.data.filter((a) => !a.deleted_at && a.type !== 'savings'),
   });
 
   const form = useForm<SavingsGoalFormData>({
     resolver: zodFormResolver(savingsGoalSchema),
     defaultValues: {
-      name: '', target_amount: EMPTY_NUMBER, current_amount: 0,
-      deadline: '', account_id: '', icon: '', color: '', sort_order: 0,
+      name: '', target_amount: EMPTY_NUMBER,
+      deadline: '', icon: '', color: '', sort_order: 0,
+    },
+  });
+
+  const depositForm = useForm<SavingsDepositFormData>({
+    resolver: zodFormResolver(savingsDepositSchema),
+    defaultValues: {
+      from_account_id: '', amount: EMPTY_NUMBER, date: '', memo: '',
     },
   });
 
   const openCreate = () => {
     setEditing(null);
     form.reset({
-      name: '', target_amount: EMPTY_NUMBER, current_amount: 0,
-      deadline: '', account_id: '', icon: '', color: '', sort_order: 0,
+      name: '', target_amount: EMPTY_NUMBER,
+      deadline: '', icon: '', color: '', sort_order: 0,
     });
     setDialogOpen(true);
   };
@@ -64,9 +70,7 @@ export default function SavingsGoalPage() {
     form.reset({
       name: g.name,
       target_amount: g.target_amount,
-      current_amount: g.current_amount,
       deadline: g.deadline || '',
-      account_id: g.account_id || '',
       icon: g.icon || '',
       color: g.color || '',
       sort_order: g.sort_order,
@@ -74,25 +78,31 @@ export default function SavingsGoalPage() {
     setDialogOpen(true);
   };
 
-  const openAmountDialog = (g: SavingsGoalResponse) => {
-    setAmountDialog(g);
-    setAmountValue(String(g.current_amount));
+  const openDepositDialog = (g: SavingsGoalResponse) => {
+    setDepositDialog(g);
+    const today = new Date().toISOString().slice(0, 10);
+    depositForm.reset({
+      from_account_id: '', amount: EMPTY_NUMBER, date: today, memo: '',
+    });
+  };
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['savings-goals'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['accounts'] });
   };
 
   const createMutation = useMutation({
     mutationFn: (data: SavingsGoalFormData) => savingsGoalApi.create({
       name: data.name,
       target_amount: data.target_amount,
-      current_amount: data.current_amount,
       deadline: data.deadline || undefined,
-      account_id: data.account_id || undefined,
       icon: data.icon || undefined,
       color: data.color || undefined,
       sort_order: data.sort_order,
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['savings-goals'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      invalidateAll();
       setDialogOpen(false);
       setSnackMsg('貯蓄目標を作成しました');
     },
@@ -103,40 +113,40 @@ export default function SavingsGoalPage() {
     mutationFn: (data: SavingsGoalFormData) => savingsGoalApi.update(editing!.id, {
       name: data.name,
       target_amount: data.target_amount,
-      current_amount: data.current_amount,
       deadline: data.deadline || undefined,
-      account_id: data.account_id || undefined,
       icon: data.icon || undefined,
       color: data.color || undefined,
       sort_order: data.sort_order,
       version: editing!.version,
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['savings-goals'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      invalidateAll();
       setDialogOpen(false);
       setSnackMsg('貯蓄目標を更新しました');
     },
     onError: () => setError('貯蓄目標の更新に失敗しました'),
   });
 
-  const amountMutation = useMutation({
-    mutationFn: ({ id, amount, version }: { id: string; amount: number; version: number }) =>
-      savingsGoalApi.updateAmount(id, amount, version),
+  const depositMutation = useMutation({
+    mutationFn: (data: SavingsDepositFormData) =>
+      savingsGoalApi.deposit(depositDialog!.id, {
+        from_account_id: data.from_account_id,
+        amount: data.amount,
+        date: data.date || undefined,
+        memo: data.memo || undefined,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['savings-goals'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      setAmountDialog(null);
-      setSnackMsg('積立額を更新しました');
+      invalidateAll();
+      setDepositDialog(null);
+      setSnackMsg('積立を実行しました');
     },
-    onError: () => setError('積立額の更新に失敗しました'),
+    onError: () => setError('積立に失敗しました'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (g: SavingsGoalResponse) => savingsGoalApi.delete(g.id, g.version),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['savings-goals'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      invalidateAll();
       setSnackMsg('貯蓄目標を削除しました');
     },
     onError: () => setError('貯蓄目標の削除に失敗しました'),
@@ -146,6 +156,11 @@ export default function SavingsGoalPage() {
     setError(null);
     if (editing) updateMutation.mutate(data);
     else createMutation.mutate(data);
+  };
+
+  const onDeposit = (data: SavingsDepositFormData) => {
+    setError(null);
+    depositMutation.mutate(data);
   };
 
   const filteredGoals = goals?.filter((g) => {
@@ -259,7 +274,7 @@ export default function SavingsGoalPage() {
                     </Box>
                     <Box>
                       {g.status === 'active' && (
-                        <Button size="small" variant="text" onClick={() => openAmountDialog(g)} sx={{ minWidth: 'auto', px: 1 }}>
+                        <Button size="small" variant="text" onClick={() => openDepositDialog(g)} sx={{ minWidth: 'auto', px: 1 }}>
                           積立
                         </Button>
                       )}
@@ -298,11 +313,6 @@ export default function SavingsGoalPage() {
                         月あたり推奨積立額: {formatCurrency(g.monthly_recommended)}
                       </Typography>
                     )}
-                    {g.account && (
-                      <Typography variant="caption" color="text.secondary">
-                        対象: {g.account.name}
-                      </Typography>
-                    )}
                   </Stack>
                 </CardContent>
               </Card>
@@ -319,17 +329,7 @@ export default function SavingsGoalPage() {
             <Stack spacing={2}>
               <TextField fullWidth label="目標名" {...form.register('name')} error={!!form.formState.errors.name} helperText={form.formState.errors.name?.message} placeholder="例: 旅行資金、緊急資金" />
               <TextField fullWidth label="目標額" type="number" inputProps={{ step: 1, min: 1 }} {...form.register('target_amount', { valueAsNumber: true })} error={!!form.formState.errors.target_amount} helperText={form.formState.errors.target_amount?.message} />
-              <TextField fullWidth label="現在の積立額" type="number" inputProps={{ step: 1, min: 0 }} {...form.register('current_amount', { valueAsNumber: true })} error={!!form.formState.errors.current_amount} helperText={form.formState.errors.current_amount?.message} />
               <TextField fullWidth label="期限" type="date" InputLabelProps={{ shrink: true }} {...form.register('deadline')} />
-              <Controller name="account_id" control={form.control} render={({ field }) => (
-                <FormControl fullWidth>
-                  <InputLabel>対象決済手段（任意）</InputLabel>
-                  <Select {...field} value={field.value ?? ''} label="対象決済手段（任意）">
-                    <MenuItem value="">なし</MenuItem>
-                    {accounts?.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              )} />
               <Controller name="icon" control={form.control} render={({ field }) => (
                 <IconPicker value={field.value ?? ''} onChange={field.onChange} error={!!form.formState.errors.icon} helperText={form.formState.errors.icon?.message} />
               )} />
@@ -343,42 +343,51 @@ export default function SavingsGoalPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Amount Update Dialog */}
-      <Dialog open={!!amountDialog} onClose={() => setAmountDialog(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>積立額の更新</DialogTitle>
+      {/* Deposit Dialog */}
+      <Dialog open={!!depositDialog} onClose={() => setDepositDialog(null)} maxWidth="xs" fullWidth fullScreen={isMobile}>
+        <DialogTitle>積立</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            「{amountDialog?.name}」の現在の積立額を入力してください
-          </Typography>
-          <TextField
-            fullWidth
-            label="現在の積立額"
-            type="number"
-            value={amountValue}
-            onChange={(e) => setAmountValue(e.target.value)}
-            inputProps={{ step: 1, min: 0 }}
-          />
-          {amountDialog && (
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              目標額: {formatCurrency(amountDialog.target_amount)}
+          <Box component="form" id="deposit-form" onSubmit={depositForm.handleSubmit(onDeposit)} noValidate sx={{ pt: 1 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              「{depositDialog?.name}」に積立します
             </Typography>
-          )}
+            {depositDialog && (
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                目標額: {formatCurrency(depositDialog.target_amount)}　現在: {formatCurrency(depositDialog.current_amount)}　残り: {formatCurrency(depositDialog.remaining_amount)}
+              </Typography>
+            )}
+            <Stack spacing={2}>
+              <Controller name="from_account_id" control={depositForm.control} render={({ field }) => (
+                <FormControl fullWidth error={!!depositForm.formState.errors.from_account_id}>
+                  <InputLabel>出金元決済手段</InputLabel>
+                  <Select {...field} value={field.value ?? ''} label="出金元決済手段">
+                    {accounts?.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}（{formatCurrency(a.balance)}）</MenuItem>)}
+                  </Select>
+                  {depositForm.formState.errors.from_account_id && (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                      {depositForm.formState.errors.from_account_id.message}
+                    </Typography>
+                  )}
+                </FormControl>
+              )} />
+              <TextField
+                fullWidth
+                label="積立額"
+                type="number"
+                inputProps={{ step: 1, min: 1 }}
+                {...depositForm.register('amount', { valueAsNumber: true })}
+                error={!!depositForm.formState.errors.amount}
+                helperText={depositForm.formState.errors.amount?.message}
+              />
+              <TextField fullWidth label="日付" type="date" InputLabelProps={{ shrink: true }} {...depositForm.register('date')} />
+              <TextField fullWidth label="メモ（任意）" {...depositForm.register('memo')} multiline rows={2} />
+            </Stack>
+          </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAmountDialog(null)}>キャンセル</Button>
-          <Button
-            variant="contained"
-            disabled={amountMutation.isPending}
-            onClick={() => {
-              if (amountDialog) {
-                const val = parseInt(amountValue, 10);
-                if (!isNaN(val) && val >= 0) {
-                  amountMutation.mutate({ id: amountDialog.id, amount: val, version: amountDialog.version });
-                }
-              }
-            }}
-          >
-            {amountMutation.isPending ? <CircularProgress size={20} /> : '更新'}
+          <Button onClick={() => setDepositDialog(null)}>キャンセル</Button>
+          <Button type="submit" form="deposit-form" variant="contained" disabled={depositMutation.isPending}>
+            {depositMutation.isPending ? <CircularProgress size={20} /> : '積立実行'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -388,6 +397,7 @@ export default function SavingsGoalPage() {
         <DialogTitle>貯蓄目標の削除</DialogTitle>
         <DialogContent>
           <Typography>「{deleteConfirm?.name}」を削除しますか？</Typography>
+          <Typography variant="caption" color="text.secondary">紐付く貯蓄口座も削除されます。</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteConfirm(null)}>キャンセル</Button>

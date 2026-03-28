@@ -185,13 +185,14 @@ export default function DashboardPage() {
           ) : data?.account_balances && data.account_balances.length > 0 ? (
             <Stack spacing={0}>
               {data.account_balances.map((account) => {
-                const icon = {
+                const icon = ({
                   cash: <Payments fontSize="small" />,
                   bank: <AccountBalance fontSize="small" />,
                   credit_card: <CreditCard fontSize="small" />,
                   e_money: <Savings fontSize="small" />,
                   other: <MoreHoriz fontSize="small" />,
-                }[account.type] ?? <AccountBalanceWallet fontSize="small" />;
+                  savings: <SavingsOutlined fontSize="small" />,
+                } as Record<string, React.ReactNode>)[account.type] ?? <AccountBalanceWallet fontSize="small" />;
 
                 return (
                   <Box

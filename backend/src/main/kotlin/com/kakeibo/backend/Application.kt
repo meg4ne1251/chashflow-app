@@ -62,7 +62,7 @@ fun Application.module() {
     val budgetService = BudgetService(budgetRepository, transactionRepository, categoryRepository)
     val notificationRepository = NotificationRepository()
     val savingsGoalService = SavingsGoalService(
-        savingsGoalRepository, accountRepository,
+        savingsGoalRepository, accountRepository, transferRepository,
         notificationRepository, notificationSettingRepository
     )
     val analyticsService = AnalyticsService(transactionRepository, budgetRepository, categoryRepository, accountService, savingsGoalService)

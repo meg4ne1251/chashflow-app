@@ -69,7 +69,7 @@ export const transferSchema = z.object({
 
 export const accountSchema = z.object({
   name: z.string().min(1, '決済手段名を入力してください').max(100),
-  type: z.enum(['cash', 'bank', 'credit_card', 'e_money', 'other']),
+  type: z.enum(['cash', 'bank', 'credit_card', 'e_money', 'other', 'savings']),
   initial_balance: z.number().int('整数で入力してください').default(0),
   currency: z.string().default('JPY'),
   sort_order: z.number().int().default(0),
@@ -125,13 +125,22 @@ export const savingsGoalSchema = z.object({
     .int('整数で入力してください')
     .positive('目標額は0より大きい値を指定してください')
     .max(9_999_999_999),
-  current_amount: z.number().int().min(0).default(0),
   currency: z.string().default('JPY'),
   deadline: z.string().optional().or(z.literal('')).nullable(),
-  account_id: z.string().regex(UUID_PATTERN).optional().nullable().or(z.literal('')),
   icon: z.string().max(50).optional().or(z.literal('')),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, '色は#RRGGBB形式で入力してください').optional().or(z.literal('')),
   sort_order: z.number().int().default(0),
+});
+
+export const savingsDepositSchema = z.object({
+  from_account_id: z.string().regex(UUID_PATTERN, '出金元決済手段を選択してください'),
+  amount: z
+    .number({ error: '積立額を入力してください' })
+    .int('整数で入力してください')
+    .positive('積立額は0より大きい値を指定してください')
+    .max(9_999_999_999),
+  date: z.string().optional().or(z.literal('')),
+  memo: z.string().max(500).optional().or(z.literal('')),
 });
 
 export const recurringTransactionSchema = z.object({
@@ -168,4 +177,5 @@ export type TagFormData = z.infer<typeof tagSchema>;
 export type TemplateFormData = z.infer<typeof templateSchema>;
 export type BudgetFormData = z.infer<typeof budgetSchema>;
 export type SavingsGoalFormData = z.infer<typeof savingsGoalSchema>;
+export type SavingsDepositFormData = z.infer<typeof savingsDepositSchema>;
 export type RecurringTransactionFormData = z.infer<typeof recurringTransactionSchema>;

@@ -32,7 +32,7 @@ export default function AccountListPage() {
   const { data: accounts, isLoading } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => accountApi.list(),
-    select: (res) => res.data.filter((a) => !a.deleted_at),
+    select: (res) => res.data.filter((a) => !a.deleted_at && a.type !== 'savings'),
   });
 
   const form = useForm<AccountFormData>({
@@ -213,7 +213,7 @@ export default function AccountListPage() {
                 <FormControl fullWidth>
                   <InputLabel>種別</InputLabel>
                   <Select {...field} label="種別">
-                    {Object.entries(accountTypeLabels).map(([k, v]) => (
+                    {Object.entries(accountTypeLabels).filter(([k]) => k !== 'savings').map(([k, v]) => (
                       <MenuItem key={k} value={k}>{v}</MenuItem>
                     ))}
                   </Select>

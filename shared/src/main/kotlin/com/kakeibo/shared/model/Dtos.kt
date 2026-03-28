@@ -337,14 +337,20 @@ data class SavingsGoalRequest(
     val id: String? = null,
     val name: String,
     val target_amount: Long,
-    val current_amount: Long = 0,
     val currency: String = "JPY",
     val deadline: String? = null,
-    val account_id: String? = null,
     val icon: String? = null,
     val color: String? = null,
     val sort_order: Int = 0,
     val version: Int? = null
+)
+
+@Serializable
+data class SavingsDepositRequest(
+    val from_account_id: String,
+    val amount: Long,
+    val date: String? = null,
+    val memo: String? = null
 )
 
 @Serializable

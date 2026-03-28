@@ -2,7 +2,7 @@
 // Enums
 // =========================================
 export type TransactionType = 'income' | 'expense';
-export type AccountType = 'cash' | 'bank' | 'credit_card' | 'e_money' | 'other';
+export type AccountType = 'cash' | 'bank' | 'credit_card' | 'e_money' | 'other' | 'savings';
 export type Frequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type NotificationType = 'input_remind' | 'budget_alert' | 'credit_card_payment' | 'savings_goal_achieved';
 export type SavingsGoalStatus = 'active' | 'achieved' | 'cancelled';
@@ -334,14 +334,19 @@ export interface SavingsGoalRequest {
   id?: string;
   name: string;
   target_amount: number;
-  current_amount?: number;
   currency?: string;
   deadline?: string | null;
-  account_id?: string | null;
   icon?: string | null;
   color?: string | null;
   sort_order?: number;
   version?: number;
+}
+
+export interface SavingsDepositRequest {
+  from_account_id: string;
+  amount: number;
+  date?: string;
+  memo?: string;
 }
 
 export interface SavingsGoalResponse {

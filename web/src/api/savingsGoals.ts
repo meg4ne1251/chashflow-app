@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { SavingsGoalResponse, SavingsGoalRequest, SavingsGoalSummary } from '@/types';
+import type { SavingsGoalResponse, SavingsGoalRequest, SavingsGoalSummary, SavingsDepositRequest } from '@/types';
 
 export const savingsGoalApi = {
   list: () =>
@@ -17,11 +17,8 @@ export const savingsGoalApi = {
   update: (id: string, data: SavingsGoalRequest) =>
     apiClient.put<SavingsGoalResponse>(`/savings-goals/${id}`, data),
 
-  updateAmount: (id: string, currentAmount: number, version: number) =>
-    apiClient.patch<SavingsGoalResponse>(`/savings-goals/${id}/amount`, {
-      current_amount: currentAmount,
-      version,
-    }),
+  deposit: (id: string, data: SavingsDepositRequest) =>
+    apiClient.patch<SavingsGoalResponse>(`/savings-goals/${id}/deposit`, data),
 
   delete: (id: string, version: number) =>
     apiClient.delete(`/savings-goals/${id}`, { params: { version } }),

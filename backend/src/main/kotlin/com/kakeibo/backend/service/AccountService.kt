@@ -18,8 +18,9 @@ class AccountService(
     private val transactionRepository: TransactionRepository,
     private val transferRepository: TransferRepository
 ) {
-    fun getAll(): List<AccountResponse> {
+    fun getAll(excludeSavings: Boolean = true): List<AccountResponse> {
         val accounts = accountRepository.findAll()
+            .let { if (excludeSavings) it.filter { row -> row[Accounts.type] != "savings" } else it }
         if (accounts.isEmpty()) return emptyList()
 
         // Batch-calculate balances to avoid N+1 queries
@@ -131,6 +132,11 @@ class AccountService(
         val existing = accountRepository.findActiveById(uuid)
             ?: throw NotFoundException("決済手段が見つかりません")
 
+        if (existing[Accounts.type] == "savings") {
+            throw ValidationException("貯蓄口座は貯蓄目標から削除してください",
+                listOf(FieldError("type", "貯蓄口座は直接削除できません")))
+        }
+
         if (!accountRepository.softDelete(uuid, version)) {
             throw ConflictException("バージョン競合が発生しました")
         }
@@ -170,6 +176,8 @@ class AccountService(
             errors.add(FieldError("name", "決済手段名は${ValidationRules.ACCOUNT_NAME_MAX_LENGTH}文字以下で入力してください"))
         if (request.type !in com.kakeibo.shared.model.AccountType.entries.map { it.value })
             errors.add(FieldError("type", "決済手段種別が不正です"))
+        if (request.type == "savings")
+            errors.add(FieldError("type", "貯蓄口座は直接作成できません"))
         if (errors.isNotEmpty()) throw ValidationException("入力内容にエラーがあります", errors)
     }
 }

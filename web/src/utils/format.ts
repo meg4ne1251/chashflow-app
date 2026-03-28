@@ -101,6 +101,7 @@ export const accountTypeLabels: Record<AccountType, string> = {
   credit_card: 'クレジットカード',
   e_money: '電子マネー',
   other: 'その他',
+  savings: '貯蓄口座',
 };
 
 /**

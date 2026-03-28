@@ -2,6 +2,7 @@ package com.kakeibo.backend.routes
 
 import com.kakeibo.backend.service.SavingsGoalService
 import com.kakeibo.shared.model.SavingsGoalRequest
+import com.kakeibo.shared.model.SavingsDepositRequest
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -38,12 +39,10 @@ fun Route.savingsGoalRoutes(savingsGoalService: SavingsGoalService) {
             call.respond(HttpStatusCode.OK, response)
         }
 
-        patch("/{id}/amount") {
+        patch("/{id}/deposit") {
             val id = call.parameters["id"]!!
-            @kotlinx.serialization.Serializable
-            data class AmountUpdate(val current_amount: Long, val version: Int)
-            val body = call.receive<AmountUpdate>()
-            val response = savingsGoalService.updateAmount(id, body.current_amount, body.version)
+            val body = call.receive<SavingsDepositRequest>()
+            val response = savingsGoalService.deposit(id, body)
             call.respond(HttpStatusCode.OK, response)
         }
 

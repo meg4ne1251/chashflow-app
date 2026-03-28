@@ -81,6 +81,18 @@ class AccountRepository {
         updated > 0
     }
 
+    fun updateName(id: UUID, name: String, currentVersion: Int): ResultRow? = transaction {
+        val now = OffsetDateTime.now()
+        val updated = Accounts.update({
+            (Accounts.id eq id) and (Accounts.version eq currentVersion) and Accounts.deletedAt.isNull()
+        }) {
+            it[Accounts.name] = name
+            it[Accounts.version] = currentVersion + 1
+            it[Accounts.updatedAt] = now
+        }
+        if (updated > 0) findById(id) else null
+    }
+
     fun existsByName(name: String, excludeId: UUID? = null): Boolean = transaction {
         Accounts.selectAll().where {
             (Accounts.name eq name) and Accounts.deletedAt.isNull() and
