@@ -61,7 +61,8 @@ export default function AccountListPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: AccountFormData) => accountApi.update(editing!.id, { ...data, version: editing!.version }),
+    mutationFn: (data: AccountFormData & { accountId: string; accountVersion: number }) =>
+      accountApi.update(data.accountId, { ...data, version: data.accountVersion }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['accounts'] }); setDialogOpen(false); },
     onError: () => setError('決済手段の更新に失敗しました'),
   });
@@ -74,7 +75,11 @@ export default function AccountListPage() {
 
   const onSubmit = (data: AccountFormData) => {
     setError(null);
-    editing ? updateMutation.mutate(data) : createMutation.mutate(data);
+    if (editing) {
+      updateMutation.mutate({ ...data, accountId: editing.id, accountVersion: editing.version });
+    } else {
+      createMutation.mutate(data);
+    }
   };
 
   const openAdjust = (a: AccountResponse) => {

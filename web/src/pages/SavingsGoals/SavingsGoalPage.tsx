@@ -80,6 +80,7 @@ export default function SavingsGoalPage() {
 
   const openDepositDialog = (g: SavingsGoalResponse) => {
     setDepositDialog(g);
+    setDepositTargetId(g.id);
     const today = new Date().toISOString().slice(0, 10);
     depositForm.reset({
       from_account_id: '', amount: EMPTY_NUMBER, date: today, memo: '',
@@ -127,9 +128,11 @@ export default function SavingsGoalPage() {
     onError: () => setError('貯蓄目標の更新に失敗しました'),
   });
 
+  const [depositTargetId, setDepositTargetId] = useState<string | null>(null);
+
   const depositMutation = useMutation({
-    mutationFn: (data: SavingsDepositFormData) =>
-      savingsGoalApi.deposit(depositDialog!.id, {
+    mutationFn: (data: SavingsDepositFormData & { goalId: string }) =>
+      savingsGoalApi.deposit(data.goalId, {
         from_account_id: data.from_account_id,
         amount: data.amount,
         date: data.date || undefined,
@@ -159,8 +162,9 @@ export default function SavingsGoalPage() {
   };
 
   const onDeposit = (data: SavingsDepositFormData) => {
+    if (!depositTargetId) return;
     setError(null);
-    depositMutation.mutate(data);
+    depositMutation.mutate({ ...data, goalId: depositTargetId });
   };
 
   const filteredGoals = goals?.filter((g) => {

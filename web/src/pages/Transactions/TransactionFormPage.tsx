@@ -44,10 +44,13 @@ export default function TransactionFormPage() {
   const templateData = (location.state as { template?: import('@/types').TemplateResponse } | null)?.template;
   const [memoSuggestions, setMemoSuggestions] = useState<string[]>([]);
   const memoDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
 
-  // Cleanup debounce timer on unmount
+  // Cleanup debounce timer on unmount and track mounted state
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       if (memoDebounceRef.current) clearTimeout(memoDebounceRef.current);
     };
   }, []);
@@ -149,6 +152,7 @@ export default function TransactionFormPage() {
     memoDebounceRef.current = setTimeout(async () => {
       try {
         const res = await suggestionApi.memo(value);
+        if (!mountedRef.current) return;
         setMemoSuggestions(res.data.map((s) => s.memo));
       } catch (err) {
         console.warn('Memo suggestion failed:', err);
@@ -157,6 +161,7 @@ export default function TransactionFormPage() {
       // Auto-complete category/account
       try {
         const res = await suggestionApi.autoComplete(value);
+        if (!mountedRef.current) return;
         if (res.data.category_id && res.data.confidence > AUTO_COMPLETE_CONFIDENCE_THRESHOLD) {
           setValue('category_id', res.data.category_id);
         }
