@@ -67,7 +67,7 @@ class RecurringTransactionRepository {
             it[RecurringTransactions.createdAt] = now
             it[RecurringTransactions.updatedAt] = now
         }
-        findById(id)!!
+        findById(id) ?: throw IllegalStateException("Failed to retrieve created recurring transaction: $id")
     }
 
     fun update(

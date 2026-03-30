@@ -16,6 +16,7 @@ import { accountApi } from '@/api/accounts';
 import { transactionApi } from '@/api/transactions';
 import { accountTypeLabels, formatCurrency, getNow } from '@/utils/format';
 import { FALLBACK_EXPENSE_CATEGORY_ID, FALLBACK_INCOME_CATEGORY_ID } from '@/constants';
+import { logger } from '@/utils/logger';
 import type { AccountResponse } from '@/types';
 
 export default function AccountListPage() {
@@ -117,7 +118,8 @@ export default function AccountListPage() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       setAdjustTarget(null);
-    } catch {
+    } catch (err) {
+      logger.error('Failed to adjust account balance', err, { accountId: adjustTarget.id });
       setError('残高調整に失敗しました');
     } finally {
       setAdjusting(false);

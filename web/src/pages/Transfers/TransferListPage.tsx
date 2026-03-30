@@ -15,6 +15,7 @@ import { transferApi } from '@/api/transfers';
 import { accountApi } from '@/api/accounts';
 import { formatCurrency, formatDate, getToday } from '@/utils/format';
 import { useUndoStore } from '@/stores/undoStore';
+import { logger } from '@/utils/logger';
 import type { TransferResponse } from '@/types';
 import { UNDO_TIMEOUT_MS, EMPTY_NUMBER, DEFAULT_PAGE_SIZE } from '@/constants';
 
@@ -92,7 +93,8 @@ export default function TransferListPage() {
       await transferApi.restore(t.id);
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    } catch {
+    } catch (err) {
+      logger.error('Failed to restore transfer', err, { transferId: t.id });
       setError('振替の復元に失敗しました');
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
     }

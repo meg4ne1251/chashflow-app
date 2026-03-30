@@ -18,6 +18,7 @@ import { categoryApi } from '@/api/categories';
 import { accountApi } from '@/api/accounts';
 import { tagApi } from '@/api/tags';
 import { formatCurrency, formatDateTime } from '@/utils/format';
+import { logger } from '@/utils/logger';
 import type { TemplateResponse } from '@/types';
 
 export default function TemplateListPage() {
@@ -76,7 +77,7 @@ export default function TemplateListPage() {
 
   const handleUseTemplate = (t: TemplateResponse) => {
     templateApi.use(t.id).catch((err) => {
-      console.warn('Failed to record template usage:', err);
+      logger.warn('Failed to record template usage', err, { templateId: t.id });
     });
     navigate('/transactions/new', { state: { template: t } });
   };

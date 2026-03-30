@@ -24,6 +24,8 @@ class RecurringTransactionScheduler(
     private val logger = LoggerFactory.getLogger(javaClass)
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var job: Job? = null
+    @Volatile
+    private var executionInProgress = false
 
     companion object {
         private const val MAX_RETRIES = 3
@@ -60,34 +62,45 @@ class RecurringTransactionScheduler(
     }
 
     private suspend fun executeWithRetry() {
-        var retryCount = 0
-        while (retryCount <= MAX_RETRIES) {
-            try {
-                val today = LocalDate.now(TARGET_ZONE)
-                logger.info("定期取引バッチを実行します (日付: $today, リトライ: $retryCount)")
-                val created = recurringTransactionService.executeDueTransactions(today)
-                logger.info("定期取引バッチ完了: ${created}件生成")
+        // Prevent concurrent execution
+        if (executionInProgress) {
+            logger.warn("前回の実行がまだ進行中のため、今回の実行をスキップします")
+            return
+        }
 
-                // Run daily maintenance tasks (e.g. expired token cleanup)
-                dailyCleanupTasks.forEach { task ->
-                    try {
-                        task()
-                    } catch (e: Exception) {
-                        logger.warn("デイリークリーンアップタスクでエラーが発生しました", e)
+        executionInProgress = true
+        try {
+            var retryCount = 0
+            while (retryCount <= MAX_RETRIES) {
+                try {
+                    val today = LocalDate.now(TARGET_ZONE)
+                    logger.info("定期取引バッチを実行します (日付: $today, リトライ: $retryCount)")
+                    val created = recurringTransactionService.executeDueTransactions(today)
+                    logger.info("定期取引バッチ完了: ${created}件生成")
+
+                    // Run daily maintenance tasks (e.g. expired token cleanup)
+                    dailyCleanupTasks.forEach { task ->
+                        try {
+                            task()
+                        } catch (e: Exception) {
+                            logger.warn("デイリークリーンアップタスクでエラーが発生しました", e)
+                        }
                     }
-                }
-                return
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                retryCount++
-                if (retryCount > MAX_RETRIES) {
-                    logger.error("定期取引バッチが${MAX_RETRIES}回リトライ後も失敗しました", e)
                     return
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    retryCount++
+                    if (retryCount > MAX_RETRIES) {
+                        logger.error("定期取引バッチが${MAX_RETRIES}回リトライ後も失敗しました", e)
+                        return
+                    }
+                    logger.warn("定期取引バッチ失敗 (リトライ $retryCount/$MAX_RETRIES): ${e.message}")
+                    delay(Duration.ofMinutes(RETRY_INTERVAL_MINUTES).toMillis())
                 }
-                logger.warn("定期取引バッチ失敗 (リトライ $retryCount/$MAX_RETRIES): ${e.message}")
-                delay(Duration.ofMinutes(RETRY_INTERVAL_MINUTES).toMillis())
             }
+        } finally {
+            executionInProgress = false
         }
     }
 

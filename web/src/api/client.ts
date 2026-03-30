@@ -1,5 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import type { ErrorResponse } from '@/types';
+import { tokenResponseSchema } from '@/validation/schemas';
+import { logger } from '@/utils/logger';
 
 const API_BASE_URL = '/api/v1';
 
@@ -92,7 +94,16 @@ apiClient.interceptors.response.use(
           refresh_token: refreshToken,
         });
 
-        const { access_token, refresh_token } = response.data;
+        // Validate response structure
+        const parsedData = tokenResponseSchema.safeParse(response.data);
+        if (!parsedData.success) {
+          logger.error('Invalid token refresh response', parsedData.error);
+          clearAuthTokens();
+          window.location.href = '/login';
+          return Promise.reject(new Error('Invalid refresh token response'));
+        }
+
+        const { access_token, refresh_token } = parsedData.data;
         localStorage.setItem('access_token', access_token);
         localStorage.setItem('refresh_token', refresh_token);
         refreshFailCount = 0;

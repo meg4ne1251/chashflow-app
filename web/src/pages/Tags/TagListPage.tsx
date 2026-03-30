@@ -12,6 +12,7 @@ import { zodFormResolver } from '@/validation/resolver';
 import { tagSchema, type TagFormData } from '@/validation/schemas';
 import { tagApi } from '@/api/tags';
 import { transactionApi } from '@/api/transactions';
+import { logger } from '@/utils/logger';
 import type { TagResponse } from '@/types';
 
 export default function TagListPage() {
@@ -63,7 +64,8 @@ export default function TagListPage() {
     try {
       const res = await transactionApi.list({ tag_ids: t.id, size: 1 });
       setDeleteTagTxCount(res.data.pagination.total_count ?? 0);
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to fetch transaction count for tag', err, { tagId: t.id });
       setDeleteTagTxCount(0);
     }
   };

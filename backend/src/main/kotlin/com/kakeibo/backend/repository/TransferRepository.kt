@@ -52,7 +52,7 @@ class TransferRepository {
             it[Transfers.createdAt] = now
             it[Transfers.updatedAt] = now
         }
-        findById(id)!!
+        findById(id) ?: throw IllegalStateException("Failed to retrieve created transfer: $id")
     }
 
     fun update(

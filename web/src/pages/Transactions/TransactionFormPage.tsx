@@ -28,6 +28,7 @@ import { categoryApi } from '@/api/categories';
 import { accountApi } from '@/api/accounts';
 import { tagApi } from '@/api/tags';
 import { suggestionApi } from '@/api/suggestions';
+import { logger } from '@/utils/logger';
 import { getNow } from '@/utils/format';
 import { DEBOUNCE_DELAY_MS, AUTO_COMPLETE_CONFIDENCE_THRESHOLD, MEMO_SUGGESTION_MIN_LENGTH } from '@/constants';
 import { useMobile } from '@/hooks/useMobile';
@@ -155,7 +156,7 @@ export default function TransactionFormPage() {
         if (!mountedRef.current) return;
         setMemoSuggestions(res.data.map((s) => s.memo));
       } catch (err) {
-        console.warn('Memo suggestion failed:', err);
+        logger.warn('Memo suggestion failed', err, { name: value });
       }
 
       // Auto-complete category/account
@@ -169,7 +170,7 @@ export default function TransactionFormPage() {
           setValue('account_id', res.data.account_id);
         }
       } catch (err) {
-        console.warn('Auto-complete failed:', err);
+        logger.warn('Auto-complete failed', err, { name: value });
       }
     }, DEBOUNCE_DELAY_MS);
   };

@@ -119,14 +119,41 @@ class ImportExportService(
 
             try {
                 transaction {
-                    val dateStr = row["date"]!!
+                    // validated row data - use safe accessors
+                    val dateStr = row["date"] ?: run {
+                        errors.add(ImportError(rowNum, "date", "日付が必須です"))
+                        skippedCount++
+                        return@transaction
+                    }
                     val dateTime = try {
                         LocalDateTime.parse(dateStr)
                     } catch (_: Exception) {
                         LocalDate.parse(dateStr).atStartOfDay()
                     }
-                    val type = normalizeType(row["type"]!!)
-                    val amount = kotlin.math.abs(row["amount"]!!.toLong())
+                    val typeStr = row["type"] ?: run {
+                        errors.add(ImportError(rowNum, "type", "種別が必須です"))
+                        skippedCount++
+                        return@transaction
+                    }
+                    val type = normalizeType(typeStr)
+                    val amountStr = row["amount"] ?: run {
+                        errors.add(ImportError(rowNum, "amount", "金額が必須です"))
+                        skippedCount++
+                        return@transaction
+                    }
+                    val amount = try {
+                        val parsed = amountStr.toLong()
+                        if (parsed < ValidationRules.AMOUNT_MIN || parsed > ValidationRules.AMOUNT_MAX) {
+                            errors.add(ImportError(rowNum, "amount", "金額は${ValidationRules.AMOUNT_MIN}〜${ValidationRules.AMOUNT_MAX}の範囲で指定してください"))
+                            skippedCount++
+                            return@transaction
+                        }
+                        kotlin.math.abs(parsed)
+                    } catch (_: NumberFormatException) {
+                        errors.add(ImportError(rowNum, "amount", "金額は数値で指定してください"))
+                        skippedCount++
+                        return@transaction
+                    }
                     val categoryName = row["category"]?.trim()
                     val accountName = row["account"]?.trim()
                     val name = row["name"]?.trim()

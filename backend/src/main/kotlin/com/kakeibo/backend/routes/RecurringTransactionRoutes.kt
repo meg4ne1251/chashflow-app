@@ -21,25 +21,21 @@ fun Route.recurringTransactionRoutes(recurringTransactionService: RecurringTrans
         }
 
         put("/{id}") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             val request = call.receive<RecurringTransactionRequest>()
             val response = recurringTransactionService.update(id, request)
             call.respond(HttpStatusCode.OK, response)
         }
 
         delete("/{id}") {
-            val id = call.parameters["id"]!!
-            val version = call.request.queryParameters["version"]?.toIntOrNull()
-                ?: throw com.kakeibo.backend.middleware.ValidationException(
-                    "バージョンを指定してください",
-                    listOf(com.kakeibo.shared.model.FieldError("version", "version クエリパラメータは必須です"))
-                )
+            val id = validateUuidParam(call.parameters["id"])
+            val version = validateVersionParam(call.request.queryParameters["version"]?.toIntOrNull())
             recurringTransactionService.delete(id, version)
             call.respond(HttpStatusCode.NoContent)
         }
 
         patch("/{id}/toggle") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             val response = recurringTransactionService.toggle(id)
             call.respond(HttpStatusCode.OK, response)
         }

@@ -47,7 +47,7 @@ class CategoryRepository {
             it[Categories.createdAt] = now
             it[Categories.updatedAt] = now
         }
-        findById(id)!!
+        findById(id) ?: throw IllegalStateException("Failed to retrieve created category: $id")
     }
 
     fun update(id: UUID, name: String, type: String, icon: String?, color: String?, sortOrder: Int, currentVersion: Int): ResultRow? = transaction {

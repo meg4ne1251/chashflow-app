@@ -33,7 +33,7 @@ fun Route.transactionRoutes(transactionService: TransactionService) {
         }
 
         get("/{id}") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             val response = transactionService.getById(id)
             call.respond(HttpStatusCode.OK, response)
         }
@@ -47,31 +47,27 @@ fun Route.transactionRoutes(transactionService: TransactionService) {
 
         put("/{id}") {
             val userId = call.getUserId()
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             val request = call.receive<TransactionRequest>()
             val response = transactionService.update(id, request, userId)
             call.respond(HttpStatusCode.OK, response)
         }
 
         delete("/{id}") {
-            val id = call.parameters["id"]!!
-            val version = call.request.queryParameters["version"]?.toIntOrNull()
-                ?: throw com.kakeibo.backend.middleware.ValidationException(
-                    "バージョンを指定してください",
-                    listOf(com.kakeibo.shared.model.FieldError("version", "version クエリパラメータは必須です"))
-                )
+            val id = validateUuidParam(call.parameters["id"])
+            val version = validateVersionParam(call.request.queryParameters["version"]?.toIntOrNull())
             transactionService.delete(id, version)
             call.respond(HttpStatusCode.NoContent)
         }
 
         patch("/{id}/restore") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             transactionService.restore(id)
             call.respond(HttpStatusCode.OK, mapOf("status" to "restored"))
         }
 
         get("/{id}/history") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             val response = transactionService.getHistory(id)
             call.respond(HttpStatusCode.OK, response)
         }

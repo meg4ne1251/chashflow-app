@@ -37,7 +37,7 @@ class TagRepository {
             it[Tags.createdAt] = now
             it[Tags.updatedAt] = now
         }
-        findById(id)!!
+        findById(id) ?: throw IllegalStateException("Failed to retrieve created tag: $id")
     }
 
     fun update(id: UUID, name: String, color: String?, currentVersion: Int): ResultRow? = transaction {

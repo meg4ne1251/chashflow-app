@@ -15,7 +15,7 @@ fun Route.notificationSettingRoutes(notificationSettingService: NotificationSett
         }
 
         put("/{id}") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             val request = call.receive<NotificationSettingRequest>()
             val response = notificationSettingService.update(id, request)
             call.respond(HttpStatusCode.OK, response)

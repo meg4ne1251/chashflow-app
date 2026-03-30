@@ -35,7 +35,7 @@ class BudgetRepository {
                 it[Budgets.version] = existing[Budgets.version] + 1
                 it[Budgets.updatedAt] = OffsetDateTime.now()
             }
-            findById(existingId)!!
+            findById(existingId) ?: throw IllegalStateException("Failed to retrieve updated budget: $existingId")
         } else {
             val now = OffsetDateTime.now()
             Budgets.insert {
@@ -48,7 +48,7 @@ class BudgetRepository {
                 it[Budgets.createdAt] = now
                 it[Budgets.updatedAt] = now
             }
-            findById(id)!!
+            findById(id) ?: throw IllegalStateException("Failed to retrieve created budget: $id")
         }
     }
 

@@ -26,6 +26,10 @@ logger = logging.getLogger("cashflow-bot")
 API_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10)
 MAX_AMOUNT = 999_999_999_999  # 最大金額 (12桁)
 INTERACTION_TIMEOUT = 120
+MAX_TEMPLATES_IN_SELECT = 25  # Discord Select component limit
+MAX_LABEL_LENGTH = 100  # Discord Select option label limit
+MAX_DESCRIPTION_LENGTH = 100  # Discord Select option description limit
+AMOUNT_INPUT_MAX_LENGTH = 10  # 最大10桁の金額入力
 
 # ── 設定 ─────────────────────────────────────────────────────────
 def _get_required_env(key: str) -> str:
@@ -182,9 +186,11 @@ def _fmt_amount(amount: int, currency: str = "JPY") -> str:
 
 
 def _template_label(t: dict) -> str:
-    type_str   = "収入" if t["type"] == "income" else "支出"
+    """テンプレートラベルを生成 (Discord制限により最大100文字)"""
+    type_str = "収入" if t.get("type") == "income" else "支出"
     amount_str = _fmt_amount(t["amount"], t.get("currency", "JPY")) if t.get("amount") else "金額未設定"
-    return f"{t['name']} [{type_str} / {amount_str}]"[:100]
+    name = t.get("name", "不明")
+    return f"{name} [{type_str} / {amount_str}]"[:MAX_LABEL_LENGTH]
 
 
 def _is_allowed(user_id: int) -> bool:
@@ -232,7 +238,7 @@ class AmountModal(discord.ui.Modal, title="金額を入力"):
         label="金額（円）",
         placeholder="例: 1500",
         min_length=1,
-        max_length=10,
+        max_length=AMOUNT_INPUT_MAX_LENGTH,
     )
 
     def __init__(self, template: dict, session: aiohttp.ClientSession) -> None:
@@ -277,6 +283,9 @@ class ConfirmView(discord.ui.View):
     @discord.ui.button(label="キャンセル", style=discord.ButtonStyle.secondary)
     async def cancel(self, interaction: discord.Interaction,
                      button: discord.ui.Button) -> None:
+        if not _is_allowed(interaction.user.id):
+            await interaction.response.send_message("権限がありません。", ephemeral=True)
+            return
         await interaction.response.edit_message(content="キャンセルしました。", view=None)
         self.stop()
 
@@ -290,9 +299,9 @@ class TemplateSelect(discord.ui.Select):
             discord.SelectOption(
                 label=_template_label(t),
                 value=t["id"],
-                description=(t.get("memo") or "")[:100] or None,
+                description=(t.get("memo") or "")[:MAX_DESCRIPTION_LENGTH] or None,
             )
-            for t in templates[:25]
+            for t in templates[:MAX_TEMPLATES_IN_SELECT]
         ]
         super().__init__(
             placeholder="テンプレートを選択...",
@@ -306,14 +315,30 @@ class TemplateSelect(discord.ui.Select):
             await interaction.response.send_message("権限がありません。", ephemeral=True)
             return
 
-        template = self._map[self.values[0]]
-        amount   = template.get("amount")
+        # Safe access to selected value
+        if not self.values:
+            await interaction.response.send_message(
+                "テンプレートが選択されていません。", ephemeral=True
+            )
+            return
+
+        selected_id = self.values[0]
+        template = self._map.get(selected_id)
+        if not template:
+            logger.error("Selected template %s not found in cache", selected_id)
+            await interaction.response.send_message(
+                "テンプレートが見つかりません。", ephemeral=True
+            )
+            return
+
+        amount = template.get("amount")
 
         if amount is not None:
             currency   = template.get("currency", "JPY")
-            type_label = "収入" if template["type"] == "income" else "支出"
+            type_label = "収入" if template.get("type") == "income" else "支出"
+            name = template.get("name", "不明")
             msg = (
-                f"**{template['name']}** を記録しますか？\n"
+                f"**{name}** を記録しますか？\n"
                 f"{type_label} / {_fmt_amount(amount, currency)}"
             )
             await interaction.response.edit_message(

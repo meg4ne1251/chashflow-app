@@ -23,7 +23,7 @@ fun Route.transferRoutes(transferService: TransferService) {
         }
 
         get("/{id}") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             val response = transferService.getById(id)
             call.respond(HttpStatusCode.OK, response)
         }
@@ -35,25 +35,21 @@ fun Route.transferRoutes(transferService: TransferService) {
         }
 
         put("/{id}") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             val request = call.receive<TransferRequest>()
             val response = transferService.update(id, request)
             call.respond(HttpStatusCode.OK, response)
         }
 
         patch("/{id}/restore") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             transferService.restore(id)
             call.respond(HttpStatusCode.OK, mapOf("status" to "restored"))
         }
 
         delete("/{id}") {
-            val id = call.parameters["id"]!!
-            val version = call.request.queryParameters["version"]?.toIntOrNull()
-                ?: throw com.kakeibo.backend.middleware.ValidationException(
-                    "バージョンを指定してください",
-                    listOf(com.kakeibo.shared.model.FieldError("version", "version クエリパラメータは必須です"))
-                )
+            val id = validateUuidParam(call.parameters["id"])
+            val version = validateVersionParam(call.request.queryParameters["version"]?.toIntOrNull())
             transferService.delete(id, version)
             call.respond(HttpStatusCode.NoContent)
         }

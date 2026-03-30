@@ -48,6 +48,7 @@ import { categoryApi } from '@/api/categories';
 import { accountApi } from '@/api/accounts';
 import { tagApi } from '@/api/tags';
 import { formatCurrency, formatDateTime } from '@/utils/format';
+import { logger } from '@/utils/logger';
 import { useUndoStore } from '@/stores/undoStore';
 import type { TransactionResponse, TemplateResponse } from '@/types';
 import { DEBOUNCE_DELAY_MS, DEFAULT_PAGE_SIZE, UNDO_TIMEOUT_MS } from '@/constants';
@@ -198,7 +199,8 @@ export default function TransactionListPage() {
       await transactionApi.restore(tx.id);
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    } catch {
+    } catch (err) {
+      logger.error('Failed to restore transaction', err, { transactionId: tx.id });
       setUndoError('取引の復元に失敗しました');
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
     }
@@ -208,7 +210,7 @@ export default function TransactionListPage() {
 
   const handleTemplateSelect = (template: TemplateResponse) => {
     templateApi.use(template.id).catch((err) => {
-      console.warn('Failed to record template usage:', err);
+      logger.warn('Failed to record template usage', err, { templateId: template.id });
     });
     setTemplateDialogOpen(false);
     navigate('/transactions/new', { state: { template } });

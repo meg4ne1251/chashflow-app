@@ -26,12 +26,8 @@ fun Route.budgetRoutes(budgetService: BudgetService) {
         }
 
         delete("/{id}") {
-            val id = call.parameters["id"]!!
-            val version = call.request.queryParameters["version"]?.toIntOrNull()
-                ?: throw com.kakeibo.backend.middleware.ValidationException(
-                    "バージョンを指定してください",
-                    listOf(com.kakeibo.shared.model.FieldError("version", "version クエリパラメータは必須です"))
-                )
+            val id = validateUuidParam(call.parameters["id"])
+            val version = validateVersionParam(call.request.queryParameters["version"]?.toIntOrNull())
             budgetService.delete(id, version)
             call.respond(HttpStatusCode.NoContent)
         }

@@ -179,3 +179,9 @@ export type BudgetFormData = z.infer<typeof budgetSchema>;
 export type SavingsGoalFormData = z.infer<typeof savingsGoalSchema>;
 export type SavingsDepositFormData = z.infer<typeof savingsDepositSchema>;
 export type RecurringTransactionFormData = z.infer<typeof recurringTransactionSchema>;
+
+// Token response schema for API client
+export const tokenResponseSchema = z.object({
+  access_token: z.string().min(1),
+  refresh_token: z.string().min(1),
+});

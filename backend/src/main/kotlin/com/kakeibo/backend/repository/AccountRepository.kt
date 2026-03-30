@@ -41,7 +41,7 @@ class AccountRepository {
             it[Accounts.createdAt] = now
             it[Accounts.updatedAt] = now
         }
-        findById(id)!!
+        findById(id) ?: throw IllegalStateException("Failed to retrieve created account: $id")
     }
 
     fun update(id: UUID, name: String, type: String, initialBalance: Long, currency: String, sortOrder: Int, currentVersion: Int, paymentDay: Int? = null): ResultRow? = transaction {

@@ -42,10 +42,11 @@ class TransactionRepository {
             filter.categoryId?.let { andWhere { Transactions.categoryId eq it } }
             filter.accountId?.let { andWhere { Transactions.accountId eq it } }
             filter.keyword?.let { kw ->
-                val escaped = kw.replace("%", "\\%").replace("_", "\\_")
+                // SQLインジェクション対策: LIKE特殊文字をエスケープ
+                val escaped = kw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
                 andWhere {
-                    (Transactions.memo like "%$escaped%") or
-                    (Transactions.name like "%$escaped%")
+                    (Transactions.memo.lowerCase() like "%${escaped.lowercase()}%") or
+                    (Transactions.name.lowerCase() like "%${escaped.lowercase()}%")
                 }
             }
         }
@@ -106,7 +107,7 @@ class TransactionRepository {
             it[Transactions.createdAt] = now
             it[Transactions.updatedAt] = now
         }
-        findById(id)!!
+        findById(id) ?: throw IllegalStateException("Failed to retrieve created transaction: $id")
     }
 
     fun update(
@@ -249,12 +250,13 @@ class TransactionRepository {
     }
 
     fun getDistinctMemos(keyword: String, limit: Int = 10): List<Pair<String, Long>> = transaction {
-        val escaped = keyword.replace("%", "\\%").replace("_", "\\_")
+        // SQLインジェクション対策: LIKE特殊文字をエスケープ
+        val escaped = keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         Transactions
             .select(Transactions.memo, Transactions.memo.count())
             .where {
                 Transactions.memo.isNotNull() and
-                        (Transactions.memo like "%$escaped%") and
+                        (Transactions.memo.lowerCase() like "%${escaped.lowercase()}%") and
                         Transactions.deletedAt.isNull()
             }
             .groupBy(Transactions.memo)
@@ -406,5 +408,25 @@ class TransactionRepository {
             .orderBy(Transactions.date to SortOrder.DESC, Transactions.createdAt to SortOrder.DESC)
             .limit(limit)
             .toList()
+    }
+
+    /**
+     * Calculate the actual balance for an account.
+     * Balance = initialBalance + income - expense (non-deleted transactions only)
+     */
+    fun calculateAccountBalance(accountId: UUID, initialBalance: Long): Long = transaction {
+        val income = sumByAccountAndType(accountId, "income")
+        val expense = sumByAccountAndType(accountId, "expense")
+        initialBalance + income - expense
+    }
+
+    /**
+     * Batch calculate balances for multiple accounts.
+     * Returns Map<accountId, actualBalance>
+     */
+    fun calculateAccountBalances(accountBalances: Map<UUID, Long>): Map<UUID, Long> = transaction {
+        accountBalances.mapValues { (accountId, initialBalance) ->
+            calculateAccountBalance(accountId, initialBalance)
+        }
     }
 }

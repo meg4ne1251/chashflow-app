@@ -22,19 +22,15 @@ fun Route.categoryRoutes(categoryService: CategoryService) {
         }
 
         put("/{id}") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             val request = call.receive<CategoryRequest>()
             val response = categoryService.update(id, request)
             call.respond(HttpStatusCode.OK, response)
         }
 
         delete("/{id}") {
-            val id = call.parameters["id"]!!
-            val version = call.request.queryParameters["version"]?.toIntOrNull()
-                ?: throw com.kakeibo.backend.middleware.ValidationException(
-                    "バージョンを指定してください",
-                    listOf(com.kakeibo.shared.model.FieldError("version", "version クエリパラメータは必須です"))
-                )
+            val id = validateUuidParam(call.parameters["id"])
+            val version = validateVersionParam(call.request.queryParameters["version"]?.toIntOrNull())
             categoryService.delete(id, version)
             call.respond(HttpStatusCode.NoContent)
         }

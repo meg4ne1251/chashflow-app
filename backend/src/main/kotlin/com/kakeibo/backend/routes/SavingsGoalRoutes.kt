@@ -16,7 +16,7 @@ fun Route.savingsGoalRoutes(savingsGoalService: SavingsGoalService) {
         }
 
         get("/{id}") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             val goal = savingsGoalService.getById(id)
             call.respond(HttpStatusCode.OK, goal)
         }
@@ -33,26 +33,22 @@ fun Route.savingsGoalRoutes(savingsGoalService: SavingsGoalService) {
         }
 
         put("/{id}") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             val request = call.receive<SavingsGoalRequest>()
             val response = savingsGoalService.update(id, request)
             call.respond(HttpStatusCode.OK, response)
         }
 
         patch("/{id}/deposit") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             val body = call.receive<SavingsDepositRequest>()
             val response = savingsGoalService.deposit(id, body)
             call.respond(HttpStatusCode.OK, response)
         }
 
         delete("/{id}") {
-            val id = call.parameters["id"]!!
-            val version = call.request.queryParameters["version"]?.toIntOrNull()
-                ?: throw com.kakeibo.backend.middleware.ValidationException(
-                    "バージョンを指定してください",
-                    listOf(com.kakeibo.shared.model.FieldError("version", "version クエリパラメータは必須です"))
-                )
+            val id = validateUuidParam(call.parameters["id"])
+            val version = validateVersionParam(call.request.queryParameters["version"]?.toIntOrNull())
             savingsGoalService.delete(id, version)
             call.respond(HttpStatusCode.NoContent)
         }

@@ -29,7 +29,7 @@ fun Route.notificationRoutes(notificationService: NotificationService) {
         }
 
         put("/{id}/read") {
-            val id = call.parameters["id"]!!
+            val id = validateUuidParam(call.parameters["id"])
             notificationService.markAsRead(id)
             call.respond(HttpStatusCode.OK, mapOf("status" to "ok"))
         }

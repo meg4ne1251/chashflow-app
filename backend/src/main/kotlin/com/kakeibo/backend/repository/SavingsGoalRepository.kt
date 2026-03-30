@@ -61,7 +61,7 @@ class SavingsGoalRepository {
             it[SavingsGoals.createdAt] = now
             it[SavingsGoals.updatedAt] = now
         }
-        findById(id)!!
+        findById(id) ?: throw IllegalStateException("Failed to retrieve created savings goal: $id")
     }
 
     fun update(

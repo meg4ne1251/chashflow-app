@@ -40,7 +40,7 @@ class TemplateRepository {
             it[Templates.createdAt] = now
             it[Templates.updatedAt] = now
         }
-        findById(id)!!
+        findById(id) ?: throw IllegalStateException("Failed to retrieve created template: $id")
     }
 
     fun update(

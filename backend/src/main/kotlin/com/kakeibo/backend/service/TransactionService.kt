@@ -66,7 +66,13 @@ class TransactionService(
 
         val allAccountIds = rows.mapNotNull { it[Transactions.accountId] }.distinct()
         val accountsMap = if (allAccountIds.isNotEmpty()) {
-            accountRepository.findByIds(allAccountIds).associate { row ->
+            val accountRows = accountRepository.findByIds(allAccountIds)
+            // Calculate actual balances for all accounts
+            val initialBalances = accountRows.associate { it[Accounts.id] to it[Accounts.initialBalance] }
+            val actualBalances = transactionRepository.calculateAccountBalances(initialBalances)
+            
+            accountRows.associate { row ->
+                val accountId = row[Accounts.id]
                 row[Accounts.id] to AccountResponse(
                     id = row[Accounts.id].toString(),
                     name = row[Accounts.name],
@@ -74,7 +80,7 @@ class TransactionService(
                     initial_balance = row[Accounts.initialBalance],
                     currency = row[Accounts.currency],
                     sort_order = row[Accounts.sortOrder],
-                    balance = row[Accounts.initialBalance],
+                    balance = actualBalances[accountId] ?: row[Accounts.initialBalance],
                     version = row[Accounts.version],
                     created_at = row[Accounts.createdAt].toString(),
                     updated_at = row[Accounts.updatedAt].toString(),
