@@ -128,9 +128,10 @@ export const dayOfWeekLabels: Record<number, string> = {
 };
 
 /**
- * Download a blob as a file
+ * Download a blob as a file.
+ * Properly handles cleanup even if click fails.
  */
-export function downloadBlob(blob: Blob, filename: string) {
+export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -138,9 +139,12 @@ export function downloadBlob(blob: Blob, filename: string) {
   document.body.appendChild(a);
   try {
     a.click();
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    throw new Error(`ファイルのダウンロードに失敗しました: ${filename}`);
   } finally {
     document.body.removeChild(a);
-    // Delay revocation to ensure the browser has started the download
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // Use queueMicrotask for more reliable cleanup timing
+    queueMicrotask(() => URL.revokeObjectURL(url));
   }
 }

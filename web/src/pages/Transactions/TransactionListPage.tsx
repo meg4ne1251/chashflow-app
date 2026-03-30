@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import {
@@ -214,7 +214,10 @@ export default function TransactionListPage() {
     navigate('/transactions/new', { state: { template } });
   };
 
-  const allTransactions = data?.pages.flatMap((page) => page.data.data) || [];
+  const allTransactions = useMemo(
+    () => data?.pages.flatMap((page) => page.data.data) || [],
+    [data?.pages]
+  );
 
   // Filter panel (shared between mobile/desktop)
   const filterPanel = (

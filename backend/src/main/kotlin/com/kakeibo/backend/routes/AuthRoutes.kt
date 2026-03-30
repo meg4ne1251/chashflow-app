@@ -1,5 +1,6 @@
 package com.kakeibo.backend.routes
 
+import com.kakeibo.backend.middleware.getUserId
 import com.kakeibo.backend.service.AccountService
 import com.kakeibo.backend.service.AuthService
 import com.kakeibo.shared.model.*
@@ -68,8 +69,7 @@ fun Route.authRoutes(authService: AuthService, accountService: AccountService) {
             }
 
             put("/password") {
-                val principal = call.principal<JWTPrincipal>()!!
-                val userId = principal.payload.getClaim("user_id").asString()
+                val userId = call.getUserId()
                 val request = call.receive<PasswordChangeRequest>()
                 authService.changePassword(userId, request)
                 call.respond(HttpStatusCode.NoContent)

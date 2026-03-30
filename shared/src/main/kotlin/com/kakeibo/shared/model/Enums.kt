@@ -10,7 +10,7 @@ enum class TransactionType(val value: String) {
     companion object {
         fun fromValue(value: String): TransactionType =
             entries.find { it.value == value }
-                ?: throw IllegalArgumentException("Invalid transaction type: $value")
+                ?: throw IllegalArgumentException("Invalid transaction type")
     }
 }
 
@@ -26,7 +26,7 @@ enum class AccountType(val value: String) {
     companion object {
         fun fromValue(value: String): AccountType =
             entries.find { it.value == value }
-                ?: throw IllegalArgumentException("Invalid account type: $value")
+                ?: throw IllegalArgumentException("Invalid account type")
     }
 }
 
@@ -40,7 +40,7 @@ enum class Frequency(val value: String) {
     companion object {
         fun fromValue(value: String): Frequency =
             entries.find { it.value == value }
-                ?: throw IllegalArgumentException("Invalid frequency: $value")
+                ?: throw IllegalArgumentException("Invalid frequency")
     }
 }
 
@@ -53,7 +53,7 @@ enum class SavingsGoalStatus(val value: String) {
     companion object {
         fun fromValue(value: String): SavingsGoalStatus =
             entries.find { it.value == value }
-                ?: throw IllegalArgumentException("Invalid savings goal status: $value")
+                ?: throw IllegalArgumentException("Invalid savings goal status")
     }
 }
 
@@ -67,7 +67,7 @@ enum class NotificationType(val value: String) {
     companion object {
         fun fromValue(value: String): NotificationType =
             entries.find { it.value == value }
-                ?: throw IllegalArgumentException("Invalid notification type: $value")
+                ?: throw IllegalArgumentException("Invalid notification type")
     }
 }
 
@@ -81,6 +81,6 @@ enum class ReminderFrequency(val value: String) {
     companion object {
         fun fromValue(value: String): ReminderFrequency =
             entries.find { it.value == value }
-                ?: throw IllegalArgumentException("Invalid reminder frequency: $value")
+                ?: throw IllegalArgumentException("Invalid reminder frequency")
     }
 }

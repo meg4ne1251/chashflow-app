@@ -8,8 +8,9 @@ Ktor バックエンド API と aiohttp で通信する。
 import asyncio
 import logging
 import os
+import sys
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 import aiohttp
 import discord
@@ -21,13 +22,38 @@ logging.basicConfig(
 )
 logger = logging.getLogger("cashflow-bot")
 
+# ── 定数 ─────────────────────────────────────────────────────────
+API_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10)
+MAX_AMOUNT = 999_999_999_999  # 最大金額 (12桁)
+INTERACTION_TIMEOUT = 120
+
 # ── 設定 ─────────────────────────────────────────────────────────
-DISCORD_BOT_TOKEN   = os.environ["DISCORD_BOT_TOKEN"]
-DISCORD_GUILD_ID    = int(os.environ["DISCORD_GUILD_ID"])
-ALLOWED_USER_ID     = os.environ.get("DISCORD_ALLOWED_USER_ID")  # 空欄 = 全員許可
-API_BASE_URL        = os.environ.get("API_BASE_URL", "http://app:8080")
-API_USERNAME        = os.environ["CASHFLOW_USERNAME"]
-API_PASSWORD        = os.environ["CASHFLOW_PASSWORD"]
+def _get_required_env(key: str) -> str:
+    """必須環境変数を取得。未設定の場合はエラー終了"""
+    value = os.environ.get(key)
+    if not value:
+        logger.critical("Required environment variable %s is not set", key)
+        sys.exit(1)
+    return value
+
+def _get_guild_id() -> int:
+    """DISCORD_GUILD_IDを安全にintに変換"""
+    raw = _get_required_env("DISCORD_GUILD_ID")
+    try:
+        return int(raw)
+    except ValueError:
+        logger.critical("DISCORD_GUILD_ID must be a valid integer: %s", raw)
+        sys.exit(1)
+
+DISCORD_BOT_TOKEN = _get_required_env("DISCORD_BOT_TOKEN")
+DISCORD_GUILD_ID = _get_guild_id()
+API_BASE_URL = os.environ.get("API_BASE_URL", "http://app:8080")
+API_USERNAME = _get_required_env("CASHFLOW_USERNAME")
+API_PASSWORD = _get_required_env("CASHFLOW_PASSWORD")
+
+# ALLOWED_USER_ID: None = 全員許可、int = 特定ユーザーのみ許可
+_allowed_user_raw = os.environ.get("DISCORD_ALLOWED_USER_ID")
+ALLOWED_USER_ID: Optional[int] = int(_allowed_user_raw) if _allowed_user_raw else None
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -50,26 +76,38 @@ _auth = _AuthState()
 
 async def _login(session: aiohttp.ClientSession) -> None:
     url = f"{API_BASE_URL}/api/v1/auth/login"
-    async with session.post(url, json={"username": API_USERNAME, "password": API_PASSWORD}) as resp:
+    async with session.post(
+        url,
+        json={"username": API_USERNAME, "password": API_PASSWORD},
+        timeout=API_TIMEOUT,
+    ) as resp:
         resp.raise_for_status()
         data = await resp.json()
-    _auth.access_token  = data["access_token"]
+    _auth.access_token = data["access_token"]
     _auth.refresh_token = data["refresh_token"]
     logger.info("Logged in to cashflow API")
 
 
 async def _refresh(session: aiohttp.ClientSession) -> None:
     url = f"{API_BASE_URL}/api/v1/auth/refresh"
-    async with session.post(url, json={"refresh_token": _auth.refresh_token}) as resp:
+    async with session.post(
+        url,
+        json={"refresh_token": _auth.refresh_token},
+        timeout=API_TIMEOUT,
+    ) as resp:
         resp.raise_for_status()
         data = await resp.json()
-    _auth.access_token  = data["access_token"]
+    _auth.access_token = data["access_token"]
     _auth.refresh_token = data["refresh_token"]
     logger.info("Token refreshed")
 
 
-async def api_request(session: aiohttp.ClientSession,
-                      method: str, path: str, **kwargs) -> dict:
+async def api_request(
+    session: aiohttp.ClientSession,
+    method: str,
+    path: str,
+    **kwargs: Any,
+) -> dict[str, Any]:
     """
     認証付き API リクエスト。
     401 受信時は refresh → 失敗なら再ログイン → 再試行。
@@ -81,22 +119,27 @@ async def api_request(session: aiohttp.ClientSession,
     headers = {"Authorization": f"Bearer {_auth.access_token}"}
     url = f"{API_BASE_URL}{path}"
 
-    async with session.request(method, url, headers=headers, **kwargs) as resp:
+    async with session.request(
+        method, url, headers=headers, timeout=API_TIMEOUT, **kwargs
+    ) as resp:
         if resp.status != 401:
             resp.raise_for_status()
             if resp.status == 204:
                 return {}
             return await resp.json()
 
-    # 401 → refresh or re-login
+    # 401 → refresh or re-login, token再取得後に再チェック
     async with _auth._lock:
+        # ロック取得後、既に他のリクエストがトークンを更新している可能性
         try:
             await _refresh(session)
         except aiohttp.ClientResponseError:
             await _login(session)
 
     headers["Authorization"] = f"Bearer {_auth.access_token}"
-    async with session.request(method, url, headers=headers, **kwargs) as resp:
+    async with session.request(
+        method, url, headers=headers, timeout=API_TIMEOUT, **kwargs
+    ) as resp:
         resp.raise_for_status()
         if resp.status == 204:
             return {}
@@ -145,7 +188,7 @@ def _template_label(t: dict) -> str:
 
 
 def _is_allowed(user_id: int) -> bool:
-    return ALLOWED_USER_ID is None or str(user_id) == ALLOWED_USER_ID
+    return ALLOWED_USER_ID is None or user_id == ALLOWED_USER_ID
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -173,7 +216,7 @@ async def _execute(interaction: discord.Interaction,
         await interaction.followup.send(msg, ephemeral=True)
 
     except aiohttp.ClientResponseError as e:
-        logger.error("API error: %s %s", e.status, e.message)
+        logger.error("API error: status=%s, message=%s", e.status, str(e))
         await interaction.followup.send(
             f"APIエラーが発生しました (HTTP {e.status})", ephemeral=True
         )
@@ -199,18 +242,25 @@ class AmountModal(discord.ui.Modal, title="金額を入力"):
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         raw = self.amount_input.value.strip().replace(",", "").replace("，", "")
-        if not raw.isdigit() or int(raw) <= 0:
+        # isdecimal()を使用（isdigit()はUnicode数字も通すため）
+        if not raw.isdecimal() or int(raw) <= 0:
             await interaction.response.send_message(
                 "金額は正の整数で入力してください。", ephemeral=True
             )
             return
+        amount = int(raw)
+        if amount > MAX_AMOUNT:
+            await interaction.response.send_message(
+                f"金額は{MAX_AMOUNT:,}円以下で入力してください。", ephemeral=True
+            )
+            return
         await interaction.response.defer(ephemeral=True)
-        await _execute(interaction, self.session, self.template, int(raw))
+        await _execute(interaction, self.session, self.template, amount)
 
 
 class ConfirmView(discord.ui.View):
     def __init__(self, template: dict, session: aiohttp.ClientSession) -> None:
-        super().__init__(timeout=120)
+        super().__init__(timeout=INTERACTION_TIMEOUT)
         self.template = template
         self.session  = session
 
@@ -277,7 +327,7 @@ class TemplateSelect(discord.ui.Select):
 
 class TemplateSelectView(discord.ui.View):
     def __init__(self, templates: list[dict], session: aiohttp.ClientSession) -> None:
-        super().__init__(timeout=120)
+        super().__init__(timeout=INTERACTION_TIMEOUT)
         self.add_item(TemplateSelect(templates, session))
 
 
@@ -329,6 +379,13 @@ async def cmd_add(interaction: discord.Interaction) -> None:
         return
 
     await interaction.response.defer(ephemeral=True)
+
+    if bot.session is None:
+        await interaction.followup.send(
+            "Botの初期化が完了していません。しばらく待ってから再試行してください。",
+            ephemeral=True,
+        )
+        return
 
     try:
         templates = await fetch_templates(bot.session)

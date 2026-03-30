@@ -1,11 +1,11 @@
 package com.kakeibo.backend.routes
 
+import com.kakeibo.backend.middleware.getUserId
 import com.kakeibo.backend.service.TransactionService
 import com.kakeibo.shared.model.TransactionRequest
 import com.kakeibo.shared.validation.ValidationRules
 import io.ktor.http.*
 import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -39,16 +39,14 @@ fun Route.transactionRoutes(transactionService: TransactionService) {
         }
 
         post {
-            val principal = call.principal<JWTPrincipal>()!!
-            val userId = principal.payload.getClaim("user_id").asString()
+            val userId = call.getUserId()
             val request = call.receive<TransactionRequest>()
             val response = transactionService.create(request, userId)
             call.respond(HttpStatusCode.Created, response)
         }
 
         put("/{id}") {
-            val principal = call.principal<JWTPrincipal>()!!
-            val userId = principal.payload.getClaim("user_id").asString()
+            val userId = call.getUserId()
             val id = call.parameters["id"]!!
             val request = call.receive<TransactionRequest>()
             val response = transactionService.update(id, request, userId)

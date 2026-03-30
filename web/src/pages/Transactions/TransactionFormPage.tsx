@@ -192,15 +192,19 @@ export default function TransactionFormPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: TransactionFormData) =>
-      transactionApi.update(id!, {
+    mutationFn: (data: TransactionFormData) => {
+      if (!id || !existingTx) {
+        return Promise.reject(new Error('取引データが読み込まれていません'));
+      }
+      return transactionApi.update(id, {
         ...data,
         name: data.name || undefined,
         memo: data.memo || undefined,
         category_id: data.category_id || undefined,
         account_id: data.account_id || undefined,
-        version: existingTx!.version,
-      }),
+        version: existingTx.version,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });

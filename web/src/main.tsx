@@ -21,6 +21,10 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: 30_000,
     },
+    mutations: {
+      // Never auto-retry mutations to prevent duplicate operations
+      retry: false,
+    },
   },
 });
 
