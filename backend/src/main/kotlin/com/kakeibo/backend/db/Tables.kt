@@ -11,6 +11,8 @@ object Users : Table("users") {
     val id = uuid("id").autoGenerate()
     val username = varchar("username", 50)
     val passwordHash = varchar("password_hash", 255)
+    val failedAttempts = integer("failed_attempts").default(0)
+    val lockedUntil = timestampWithTimeZone("locked_until").nullable()
     val createdAt = timestampWithTimeZone("created_at")
     val updatedAt = timestampWithTimeZone("updated_at")
     override val primaryKey = PrimaryKey(id)

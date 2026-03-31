@@ -8,6 +8,7 @@ val serializationVersion: String by project
 val logbackVersion: String by project
 val jbcryptVersion: String by project
 val javaJwtVersion: String by project
+val micrometerVersion: String by project
 
 plugins {
     kotlin("jvm")
@@ -34,6 +35,10 @@ dependencies {
     implementation("io.ktor:ktor-server-call-logging:$ktorVersion")
     implementation("io.ktor:ktor-server-rate-limit:$ktorVersion")
     implementation("io.ktor:ktor-server-request-validation:$ktorVersion")
+
+    // Metrics
+    implementation("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
+    implementation("io.micrometer:micrometer-registry-prometheus:$micrometerVersion")
 
     // Database
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")

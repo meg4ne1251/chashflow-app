@@ -48,6 +48,15 @@ class UnprocessableEntityException(message: String) :
 class FileTooLargeException(message: String = "ファイルサイズが上限を超えています") :
     AppException(HttpStatusCode.PayloadTooLarge, ErrorCodes.FILE_TOO_LARGE, message)
 
+class AccountLockedException(
+    message: String,
+    val remainingMinutes: Long
+) : AppException(
+    HttpStatusCode.TooManyRequests,
+    "ACCOUNT_LOCKED",
+    message
+)
+
 fun Application.configureErrorHandling() {
     install(StatusPages) {
         exception<AppException> { call, cause ->

@@ -69,6 +69,8 @@ class AuthServiceTest {
             id = UUID.randomUUID(),
             username = "testuser",
             passwordHash = "hash",
+            failedAttempts = 0,
+            lockedUntil = null,
             createdAt = OffsetDateTime.now(),
             updatedAt = OffsetDateTime.now()
         )
@@ -100,9 +102,12 @@ class AuthServiceTest {
             id = UUID.randomUUID(),
             username = "testuser",
             passwordHash = passwordHash,
+            failedAttempts = 0,
+            lockedUntil = null,
             createdAt = OffsetDateTime.now(),
             updatedAt = OffsetDateTime.now()
         )
+        every { userRepository.incrementFailedAttempts(any()) } returns 1
 
         assertFailsWith<UnauthorizedException> {
             authService.login(LoginRequest("testuser", "WrongPass1"))
@@ -117,9 +122,12 @@ class AuthServiceTest {
             id = userId,
             username = "testuser",
             passwordHash = passwordHash,
+            failedAttempts = 0,
+            lockedUntil = null,
             createdAt = OffsetDateTime.now(),
             updatedAt = OffsetDateTime.now()
         )
+        every { userRepository.resetFailedAttempts(any()) } returns 1
         every { jwtConfig.generateAccessToken(any(), any()) } returns "access-token"
         every { jwtConfig.generateRefreshToken() } returns "refresh-token"
 

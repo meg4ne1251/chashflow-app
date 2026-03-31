@@ -10,6 +10,7 @@ import com.kakeibo.shared.validation.ValidationRules
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.mindrot.jbcrypt.BCrypt
 import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 
 class AuthService(
     private val userRepository: UserRepository,
@@ -40,9 +41,34 @@ class AuthService(
         val user = userRepository.findByUsername(request.username)
             ?: throw UnauthorizedException("ユーザー名またはパスワードが正しくありません")
 
+        // Check if account is locked
+        if (user.lockedUntil != null && user.lockedUntil.isAfter(OffsetDateTime.now())) {
+            val remainingMinutes = ChronoUnit.MINUTES.between(OffsetDateTime.now(), user.lockedUntil) + 1
+            throw AccountLockedException(
+                "アカウントがロックされています。${remainingMinutes}分後に再試行してください",
+                remainingMinutes
+            )
+        }
+
         if (!BCrypt.checkpw(request.password, user.passwordHash)) {
+            // Increment failed attempts
+            val attempts = userRepository.incrementFailedAttempts(user.id)
+            
+            // Lock account if max attempts reached
+            if (attempts >= UserRepository.MAX_FAILED_ATTEMPTS) {
+                val unlockAt = OffsetDateTime.now().plusMinutes(UserRepository.LOCK_DURATION_MINUTES)
+                userRepository.lockAccount(user.id, unlockAt)
+                throw AccountLockedException(
+                    "ログイン試行回数が上限に達しました。${UserRepository.LOCK_DURATION_MINUTES}分後に再試行してください",
+                    UserRepository.LOCK_DURATION_MINUTES
+                )
+            }
+            
             throw UnauthorizedException("ユーザー名またはパスワードが正しくありません")
         }
+
+        // Reset failed attempts on successful login
+        userRepository.resetFailedAttempts(user.id)
 
         val accessToken = jwtConfig.generateAccessToken(user.id.toString(), user.username)
         val refreshToken = jwtConfig.generateRefreshToken()

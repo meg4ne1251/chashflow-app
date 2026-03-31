@@ -69,6 +69,25 @@ services:
     ports:
       - "${LISTEN_PORT:-80}:80"
 
+  # --- Prometheus (monitoring, optional) ---
+  prometheus:
+    profiles: [monitoring]
+    image: prom/prometheus:v2.51.0
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    depends_on:
+      - app
+
 volumes:
   pgdata:
+    driver: local
+  prometheus_data:
     driver: local

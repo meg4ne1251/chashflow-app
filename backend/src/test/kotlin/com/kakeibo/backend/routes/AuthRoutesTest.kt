@@ -44,6 +44,9 @@ class AuthRoutesTest {
                 register(RateLimitName("auth-setup")) {
                     rateLimiter(limit = 3, refillPeriod = 1.minutes)
                 }
+                register(RateLimitName("auth-refresh")) {
+                    rateLimiter(limit = 10, refillPeriod = 1.minutes)
+                }
             }
             install(StatusPages) {
                 exception<AppException> { call, cause ->
@@ -137,7 +140,8 @@ class AuthRoutesTest {
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = response.bodyAsText()
-        assertTrue(body.contains("access-token"))
+        // Tokens are now in cookies, response body contains username
+        assertTrue(body.contains("testuser"))
     }
 
     @Test
@@ -168,7 +172,8 @@ class AuthRoutesTest {
 
         val response = client.post("/api/v1/auth/refresh") {
             contentType(ContentType.Application.Json)
-            setBody("""{"refresh_token":"valid-token"}""")
+            // Token is now read from cookie
+            cookie("refresh_token", "valid-token")
         }
 
         assertEquals(HttpStatusCode.OK, response.status)

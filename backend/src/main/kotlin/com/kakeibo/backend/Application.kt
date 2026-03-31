@@ -4,6 +4,7 @@ import com.kakeibo.backend.config.DatabaseConfig
 import com.kakeibo.backend.config.JwtConfig
 import com.kakeibo.backend.middleware.configureErrorHandling
 import com.kakeibo.backend.middleware.configureRateLimiting
+import com.kakeibo.backend.middleware.CsrfProtection
 import com.kakeibo.backend.routes.*
 import com.kakeibo.backend.scheduler.NotificationScheduler
 import com.kakeibo.backend.scheduler.RecurringTransactionScheduler
@@ -20,9 +21,15 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.micrometer.core.instrument.binder.jvm.*
+import io.micrometer.core.instrument.binder.system.*
+import io.micrometer.core.instrument.distribution.*
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.json.Json
 import org.slf4j.event.Level
 
@@ -113,7 +120,35 @@ fun Application.module() {
         filter { call -> call.request.path().startsWith("/api") }
     }
 
+    // Prometheus metrics registry
+    val prometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+
+    // Micrometer metrics plugin
+    install(MicrometerMetrics) {
+        registry = prometheusMeterRegistry
+        
+        // JVM and system metrics
+        meterBinders = listOf(
+            JvmMemoryMetrics(),
+            JvmGcMetrics(),
+            JvmThreadMetrics(),
+            JvmInfoMetrics(),
+            ProcessorMetrics(),
+            UptimeMetrics()
+        )
+        
+        // HTTP request histogram configuration
+        distributionStatisticConfig = DistributionStatisticConfig.builder()
+            .percentilesHistogram(true)
+            .percentiles(0.5, 0.9, 0.95, 0.99)
+            .build()
+    }
+
     val allowedOrigins = environment.config.property("cors.allowedOrigins").getString()
+    
+    // Parse allowed origins for CSRF protection
+    val parsedAllowedOrigins = allowedOrigins.split(",").map { it.trim() }.toSet()
+    
     install(CORS) {
         val configuredOrigins = allowedOrigins.split(",").map { it.trim() }
         configuredOrigins.forEach { origin ->
@@ -197,8 +232,15 @@ fun Application.module() {
         route("/api/v1") {
             authRoutes(authService, accountService)
             healthRoutes()
+            cspReportRoutes()
+            metricsRoutes(prometheusMeterRegistry)
 
             authenticate("auth-jwt") {
+                // CSRF protection for authenticated routes
+                install(CsrfProtection) {
+                    this.allowedOrigins = parsedAllowedOrigins
+                }
+                
                 accountRoutes(accountService)
                 categoryRoutes(categoryService)
                 tagRoutes(tagService)
