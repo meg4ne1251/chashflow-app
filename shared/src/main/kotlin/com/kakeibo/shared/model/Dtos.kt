@@ -39,6 +39,12 @@ data class PasswordChangeRequest(
     val new_password: String
 )
 
+// Cookie化対応: トークンを含まないログイン成功レスポンス
+@Serializable
+data class LoginSuccessResponse(
+    val username: String
+)
+
 // =========================================
 // Account DTOs
 // =========================================

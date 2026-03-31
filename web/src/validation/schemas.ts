@@ -44,8 +44,8 @@ export const transactionSchema = z.object({
     .positive('金額は0より大きい値を指定してください')
     .max(9_999_999_999, '金額が上限を超えています'),
   date: z.string().min(1, '日付を入力してください'),
-  category_id: z.string().regex(UUID_PATTERN).optional().or(z.literal('')),
-  account_id: z.string().regex(UUID_PATTERN).optional().or(z.literal('')),
+  category_id: z.union([z.string().regex(UUID_PATTERN), z.literal('')]).optional(),
+  account_id: z.union([z.string().regex(UUID_PATTERN), z.literal('')]).optional(),
   memo: z.string().max(500, 'メモは500文字以下です').optional().or(z.literal('')),
   currency: z.string().default('JPY'),
   tag_ids: z.array(z.string()).default([]),
@@ -101,8 +101,8 @@ export const templateSchema = z.object({
     z.number().int().positive().max(9_999_999_999).optional().nullable(),
   ),
   currency: z.string().default('JPY'),
-  category_id: z.string().regex(UUID_PATTERN).optional().nullable().or(z.literal('')),
-  account_id: z.string().regex(UUID_PATTERN).optional().nullable().or(z.literal('')),
+  category_id: z.union([z.string().regex(UUID_PATTERN), z.literal('')]).optional().nullable(),
+  account_id: z.union([z.string().regex(UUID_PATTERN), z.literal('')]).optional().nullable(),
   memo: z.string().max(500).optional().or(z.literal('')),
   tag_ids: z.array(z.string()).default([]),
 });
@@ -179,9 +179,3 @@ export type BudgetFormData = z.infer<typeof budgetSchema>;
 export type SavingsGoalFormData = z.infer<typeof savingsGoalSchema>;
 export type SavingsDepositFormData = z.infer<typeof savingsDepositSchema>;
 export type RecurringTransactionFormData = z.infer<typeof recurringTransactionSchema>;
-
-// Token response schema for API client
-export const tokenResponseSchema = z.object({
-  access_token: z.string().min(1),
-  refresh_token: z.string().min(1),
-});

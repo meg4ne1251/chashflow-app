@@ -14,7 +14,6 @@ import { zodFormResolver } from '@/validation/resolver';
 import { passwordChangeSchema, type PasswordChangeFormData } from '@/validation/schemas';
 import { authApi } from '@/api/auth';
 import { importExportApi, notificationSettingApi } from '@/api/importExport';
-import { clearAuthTokens } from '@/api/client';
 import { downloadBlob } from '@/utils/format';
 import { MAX_IMPORT_FILE_SIZE_BYTES } from '@/constants';
 import { useMobile } from '@/hooks/useMobile';
@@ -36,7 +35,7 @@ export default function SettingsPage() {
   const pwMutation = useMutation({
     mutationFn: (data: PasswordChangeFormData) => authApi.changePassword({ current_password: data.current_password, new_password: data.new_password }),
     onSuccess: () => {
-      clearAuthTokens();
+      // パスワード変更後、サーバー側でCookieが削除されるのでログイン画面にリダイレクト
       window.location.href = '/login';
     },
     onError: () => setError('パスワードの変更に失敗しました。現在のパスワードを確認してください。'),

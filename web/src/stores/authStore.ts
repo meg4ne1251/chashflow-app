@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authApi } from '@/api/auth';
-import { clearAuthTokens } from '@/api/client';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -9,7 +8,7 @@ interface AuthState {
   login: (username: string, password: string) => Promise<void>;
   setup: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  checkAuth: () => boolean;
+  checkAuth: () => Promise<boolean>;  // 戻り値型を boolean から Promise<boolean> に変更
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -19,47 +18,51 @@ export const useAuthStore = create<AuthState>()(
       username: null,
 
       login: async (username: string, password: string) => {
-        const response = await authApi.login({ username, password });
-        const { access_token, refresh_token } = response.data;
-        localStorage.setItem('access_token', access_token);
-        localStorage.setItem('refresh_token', refresh_token);
+        // トークンはCookieで自動管理されるため、localStorageへの保存は不要
+        await authApi.login({ username, password });
         set({ isAuthenticated: true, username });
       },
 
       setup: async (username: string, password: string) => {
         await authApi.setup({ username, password });
         // After setup, auto-login
-        const loginResponse = await authApi.login({ username, password });
-        const { access_token, refresh_token } = loginResponse.data;
-        localStorage.setItem('access_token', access_token);
-        localStorage.setItem('refresh_token', refresh_token);
+        await authApi.login({ username, password });
         set({ isAuthenticated: true, username });
       },
 
       logout: async () => {
         try {
-          const refreshToken = localStorage.getItem('refresh_token');
-          if (refreshToken) {
-            await authApi.logout(refreshToken);
-          }
+          // 引数なしで呼び出し（Cookie化により refresh_token は不要）
+          await authApi.logout();
         } catch {
           // Ignore logout errors
         } finally {
-          clearAuthTokens();
+          // サーバー側でCookie削除を行う
           set({ isAuthenticated: false, username: null });
         }
       },
 
-      checkAuth: () => {
-        return !!localStorage.getItem('access_token');
+      // サーバーに問い合わせて認証状態を確認（同期→非同期に変更）
+      checkAuth: async () => {
+        try {
+          const response = await authApi.me();
+          set({ isAuthenticated: true, username: response.data.username });
+          return true;
+        } catch {
+          set({ isAuthenticated: false, username: null });
+          return false;
+        }
       },
     }),
     {
       name: 'auth-storage',
+      // usernameのみ永続化（トークンは保存しない）
       partialize: (state) => ({ username: state.username }),
       onRehydrateStorage: () => (state) => {
+        // 初期化時は認証状態をfalseに設定
+        // 実際の認証確認はcheckAuth()で行う
         if (state) {
-          state.isAuthenticated = !!localStorage.getItem('access_token');
+          state.isAuthenticated = false;
         }
       },
     }

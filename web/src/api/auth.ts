@@ -1,11 +1,12 @@
 import apiClient from './client';
 import type {
   LoginRequest,
-  LoginResponse,
+  LoginSuccessResponse,
   SetupRequest,
   SetupResponse,
   SetupStatusResponse,
   PasswordChangeRequest,
+  AuthMeResponse,
 } from '@/types';
 
 export const authApi = {
@@ -16,13 +17,15 @@ export const authApi = {
     apiClient.post<SetupResponse>('/auth/setup', data),
 
   login: (data: LoginRequest) =>
-    apiClient.post<LoginResponse>('/auth/login', data),
+    apiClient.post<LoginSuccessResponse>('/auth/login', data),
 
-  refresh: (refreshToken: string) =>
-    apiClient.post<LoginResponse>('/auth/refresh', { refresh_token: refreshToken }),
+  // Cookie化によりrefresh_tokenはCookieで自動送信される
+  logout: () =>
+    apiClient.post('/auth/logout'),
 
-  logout: (refreshToken: string) =>
-    apiClient.post('/auth/logout', { refresh_token: refreshToken }),
+  // 認証状態確認用
+  me: () =>
+    apiClient.get<AuthMeResponse>('/auth/me'),
 
   changePassword: (data: PasswordChangeRequest) =>
     apiClient.put('/auth/password', data),

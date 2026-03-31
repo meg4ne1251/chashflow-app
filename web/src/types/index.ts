@@ -55,6 +55,16 @@ export interface PasswordChangeRequest {
   new_password: string;
 }
 
+// Cookie化対応: トークンを含まないログイン成功レスポンス
+export interface LoginSuccessResponse {
+  username: string;
+}
+
+// Cookie化対応: 認証状態確認用レスポンス
+export interface AuthMeResponse {
+  username: string;
+}
+
 // =========================================
 // Account
 // =========================================

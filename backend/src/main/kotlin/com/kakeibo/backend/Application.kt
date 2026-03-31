@@ -12,8 +12,10 @@ import com.kakeibo.backend.repository.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
+import io.ktor.server.auth.parseAuthorizationHeader
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -132,6 +134,9 @@ fun Application.module() {
             }
         }
 
+        // Cookie送受信を許可
+        allowCredentials = true
+
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Put)
@@ -152,6 +157,18 @@ fun Application.module() {
                     .withAudience(jwtConfig.audience)
                     .build()
             )
+            
+            // CookieまたはAuthorizationヘッダーからトークンを取得
+            authHeader { call ->
+                // 1. まずCookieから取得を試みる
+                val cookieToken = call.request.cookies["access_token"]
+                if (cookieToken != null) {
+                    return@authHeader HttpAuthHeader.Single("Bearer", cookieToken)
+                }
+                // 2. Cookieになければ従来のAuthorizationヘッダーから取得
+                call.request.parseAuthorizationHeader()
+            }
+            
             validate { credential ->
                 val userId = credential.payload.getClaim("user_id")?.asString()
                 if (userId != null) {
