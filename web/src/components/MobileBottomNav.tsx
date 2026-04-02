@@ -53,6 +53,7 @@ export default function MobileBottomNav() {
           color="primary"
           size="medium"
           onClick={() => navigate('/transactions/new')}
+          aria-label="新規取引を追加"
           sx={{
             position: 'absolute',
             top: -20,
@@ -68,6 +69,8 @@ export default function MobileBottomNav() {
           value={currentTab}
           onChange={handleChange}
           showLabels
+          component="nav"
+          aria-label="メインナビゲーション"
           sx={{
             height: 56,
             '& .MuiBottomNavigationAction-root': {
@@ -83,6 +86,7 @@ export default function MobileBottomNav() {
             label=""
             icon={<Box sx={{ width: 24, height: 24 }} />}
             sx={{ opacity: 0, pointerEvents: 'none' }}
+            aria-hidden="true"
           />
           <BottomNavigationAction label="分析" icon={<BarChartIcon />} />
           <BottomNavigationAction label="その他" icon={<MoreHorizIcon />} />

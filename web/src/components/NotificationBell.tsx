@@ -60,8 +60,13 @@ export default function NotificationBell() {
 
   return (
     <>
-      <IconButton onClick={handleOpen} title="通知">
-        <Badge badgeContent={unreadCount} color="error">
+      <IconButton 
+        onClick={handleOpen}
+        aria-label={`通知${unreadCount > 0 ? `（${unreadCount}件の未読）` : ''}`}
+        aria-haspopup="true"
+        aria-expanded={open}
+      >
+        <Badge badgeContent={unreadCount} color="error" aria-hidden="true">
           <NotificationsIcon />
         </Badge>
       </IconButton>

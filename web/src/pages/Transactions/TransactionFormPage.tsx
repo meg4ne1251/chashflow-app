@@ -28,7 +28,6 @@ import { categoryApi } from '@/api/categories';
 import { accountApi } from '@/api/accounts';
 import { tagApi } from '@/api/tags';
 import { suggestionApi } from '@/api/suggestions';
-import { logger } from '@/utils/logger';
 import { getNow } from '@/utils/format';
 import { DEBOUNCE_DELAY_MS, AUTO_COMPLETE_CONFIDENCE_THRESHOLD, MEMO_SUGGESTION_MIN_LENGTH } from '@/constants';
 import { useMobile } from '@/hooks/useMobile';
@@ -156,7 +155,7 @@ export default function TransactionFormPage() {
         if (!mountedRef.current) return;
         setMemoSuggestions(res.data.map((s) => s.memo));
       } catch (err) {
-        logger.warn('Memo suggestion failed', err, { name: value });
+        console.warn('Memo suggestion failed:', err);
       }
 
       // Auto-complete category/account
@@ -170,7 +169,7 @@ export default function TransactionFormPage() {
           setValue('account_id', res.data.account_id);
         }
       } catch (err) {
-        logger.warn('Auto-complete failed', err, { name: value });
+        console.warn('Auto-complete failed:', err);
       }
     }, DEBOUNCE_DELAY_MS);
   };
@@ -193,19 +192,15 @@ export default function TransactionFormPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: TransactionFormData) => {
-      if (!id || !existingTx) {
-        return Promise.reject(new Error('取引データが読み込まれていません'));
-      }
-      return transactionApi.update(id, {
+    mutationFn: (data: TransactionFormData) =>
+      transactionApi.update(id!, {
         ...data,
         name: data.name || undefined,
         memo: data.memo || undefined,
         category_id: data.category_id || undefined,
         account_id: data.account_id || undefined,
-        version: existingTx.version,
-      });
-    },
+        version: existingTx!.version,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });

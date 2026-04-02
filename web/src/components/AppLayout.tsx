@@ -116,26 +116,38 @@ export default function AppLayout() {
   };
 
   const themeIcon = themeMode === 'dark' ? <Brightness7 /> : themeMode === 'light' ? <Brightness4 /> : <BrightnessAuto />;
+  const themeModeLabel = themeMode === 'light' ? 'ライト' : themeMode === 'dark' ? 'ダーク' : 'システム';
 
   const renderNavSection = (items: NavItem[], label?: string) => (
     <>
       {label && (
-        <Typography variant="overline" sx={{ px: 2, pt: 2, pb: 0.5, display: 'block', color: 'text.secondary' }}>
+        <Typography 
+          variant="overline" 
+          sx={{ px: 2, pt: 2, pb: 0.5, display: 'block', color: 'text.secondary' }}
+          id={`nav-section-${label}`}
+        >
           {label}
         </Typography>
       )}
-      <List disablePadding>
-        {items.map((item) => (
-          <ListItemButton
-            key={item.path}
-            selected={location.pathname === item.path}
-            onClick={() => handleNavClick(item.path)}
-            sx={{ mx: 1, borderRadius: 1, mb: 0.5 }}
-          >
-            <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.label} />
-          </ListItemButton>
-        ))}
+      <List 
+        disablePadding
+        aria-labelledby={label ? `nav-section-${label}` : undefined}
+      >
+        {items.map((item) => {
+          const isActive = location.pathname === item.path;
+          return (
+            <ListItemButton
+              key={item.path}
+              selected={isActive}
+              onClick={() => handleNavClick(item.path)}
+              sx={{ mx: 1, borderRadius: 1, mb: 0.5 }}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              <ListItemIcon sx={{ minWidth: 40 }} aria-hidden="true">{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          );
+        })}
       </List>
     </>
   );
@@ -163,16 +175,59 @@ export default function AppLayout() {
   if (isMobile) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        {/* スキップリンク */}
+        <Box
+          component="a"
+          href="#main-content"
+          sx={{
+            position: 'absolute',
+            left: '-9999px',
+            top: 'auto',
+            width: '1px',
+            height: '1px',
+            overflow: 'hidden',
+            zIndex: -999,
+            '&:focus, &:active': {
+              left: '8px',
+              top: '8px',
+              width: 'auto',
+              height: 'auto',
+              overflow: 'visible',
+              zIndex: 9999,
+              padding: '12px 24px',
+              backgroundColor: 'primary.main',
+              color: 'white',
+              fontWeight: 600,
+              textDecoration: 'none',
+              borderRadius: 1,
+              boxShadow: 2,
+            },
+          }}
+        >
+          メインコンテンツへスキップ
+        </Box>
+
         <AppBar position="fixed" color="default" elevation={1}>
           <Toolbar>
             <Typography variant="h6" noWrap sx={{ flexGrow: 1 }} fontWeight={700}>
               {pageTitle}
             </Typography>
-            <IconButton onClick={cycleTheme} size="small" title={`テーマ: ${themeMode}`}>
+            <IconButton 
+              onClick={cycleTheme} 
+              size="small" 
+              title={`テーマ: ${themeMode}`}
+              aria-label={`テーマを切り替え（現在: ${themeModeLabel}）`}
+            >
               {themeIcon}
             </IconButton>
             <NotificationBell />
-            <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} size="small">
+            <IconButton 
+              onClick={(e) => setAnchorEl(e.currentTarget)} 
+              size="small"
+              aria-label="アカウントメニューを開く"
+              aria-haspopup="true"
+              aria-expanded={!!anchorEl}
+            >
               <AccountCircle />
             </IconButton>
             <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
@@ -190,10 +245,15 @@ export default function AppLayout() {
 
         <Box
           component="main"
+          id="main-content"
+          role="main"
+          aria-label="メインコンテンツ"
+          tabIndex={-1}
           sx={{
             flexGrow: 1,
             p: 2,
             pb: `${MOBILE_BOTTOM_NAV_HEIGHT + 16}px`,
+            outline: 'none',
           }}
         >
           <Toolbar />
@@ -208,6 +268,38 @@ export default function AppLayout() {
   // Desktop layout
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* スキップリンク */}
+      <Box
+        component="a"
+        href="#main-content"
+        sx={{
+          position: 'absolute',
+          left: '-9999px',
+          top: 'auto',
+          width: '1px',
+          height: '1px',
+          overflow: 'hidden',
+          zIndex: -999,
+          '&:focus, &:active': {
+            left: '8px',
+            top: '8px',
+            width: 'auto',
+            height: 'auto',
+            overflow: 'visible',
+            zIndex: 9999,
+            padding: '12px 24px',
+            backgroundColor: 'primary.main',
+            color: 'white',
+            fontWeight: 600,
+            textDecoration: 'none',
+            borderRadius: 1,
+            boxShadow: 2,
+          },
+        }}
+      >
+        メインコンテンツへスキップ
+      </Box>
+
       <AppBar
         position="fixed"
         sx={{
@@ -221,17 +313,32 @@ export default function AppLayout() {
         elevation={1}
       >
         <Toolbar>
-          <IconButton edge="start" onClick={toggleSidebar} sx={{ mr: 2 }}>
+          <IconButton 
+            edge="start" 
+            onClick={toggleSidebar} 
+            sx={{ mr: 2 }}
+            aria-label={sidebarOpen ? 'サイドバーを閉じる' : 'サイドバーを開く'}
+            aria-expanded={sidebarOpen}
+          >
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
             {pageTitle}
           </Typography>
-          <IconButton onClick={cycleTheme} title={`テーマ: ${themeMode}`}>
+          <IconButton 
+            onClick={cycleTheme} 
+            title={`テーマ: ${themeMode}`}
+            aria-label={`テーマを切り替え（現在: ${themeModeLabel}）`}
+          >
             {themeIcon}
           </IconButton>
           <NotificationBell />
-          <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
+          <IconButton 
+            onClick={(e) => setAnchorEl(e.currentTarget)}
+            aria-label="アカウントメニューを開く"
+            aria-haspopup="true"
+            aria-expanded={!!anchorEl}
+          >
             <AccountCircle />
           </IconButton>
           <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
@@ -251,6 +358,7 @@ export default function AppLayout() {
         variant="persistent"
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        aria-label="メインナビゲーション"
         sx={{
           width: DRAWER_WIDTH,
           flexShrink: 0,
@@ -265,12 +373,17 @@ export default function AppLayout() {
 
       <Box
         component="main"
+        id="main-content"
+        role="main"
+        aria-label="メインコンテンツ"
+        tabIndex={-1}
         sx={{
           flexGrow: 1,
           p: 3,
           transition: 'margin 0.3s',
           ml: sidebarOpen ? 0 : `-${DRAWER_WIDTH}px`,
           width: sidebarOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%',
+          outline: 'none',
         }}
       >
         <Toolbar />
