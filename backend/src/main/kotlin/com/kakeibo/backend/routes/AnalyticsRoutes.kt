@@ -54,6 +54,12 @@ fun Route.analyticsRoutes(analyticsService: AnalyticsService) {
                     "年を指定してください",
                     listOf(com.kakeibo.shared.model.FieldError("year", "有効な年を指定してください"))
                 )
+            if (year !in 2000..2100) {
+                throw com.kakeibo.backend.middleware.ValidationException(
+                    "年は2000〜2100の範囲で指定してください",
+                    listOf(com.kakeibo.shared.model.FieldError("year", "年は2000〜2100の範囲で指定してください"))
+                )
+            }
             val response = analyticsService.getYearlySummary(year)
             call.respond(HttpStatusCode.OK, response)
         }

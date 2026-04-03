@@ -32,6 +32,10 @@ class TransactionService(
     private val analyticsService: AnalyticsService? = null
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
+
+    private companion object {
+        val VALID_TRANSACTION_TYPES: Set<String> = TransactionType.entries.map { it.value }.toSet()
+    }
     fun getAll(
         dateFrom: String?, dateTo: String?, type: String?,
         categoryId: String?, accountId: String?, tagIds: String?,
@@ -143,7 +147,12 @@ class TransactionService(
                 transactionTagRepository.setTags(id, request.tag_ids.map { UUID.fromString(it) })
             }
 
-            // Update input pattern learning
+            created
+        }
+
+        // 入力パターン学習は補助データなので、メイン取引のトランザクション外で実行する
+        // 学習の失敗が取引作成をロールバックさせないようにする
+        try {
             request.memo?.takeIf { it.isNotBlank() }?.let { memo ->
                 inputPatternRepository.upsert(
                     keyword = memo.trim(),
@@ -151,8 +160,8 @@ class TransactionService(
                     accountId = request.account_id?.let { UUID.fromString(it) }
                 )
             }
-
-            created
+        } catch (e: Exception) {
+            logger.warn("入力パターン学習に失敗しましたが、取引は正常に作成されました: ${e.message}")
         }
 
         // Invalidate analytics cache for the transaction's month
@@ -339,15 +348,16 @@ class TransactionService(
             val yearMonth = String.format("%04d-%02d", dateTime.year, dateTime.monthValue)
             analyticsService?.invalidateCache(yearMonth)
         } catch (e: Exception) {
+            // 日付パース失敗は予期しないデータ不整合を示す。
+            // 全キャッシュクリアは過剰なので、該当月のみスキップしてログに記録する
             logger.warn("キャッシュ無効化中に日付パースに失敗: $dateStr", e)
-            analyticsService?.invalidateAllCache()
         }
     }
 
     private fun validateRequest(request: TransactionRequest) {
         val errors = mutableListOf<FieldError>()
 
-        if (request.type !in com.kakeibo.shared.model.TransactionType.entries.map { it.value })
+        if (request.type !in VALID_TRANSACTION_TYPES)
             errors.add(FieldError("type", "種別は income または expense を指定してください"))
 
         ValidationRules.validateAmount(request.amount)?.let {

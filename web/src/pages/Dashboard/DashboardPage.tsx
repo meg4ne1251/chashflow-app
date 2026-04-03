@@ -35,6 +35,15 @@ import { formatCurrency, formatDateTime, formatPercent } from '@/utils/format';
 import { useMobile } from '@/hooks/useMobile';
 import { QUERY_STALE_TIME_MS } from '@/constants';
 
+const ACCOUNT_TYPE_ICONS: Record<string, React.ReactNode> = {
+  cash: <Payments fontSize="small" />,
+  bank: <AccountBalance fontSize="small" />,
+  credit_card: <CreditCard fontSize="small" />,
+  e_money: <Savings fontSize="small" />,
+  other: <MoreHoriz fontSize="small" />,
+  savings: <SavingsOutlined fontSize="small" />,
+};
+
 export default function DashboardPage() {
   const isMobile = useMobile();
   const { data, isLoading, error } = useQuery({
@@ -186,14 +195,7 @@ export default function DashboardPage() {
           ) : data?.account_balances && data.account_balances.length > 0 ? (
             <Stack spacing={0}>
               {data.account_balances.map((account) => {
-                const icon = ({
-                  cash: <Payments fontSize="small" />,
-                  bank: <AccountBalance fontSize="small" />,
-                  credit_card: <CreditCard fontSize="small" />,
-                  e_money: <Savings fontSize="small" />,
-                  other: <MoreHoriz fontSize="small" />,
-                  savings: <SavingsOutlined fontSize="small" />,
-                } as Record<string, React.ReactNode>)[account.type] ?? <AccountBalanceWallet fontSize="small" />;
+                const icon = ACCOUNT_TYPE_ICONS[account.type] ?? <AccountBalanceWallet fontSize="small" />;
 
                 return (
                   <Box

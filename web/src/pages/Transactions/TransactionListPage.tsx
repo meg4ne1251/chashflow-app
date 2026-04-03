@@ -50,7 +50,7 @@ import { tagApi } from '@/api/tags';
 import { formatCurrency, formatDateTime } from '@/utils/format';
 import { logger } from '@/utils/logger';
 import { useUndoStore } from '@/stores/undoStore';
-import type { TransactionResponse, TemplateResponse } from '@/types';
+import type { TransactionResponse, TemplateResponse, TransactionType } from '@/types';
 import { DEBOUNCE_DELAY_MS, DEFAULT_PAGE_SIZE, UNDO_TIMEOUT_MS, QUERY_STALE_TIME_MS } from '@/constants';
 
 export default function TransactionListPage() {
@@ -64,7 +64,7 @@ export default function TransactionListPage() {
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const keywordTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [typeFilter, setTypeFilter] = useState<TransactionType | ''>('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [accountFilter, setAccountFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -226,7 +226,7 @@ export default function TransactionListPage() {
     <Stack direction={isMobile ? 'column' : 'row'} spacing={isMobile ? 1.5 : 2} sx={{ mt: 2 }} flexWrap="wrap" useFlexGap>
       <FormControl size="small" sx={{ minWidth: 120 }} fullWidth={isMobile}>
         <InputLabel>種別</InputLabel>
-        <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} label="種別">
+        <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as TransactionType | '')} label="種別">
           <MenuItem value="">すべて</MenuItem>
           <MenuItem value="income">収入</MenuItem>
           <MenuItem value="expense">支出</MenuItem>

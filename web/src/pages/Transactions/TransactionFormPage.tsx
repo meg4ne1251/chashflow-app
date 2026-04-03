@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -21,6 +21,7 @@ import {
   Icon,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
+import { AxiosError } from 'axios';
 import { transactionSchema, type TransactionFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
 import { transactionApi } from '@/api/transactions';
@@ -29,6 +30,7 @@ import { accountApi } from '@/api/accounts';
 import { tagApi } from '@/api/tags';
 import { suggestionApi } from '@/api/suggestions';
 import { getNow } from '@/utils/format';
+import { getApiErrorMessage } from '@/types';
 import { DEBOUNCE_DELAY_MS, AUTO_COMPLETE_CONFIDENCE_THRESHOLD, MEMO_SUGGESTION_MIN_LENGTH } from '@/constants';
 import { useMobile } from '@/hooks/useMobile';
 import CalculatorAmountField from '@/components/CalculatorAmountField';
@@ -188,7 +190,10 @@ export default function TransactionFormPage() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       navigate('/transactions');
     },
-    onError: () => setError('取引の作成に失敗しました'),
+    onError: (err: Error) => {
+      const msg = err instanceof AxiosError ? getApiErrorMessage(err.response?.data) : null;
+      setError(msg || '取引の作成に失敗しました');
+    },
   });
 
   const updateMutation = useMutation({
@@ -207,8 +212,9 @@ export default function TransactionFormPage() {
       queryClient.removeQueries({ queryKey: ['transaction', id] });
       navigate('/transactions');
     },
-    onError: () => {
-      setError('取引の更新に失敗しました');
+    onError: (err: Error) => {
+      const msg = err instanceof AxiosError ? getApiErrorMessage(err.response?.data) : null;
+      setError(msg || '取引の更新に失敗しました');
       // Refetch to get the latest version from server
       queryClient.invalidateQueries({ queryKey: ['transaction', id] });
     },
@@ -230,7 +236,10 @@ export default function TransactionFormPage() {
     );
   }
 
-  const filteredCategories = categories?.filter((c) => c.type === selectedType) || [];
+  const filteredCategories = useMemo(
+    () => categories?.filter((c) => c.type === selectedType) || [],
+    [categories, selectedType]
+  );
 
   return (
     <Box sx={{ maxWidth: isMobile ? '100%' : 600, mx: 'auto' }}>

@@ -3,13 +3,14 @@ import type {
   TransactionRequest,
   TransactionResponse,
   TransactionHistoryResponse,
+  TransactionType,
   PaginatedResponse,
 } from '@/types';
 
 export interface TransactionQueryParams {
   date_from?: string;
   date_to?: string;
-  type?: string;
+  type?: TransactionType;
   category_id?: string;
   account_id?: string;
   tag_ids?: string;

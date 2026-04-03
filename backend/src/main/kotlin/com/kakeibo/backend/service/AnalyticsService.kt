@@ -31,9 +31,14 @@ class AnalyticsService(
     private val cache = ConcurrentHashMap<String, CacheEntry<*>>()
 
     fun invalidateCache(yearMonth: String) {
-        // Use exact prefix matching to avoid unintended key removal
+        // yearMonthを含むキーを正確に無効化する
+        // "2024-01" が "2024-01-2025" などに誤マッチしないよう、
+        // キーの区切り文字を考慮してマッチングする
         cache.keys.removeIf { key ->
-            key.endsWith(":$yearMonth") || key.contains(":$yearMonth:")
+            // "dashboard:2024-01", "breakdown:2024-01:expense", "comparison:2024-01",
+            // "yearly:2024" (年単位キーはyearMonthの年部分で無効化)
+            val segments = key.split(":")
+            segments.any { it == yearMonth } || segments.any { it == yearMonth.substringBefore("-") }
         }
     }
 

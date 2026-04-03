@@ -28,8 +28,7 @@ class SavingsGoalService(
         val goals = savingsGoalRepository.findAll()
         val accountIds = goals.mapNotNull { it[SavingsGoals.accountId] }.distinct()
         val accountMap = if (accountIds.isNotEmpty()) {
-            accountIds.mapNotNull { accountRepository.findById(it) }
-                .associateBy { it[Accounts.id] }
+            accountRepository.findByIds(accountIds).associateBy { it[Accounts.id] }
         } else emptyMap()
         val balanceMap = computeSavingsBalances(accountMap)
         return goals.map { it.toResponse(accountMap, balanceMap) }
@@ -50,8 +49,7 @@ class SavingsGoalService(
         val goals = savingsGoalRepository.findActive()
         val accountIds = goals.mapNotNull { it[SavingsGoals.accountId] }.distinct()
         val accountMap = if (accountIds.isNotEmpty()) {
-            accountIds.mapNotNull { accountRepository.findById(it) }
-                .associateBy { it[Accounts.id] }
+            accountRepository.findByIds(accountIds).associateBy { it[Accounts.id] }
         } else emptyMap()
         val balanceMap = computeSavingsBalances(accountMap)
         return goals.map { it.toSummary(balanceMap) }

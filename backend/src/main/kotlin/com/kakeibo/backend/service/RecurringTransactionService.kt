@@ -24,6 +24,11 @@ class RecurringTransactionService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    private companion object {
+        val VALID_TRANSACTION_TYPES: Set<String> = TransactionType.entries.map { it.value }.toSet()
+        val VALID_FREQUENCIES: Set<String> = Frequency.entries.map { it.value }.toSet()
+    }
+
     fun getAll(): List<RecurringTransactionResponse> {
         return recurringTransactionRepository.findAll().map { it.toResponse() }
     }
@@ -254,12 +259,12 @@ class RecurringTransactionService(
 
     private fun validateRequest(request: RecurringTransactionRequest) {
         val errors = mutableListOf<FieldError>()
-        if (request.type !in com.kakeibo.shared.model.TransactionType.entries.map { it.value })
+        if (request.type !in VALID_TRANSACTION_TYPES)
             errors.add(FieldError("type", "種別は income または expense を指定してください"))
         ValidationRules.validateAmount(request.amount)?.let {
             errors.add(FieldError("amount", it))
         }
-        if (request.frequency !in com.kakeibo.shared.model.Frequency.entries.map { it.value })
+        if (request.frequency !in VALID_FREQUENCIES)
             errors.add(FieldError("frequency", "頻度は daily/weekly/monthly/yearly を指定してください"))
         if (request.interval < 1)
             errors.add(FieldError("interval", "間隔は1以上を指定してください"))

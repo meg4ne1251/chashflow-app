@@ -89,9 +89,13 @@ apiClient.interceptors.response.use(
         });
 
         refreshFailCount = 0;
+        // isRefreshingをfalseにしてからキューを処理することで、
+        // キュー処理中の新しい401が新たなリフレッシュを開始できるようにする
+        isRefreshing = false;
         processQueue(null);
         return apiClient(originalRequest);
       } catch (refreshError) {
+        isRefreshing = false;
         processQueue(refreshError);
 
         const isAuthError =
@@ -105,8 +109,6 @@ apiClient.interceptors.response.use(
         }
 
         return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
       }
     }
 
