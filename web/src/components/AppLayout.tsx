@@ -36,13 +36,15 @@ import {
   Logout,
 } from '@mui/icons-material';
 import { useMobile } from '@/hooks/useMobile';
+import { useAuthSync } from '@/hooks/useAuthSync';
 import { useAuthStore } from '@/stores/authStore';
 import { useUiStore } from '@/stores/uiStore';
 import type { ThemeMode } from '@/types';
 import NotificationBell from './NotificationBell';
-import MobileBottomNav, { MOBILE_BOTTOM_NAV_HEIGHT } from './MobileBottomNav';
+import MobileBottomNav from './MobileBottomNav';
+import { SIDEBAR_WIDTH, MOBILE_BOTTOM_NAV_HEIGHT } from '@/constants';
 
-const DRAWER_WIDTH = 260;
+const DRAWER_WIDTH = SIDEBAR_WIDTH;
 
 interface NavItem {
   label: string;
@@ -75,6 +77,7 @@ const settingsNavItems: NavItem[] = [
 ];
 
 export default function AppLayout() {
+  useAuthSync();
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useMobile();
@@ -83,21 +86,20 @@ export default function AppLayout() {
   const { logout, username } = useAuthStore();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const allNavItems = [
-    ...mainNavItems, ...masterNavItems, ...analysisNavItems, ...settingsNavItems,
+  const allNavItems = useMemo(() => [
+    ...mainNavItems,
+    ...masterNavItems,
+    ...analysisNavItems,
+    ...settingsNavItems,
     { label: '通知履歴', path: '/notifications', icon: null },
     { label: 'その他', path: '/more', icon: null },
-  ];
+  ], []);
 
-  const pageTitle = useMemo(
-    () => {
-      if (location.pathname === '/transactions/new') return '新規取引';
-      if (location.pathname.match(/^\/transactions\/[^/]+\/edit$/)) return '取引の編集';
-      return allNavItems.find((i) => i.path === location.pathname)?.label ?? '家計簿';
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [location.pathname]
-  );
+  const pageTitle = useMemo(() => {
+    if (location.pathname === '/transactions/new') return '新規取引';
+    if (location.pathname.match(/^\/transactions\/[^/]+\/edit$/)) return '取引の編集';
+    return allNavItems.find((i) => i.path === location.pathname)?.label ?? '家計簿';
+  }, [location.pathname, allNavItems]);
 
   const handleNavClick = (path: string) => {
     navigate(path);

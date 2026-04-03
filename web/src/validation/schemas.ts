@@ -4,13 +4,14 @@ import { z } from 'zod';
 // Accepts seed-data UUIDs that don't conform to RFC 4122 version/variant bits
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Password: 8+ chars, at least 1 uppercase, 1 lowercase, 1 digit
+// Password: 12+ chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special char
 const passwordSchema = z
   .string()
-  .min(8, 'パスワードは8文字以上で入力してください')
+  .min(12, 'パスワードは12文字以上で入力してください')
   .regex(/[A-Z]/, '英大文字を1文字以上含めてください')
   .regex(/[a-z]/, '英小文字を1文字以上含めてください')
-  .regex(/[0-9]/, '数字を1文字以上含めてください');
+  .regex(/[0-9]/, '数字を1文字以上含めてください')
+  .regex(/[@#$%^&+=!*?]/, '記号(@#$%^&+=!*?)を1文字以上含めてください');
 
 export const loginSchema = z.object({
   username: z.string().min(1, 'ユーザー名を入力してください').max(50),

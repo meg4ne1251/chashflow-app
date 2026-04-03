@@ -13,6 +13,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodFormResolver } from '@/validation/resolver';
 import { setupSchema, type SetupFormData } from '@/validation/schemas';
+import { PasswordRequirements } from '@/components/PasswordRequirements';
 import { useAuthStore } from '@/stores/authStore';
 import { authApi } from '@/api/auth';
 import { AxiosError } from 'axios';
@@ -41,6 +42,7 @@ export default function SetupPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<SetupFormData>({
     resolver: zodFormResolver(setupSchema),
@@ -121,9 +123,10 @@ export default function SetupPage() {
               autoComplete="new-password"
               {...register('password')}
               error={!!errors.password}
-              helperText={errors.password?.message || '8文字以上、英大文字・小文字・数字を各1文字以上'}
-              sx={{ mb: 2 }}
+              helperText={errors.password?.message}
+              sx={{ mb: 0 }}
             />
+            <PasswordRequirements password={watch('password') || ''} />
             <TextField
               fullWidth
               label="パスワード（確認）"

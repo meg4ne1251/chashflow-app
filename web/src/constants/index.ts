@@ -51,6 +51,46 @@ export const ACCEPTED_JSON_TYPES = [
 ] as const;
 
 // =========================================
+// UI Layout
+// =========================================
+
+/** Sidebar width in px */
+export const SIDEBAR_WIDTH = 260;
+
+/** Mobile bottom navigation height in px */
+export const MOBILE_BOTTOM_NAV_HEIGHT = 56;
+
+/** Notification popover max height in px */
+export const NOTIFICATION_POPOVER_MAX_HEIGHT = 380;
+
+// =========================================
+// Dashboard
+// =========================================
+
+/** Number of top categories to display on dashboard */
+export const DASHBOARD_TOP_CATEGORIES = 5;
+
+/** Number of recent transactions to display on dashboard */
+export const DASHBOARD_RECENT_TRANSACTIONS = 5;
+
+// =========================================
+// Query/Cache
+// =========================================
+
+/** Default staleTime for React Query (ms) */
+export const QUERY_STALE_TIME_MS = 30_000;
+
+// =========================================
+// Validation (frontend, synced with backend)
+// =========================================
+
+/** Password minimum length */
+export const PASSWORD_MIN_LENGTH = 12;
+
+/** Memo maximum length */
+export const MEMO_MAX_LENGTH = 500;
+
+// =========================================
 // Chart colors
 // =========================================
 

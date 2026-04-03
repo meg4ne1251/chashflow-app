@@ -2,13 +2,48 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authApi } from '@/api/auth';
 
+/**
+ * 認証状態を管理するZustandストア
+ *
+ * ログイン、ログアウト、セットアップの状態管理を行います。
+ * トークンはhttpOnly Cookieで管理され、usernameのみlocalStorageに永続化されます。
+ *
+ * @example
+ * ```tsx
+ * const { isAuthenticated, login, logout } = useAuthStore();
+ *
+ * if (!isAuthenticated) {
+ *   await login('username', 'password');
+ * }
+ * ```
+ */
 interface AuthState {
+  /** ユーザーが認証済みかどうか */
   isAuthenticated: boolean;
+  /** ログイン中のユーザー名（未認証時はnull） */
   username: string | null;
+  /**
+   * ログインを実行
+   * @throws 認証失敗時にエラーをスロー
+   */
   login: (username: string, password: string) => Promise<void>;
+  /**
+   * 初期セットアップを実行（初回起動時のみ）
+   */
   setup: (username: string, password: string) => Promise<void>;
+  /**
+   * ログアウトを実行。トークンを破棄し、他タブにも通知します
+   */
   logout: () => Promise<void>;
-  checkAuth: () => Promise<boolean>;  // 戻り値型を boolean から Promise<boolean> に変更
+  /**
+   * サーバーに問い合わせて現在の認証状態を確認
+   * @returns 認証済みならtrue
+   */
+  checkAuth: () => Promise<boolean>;
+  /**
+   * 認証状態を直接設定（タブ間同期用）
+   */
+  setAuthenticated: (value: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -32,17 +67,22 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         try {
-          // 引数なしで呼び出し（Cookie化により refresh_token は不要）
           await authApi.logout();
         } catch {
           // Ignore logout errors
         } finally {
-          // サーバー側でCookie削除を行う
+          broadcastLogout();
           set({ isAuthenticated: false, username: null });
         }
       },
 
-      // サーバーに問い合わせて認証状態を確認（同期→非同期に変更）
+      setAuthenticated: (value: boolean) => {
+        set({ isAuthenticated: value });
+        if (!value) {
+          set({ username: null });
+        }
+      },
+
       checkAuth: async () => {
         try {
           const response = await authApi.me();
@@ -68,3 +108,11 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+
+function broadcastLogout() {
+  if (typeof BroadcastChannel !== 'undefined') {
+    const channel = new BroadcastChannel('auth-sync');
+    channel.postMessage({ type: 'LOGOUT' });
+    channel.close();
+  }
+}

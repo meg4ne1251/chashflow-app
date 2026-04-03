@@ -12,6 +12,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodFormResolver } from '@/validation/resolver';
 import { passwordChangeSchema, type PasswordChangeFormData } from '@/validation/schemas';
+import { PasswordRequirements } from '@/components/PasswordRequirements';
 import { authApi } from '@/api/auth';
 import { importExportApi, notificationSettingApi } from '@/api/importExport';
 import { downloadBlob } from '@/utils/format';
@@ -185,12 +186,15 @@ export default function SettingsPage() {
               error={!!pwForm.formState.errors.current_password}
               helperText={pwForm.formState.errors.current_password?.message}
             />
-            <TextField
-              fullWidth label="新しいパスワード" type="password"
-              {...pwForm.register('new_password')}
-              error={!!pwForm.formState.errors.new_password}
-              helperText={pwForm.formState.errors.new_password?.message}
-            />
+            <Box>
+              <TextField
+                fullWidth label="新しいパスワード" type="password"
+                {...pwForm.register('new_password')}
+                error={!!pwForm.formState.errors.new_password}
+                helperText={pwForm.formState.errors.new_password?.message}
+              />
+              <PasswordRequirements password={pwForm.watch('new_password') || ''} />
+            </Box>
             <TextField
               fullWidth label="新しいパスワード（確認）" type="password"
               {...pwForm.register('confirm_password')}

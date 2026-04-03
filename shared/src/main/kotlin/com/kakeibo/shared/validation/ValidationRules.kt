@@ -7,7 +7,7 @@ object ValidationRules {
 
     // String lengths
     const val USERNAME_MAX_LENGTH = 50
-    const val PASSWORD_MIN_LENGTH = 8
+    const val PASSWORD_MIN_LENGTH = 12
     const val ACCOUNT_NAME_MAX_LENGTH = 100
     const val CATEGORY_NAME_MAX_LENGTH = 50
     const val TAG_NAME_MAX_LENGTH = 50
@@ -36,8 +36,19 @@ object ValidationRules {
     // currency
     const val DEFAULT_CURRENCY = "JPY"
 
-    // Password pattern: at least 1 uppercase, 1 lowercase, 1 digit, min 8 chars
-    val PASSWORD_PATTERN = Regex("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$")
+    // Allowed special characters for passwords
+    private val SPECIAL_CHARS = setOf('@', '#', '$', '%', '^', '&', '+', '=', '!', '*', '?')
+
+    // Common passwords blacklist
+    private val COMMON_PASSWORDS = setOf(
+        "password123!", "qwerty12345!", "admin12345!",
+        "letmein12345", "welcome12345", "monkey12345!",
+        "dragon12345!", "master12345!", "passw0rd1234",
+        "123456789abc", "abcdefgh1234"
+    ).map { it.lowercase() }.toSet()
+
+    // Password pattern: at least 1 uppercase, 1 lowercase, 1 digit, 1 special char, min 12 chars
+    val PASSWORD_PATTERN = Regex("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#\$%^&+=!*?]).{12,}$")
 
     // UUID pattern
     val UUID_PATTERN = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
@@ -70,6 +81,12 @@ object ValidationRules {
         }
         if (!password.any { it.isDigit() }) {
             errors.add("パスワードには数字を1文字以上含めてください")
+        }
+        if (!password.any { it in SPECIAL_CHARS }) {
+            errors.add("パスワードには記号（@#\$%^&+=!*?）を1文字以上含めてください")
+        }
+        if (password.lowercase() in COMMON_PASSWORDS) {
+            errors.add("このパスワードは一般的すぎるため使用できません")
         }
         return errors
     }

@@ -1,13 +1,21 @@
 // =========================================
 // Enums
 // =========================================
+/** 取引種別: 収入 / 支出 */
 export type TransactionType = 'income' | 'expense';
+/** 決済手段の種別 */
 export type AccountType = 'cash' | 'bank' | 'credit_card' | 'e_money' | 'other' | 'savings';
+/** 定期取引の繰り返し頻度 */
 export type Frequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+/** 通知の種類 */
 export type NotificationType = 'input_remind' | 'budget_alert' | 'credit_card_payment' | 'savings_goal_achieved';
+/** 貯蓄目標の状態 */
 export type SavingsGoalStatus = 'active' | 'achieved' | 'cancelled';
+/** リマインダー通知の頻度 */
 export type ReminderFrequency = 'daily' | 'weekly' | 'biweekly' | 'custom';
+/** 同期操作の種別 */
 export type SyncOperation = 'create' | 'update' | 'delete';
+/** テーマモード: ライト / ダーク / システム設定に追従 */
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 // =========================================

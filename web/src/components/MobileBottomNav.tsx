@@ -1,3 +1,4 @@
+import { MOBILE_BOTTOM_NAV_HEIGHT } from '@/constants';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   BottomNavigation,
@@ -72,7 +73,7 @@ export default function MobileBottomNav() {
           component="nav"
           aria-label="メインナビゲーション"
           sx={{
-            height: 56,
+            height: MOBILE_BOTTOM_NAV_HEIGHT,
             '& .MuiBottomNavigationAction-root': {
               minWidth: 'auto',
               py: 0.5,
@@ -96,4 +97,4 @@ export default function MobileBottomNav() {
   );
 }
 
-export const MOBILE_BOTTOM_NAV_HEIGHT = 56;
+export { MOBILE_BOTTOM_NAV_HEIGHT } from '@/constants';

@@ -33,6 +33,7 @@ import {
 import { analyticsApi } from '@/api';
 import { formatCurrency, formatDateTime, formatPercent } from '@/utils/format';
 import { useMobile } from '@/hooks/useMobile';
+import { QUERY_STALE_TIME_MS } from '@/constants';
 
 export default function DashboardPage() {
   const isMobile = useMobile();
@@ -40,7 +41,7 @@ export default function DashboardPage() {
     queryKey: ['dashboard'],
     queryFn: () => analyticsApi.dashboard(),
     select: (res) => res.data,
-    staleTime: 30_000,
+    staleTime: QUERY_STALE_TIME_MS,
   });
 
   if (error) {

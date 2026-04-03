@@ -7,6 +7,7 @@ import { AxiosError } from 'axios';
 import App from './App';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useAppTheme } from '@/theme/useAppTheme';
+import { QUERY_STALE_TIME_MS } from '@/constants';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,7 +20,7 @@ const queryClient = new QueryClient({
         return failureCount < 1;
       },
       refetchOnWindowFocus: false,
-      staleTime: 30_000,
+      staleTime: QUERY_STALE_TIME_MS,
     },
     mutations: {
       // Never auto-retry mutations to prevent duplicate operations

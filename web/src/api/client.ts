@@ -1,3 +1,12 @@
+/**
+ * Axiosベースの共通APIクライアント
+ *
+ * - ベースURL: /api/v1
+ * - Cookie認証 (withCredentials: true)
+ * - 401レスポンス時にリフレッシュトークンで自動再認証
+ * - リフレッシュ中の並行リクエストをキューイング
+ * - MAX_REFRESH_FAILURES回連続失敗でログイン画面にリダイレクト
+ */
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import type { ErrorResponse } from '@/types';
 

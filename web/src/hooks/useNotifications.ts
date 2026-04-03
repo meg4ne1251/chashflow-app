@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationApi } from '@/api/notifications';
 import { useAuthStore } from '@/stores/authStore';
+import { QUERY_STALE_TIME_MS } from '@/constants';
 
 export function useNotifications() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -10,7 +11,7 @@ export function useNotifications() {
     queryKey: ['notifications'],
     queryFn: () => notificationApi.getUnread(),
     select: (res) => res.data,
-    refetchInterval: 30_000,
+    refetchInterval: QUERY_STALE_TIME_MS,
     enabled: isAuthenticated,
     staleTime: 10_000,
   });

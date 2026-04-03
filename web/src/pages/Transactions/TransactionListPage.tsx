@@ -51,7 +51,7 @@ import { formatCurrency, formatDateTime } from '@/utils/format';
 import { logger } from '@/utils/logger';
 import { useUndoStore } from '@/stores/undoStore';
 import type { TransactionResponse, TemplateResponse } from '@/types';
-import { DEBOUNCE_DELAY_MS, DEFAULT_PAGE_SIZE, UNDO_TIMEOUT_MS } from '@/constants';
+import { DEBOUNCE_DELAY_MS, DEFAULT_PAGE_SIZE, UNDO_TIMEOUT_MS, QUERY_STALE_TIME_MS } from '@/constants';
 
 export default function TransactionListPage() {
   const isMobile = useMobile();
@@ -139,7 +139,7 @@ export default function TransactionListPage() {
       const pagination = lastPage.data.pagination;
       return pagination.has_next ? pagination.next_cursor ?? undefined : undefined;
     },
-    staleTime: 30_000,
+    staleTime: QUERY_STALE_TIME_MS,
   });
 
   // Intersection observer for infinite scroll

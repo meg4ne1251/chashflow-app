@@ -22,6 +22,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ja';
 import { useNotifications } from '@/hooks/useNotifications';
+import { NOTIFICATION_POPOVER_MAX_HEIGHT } from '@/constants';
 import { useNavigate } from 'react-router-dom';
 
 dayjs.extend(relativeTime);
@@ -98,7 +99,7 @@ export default function NotificationBell() {
             </Typography>
           </Box>
         ) : (
-          <List disablePadding sx={{ overflow: 'auto', maxHeight: 380 }}>
+          <List disablePadding sx={{ overflow: 'auto', maxHeight: NOTIFICATION_POPOVER_MAX_HEIGHT }}>
             {notifications.map((notification) => (
               <ListItemButton
                 key={notification.id}

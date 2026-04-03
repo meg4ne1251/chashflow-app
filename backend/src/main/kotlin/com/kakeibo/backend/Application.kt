@@ -227,11 +227,20 @@ fun Application.module() {
     configureRateLimiting()
     configureErrorHandling()
 
+    // Create recurring transaction scheduler (before routing so healthRoutes can reference it)
+    val scheduler = RecurringTransactionScheduler(
+        recurringTransactionService,
+        dailyCleanupTasks = listOf(
+            { refreshTokenRepository.cleanupExpired() },
+            { notificationService.cleanupOldNotifications() }
+        )
+    )
+
     // Routes
     routing {
         route("/api/v1") {
             authRoutes(authService, accountService)
-            healthRoutes()
+            healthRoutes(scheduler)
             cspReportRoutes()
             metricsRoutes(prometheusMeterRegistry)
 
@@ -240,7 +249,7 @@ fun Application.module() {
                 install(CsrfProtection) {
                     this.allowedOrigins = parsedAllowedOrigins
                 }
-                
+
                 accountRoutes(accountService)
                 categoryRoutes(categoryService)
                 tagRoutes(tagService)
@@ -260,14 +269,6 @@ fun Application.module() {
         }
     }
 
-    // Start recurring transaction scheduler with daily maintenance tasks
-    val scheduler = RecurringTransactionScheduler(
-        recurringTransactionService,
-        dailyCleanupTasks = listOf(
-            { refreshTokenRepository.cleanupExpired() },
-            { notificationService.cleanupOldNotifications() }
-        )
-    )
     scheduler.start()
 
     // Start notification scheduler (checks every 60 seconds)

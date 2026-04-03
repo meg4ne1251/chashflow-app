@@ -779,5 +779,22 @@ data class HealthResponse(
 
 @Serializable
 data class HealthChecks(
-    val database: String
+    val database: String,
+    val scheduler: SchedulerStatus? = null,
+    val memory: MemoryStatus? = null
+)
+
+@Serializable
+data class SchedulerStatus(
+    val status: String,
+    val running: Boolean,
+    val executing: Boolean
+)
+
+@Serializable
+data class MemoryStatus(
+    val status: String,
+    val usedMb: Long,
+    val maxMb: Long,
+    val usagePercent: Int
 )

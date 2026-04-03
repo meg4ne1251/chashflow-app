@@ -26,6 +26,8 @@ class RecurringTransactionScheduler(
     private var job: Job? = null
     @Volatile
     private var executionInProgress = false
+    @Volatile
+    private var started = false
 
     companion object {
         private const val MAX_RETRIES = 3
@@ -36,6 +38,7 @@ class RecurringTransactionScheduler(
 
     fun start() {
         logger.info("定期取引スケジューラを開始します")
+        started = true
         job = scope.launch {
             while (isActive) {
                 try {
@@ -57,9 +60,14 @@ class RecurringTransactionScheduler(
 
     fun stop() {
         logger.info("定期取引スケジューラを停止します")
+        started = false
         job?.cancel()
         scope.cancel()
     }
+
+    fun isRunning(): Boolean = started && job?.isActive == true
+
+    fun isExecuting(): Boolean = executionInProgress
 
     private suspend fun executeWithRetry() {
         // Prevent concurrent execution
