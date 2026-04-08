@@ -82,13 +82,35 @@ describe('TransactionListPage', () => {
 
     vi.mocked(categoryApi.list).mockResolvedValue(
       mockAxiosResponse([
-        { id: 'cat1', name: '食費', type: 'expense', icon: 'restaurant', color: '#FF0000' },
+        {
+          id: 'cat1',
+          name: '食費',
+          type: 'expense',
+          icon: 'restaurant',
+          color: '#FF0000',
+          sort_order: 0,
+          is_default: false,
+          version: 1,
+          created_at: '2024-01-15T12:00:00',
+          updated_at: '2024-01-15T12:00:00',
+        },
       ])
     );
 
     vi.mocked(accountApi.list).mockResolvedValue(
       mockAxiosResponse([
-        { id: 'acc1', name: '現金', type: 'cash', balance: 10000 },
+        {
+          id: 'acc1',
+          name: '現金',
+          type: 'cash',
+          initial_balance: 0,
+          currency: 'JPY',
+          sort_order: 0,
+          balance: 10000,
+          version: 1,
+          created_at: '2024-01-15T12:00:00',
+          updated_at: '2024-01-15T12:00:00',
+        },
       ])
     );
 
@@ -142,6 +164,9 @@ describe('TransactionListPage', () => {
             memo: 'ランチ',
             category_id: 'cat1',
             account_id: 'acc1',
+            tags: [],
+            is_auto_generated: false,
+            is_balance_adjustment: false,
             version: 1,
             created_at: '2024-01-15T12:00:00',
             updated_at: '2024-01-15T12:00:00',

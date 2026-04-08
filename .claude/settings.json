@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(grep -E \"\\\\.\\(kt|java\\)$\")",
-      "Bash(ls /home/megane/dev/cashflow-app/*.gradle*)"
+      "Bash(ls /home/megane/dev/cashflow-app/*.gradle*)",
+      "Bash(npm install:*)",
+      "Bash(./gradlew :backend:test --no-daemon)",
+      "Bash(npx vitest:*)",
+      "Bash(./gradlew :backend:test --no-daemon --tests \"*.AuthServiceTest\" --tests \"*.ValidationRulesTest\")",
+      "Bash(npx --no-install vitest run --reporter=verbose)",
+      "Bash(echo \"EXIT_CODE=$?\")"
     ]
   }
 }
