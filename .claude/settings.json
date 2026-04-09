@@ -8,7 +8,18 @@
       "Bash(npx vitest:*)",
       "Bash(./gradlew :backend:test --no-daemon --tests \"*.AuthServiceTest\" --tests \"*.ValidationRulesTest\")",
       "Bash(npx --no-install vitest run --reporter=verbose)",
-      "Bash(echo \"EXIT_CODE=$?\")"
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(curl -sv http://localhost/)",
+      "Bash(curl -sI http://localhost/assets/index-BwIi5vKR.js)",
+      "Bash(curl -s http://localhost/assets/index-BwIi5vKR.js)",
+      "Bash(curl -sI http://localhost/assets/vendor-Dn-wjL4P.js)",
+      "Bash(curl -s http://localhost/assets/vendor-Dn-wjL4P.js)",
+      "Bash(curl -s http://localhost/assets/index-BwIi5vKR.js -o /tmp/cf_index.js)",
+      "Bash(npx playwright:*)",
+      "Bash(curl -s http://localhost/)",
+      "Bash(curl -s http://localhost/assets/vendor-DG2RlkbG.js -o /tmp/vendor.js)",
+      "Bash(curl -s http://localhost/assets/vendor-react-CUwmXof6.js -o /tmp/vendor-react.js)",
+      "Bash(curl -s http://localhost/assets/vendor-mui-BtNOApD5.js -o /tmp/vendor-mui.js)"
     ]
   }
 }

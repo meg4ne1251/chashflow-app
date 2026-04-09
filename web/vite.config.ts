@@ -30,27 +30,13 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'vendor-react';
-            }
-            if (id.includes('@mui')) {
-              return 'vendor-mui';
-            }
-            if (id.includes('recharts') || id.includes('d3')) {
-              return 'vendor-charts';
-            }
-            if (id.includes('@tanstack')) {
-              return 'vendor-query';
-            }
-            return 'vendor';
-          }
-        },
-      },
-    },
+    // NOTE: We intentionally do NOT define `rollupOptions.output.manualChunks`.
+    // Hand-rolled vendor chunking (splitting react / mui / etc. into separate
+    // chunks) is fragile because it easily creates circular imports between
+    // chunks (e.g. `vendor-react` <-> `vendor`), which surface at runtime as
+    // "Cannot access 'X' before initialization" / blank screen. Vite's default
+    // chunking handles dependency cycles correctly and is good enough here.
+    rollupOptions: {},
     chunkSizeWarningLimit: 500,
   },
 }));

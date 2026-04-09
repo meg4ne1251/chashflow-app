@@ -9,16 +9,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <!-- Async font loading -->
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      onload="this.onload=null;this.rel='stylesheet'"
-    />
-    <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
-    </noscript>
+    <!-- Material Icons stylesheet (loaded normally; the previous preload+onload
+         pattern relied on an inline event handler which is blocked by our CSP
+         `script-src 'self'`). -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
 
     <title>家計簿アプリ</title>
   </head>
