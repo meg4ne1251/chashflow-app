@@ -3,6 +3,19 @@ import { TextField } from '@mui/material';
 import { evaluateExpression, hasOperator } from '@/utils/calc';
 
 /**
+ * 全角数字・全角演算子を半角に変換する。
+ * IMEで入力された「１２３＋４５０」などを「123+450」に正規化する。
+ */
+function toHalfWidth(s: string): string {
+  return s
+    .replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    .replace(/＋/g, '+')
+    .replace(/[－ー−]/g, '-')
+    .replace(/[＊×]/g, '*')
+    .replace(/[／÷]/g, '/');
+}
+
+/**
  * 計算機付き金額入力フィールド
  *
  * 金額入力に加えて、簡易計算機機能を提供します。
@@ -56,7 +69,8 @@ export default function CalculatorAmountField({
   }, [value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.target.value;
+    // Normalize full-width digits/operators to half-width (IME input support)
+    const input = toHalfWidth(e.target.value);
     // Only allow digits and arithmetic operators
     if (input && !/^[\d+\-*/]+$/.test(input)) return;
 

@@ -19,7 +19,8 @@
       "Bash(curl -s http://localhost/)",
       "Bash(curl -s http://localhost/assets/vendor-DG2RlkbG.js -o /tmp/vendor.js)",
       "Bash(curl -s http://localhost/assets/vendor-react-CUwmXof6.js -o /tmp/vendor-react.js)",
-      "Bash(curl -s http://localhost/assets/vendor-mui-BtNOApD5.js -o /tmp/vendor-mui.js)"
+      "Bash(curl -s http://localhost/assets/vendor-mui-BtNOApD5.js -o /tmp/vendor-mui.js)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }
