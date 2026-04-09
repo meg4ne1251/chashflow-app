@@ -41,13 +41,14 @@ class TransactionService(
         categoryId: String?, accountId: String?, tagIds: String?,
         keyword: String?, page: Int?, size: Int, sort: String?
     ): PaginatedResponse<TransactionResponse> {
+        // クエリパラメータは外部入力なので、不正値は 500 ではなく 400 で返す
         val filter = TransactionFilter(
-            dateFrom = dateFrom?.let { LocalDate.parse(it).atStartOfDay() },
-            dateTo = dateTo?.let { LocalDate.parse(it).atTime(LocalTime.MAX) },
-            type = type,
-            categoryId = categoryId?.let { UUID.fromString(it) },
-            accountId = accountId?.let { UUID.fromString(it) },
-            tagIds = tagIds?.split(",")?.map { UUID.fromString(it.trim()) },
+            dateFrom = dateFrom?.let { parseDateParam(it, "date_from").atStartOfDay() },
+            dateTo = dateTo?.let { parseDateParam(it, "date_to").atTime(LocalTime.MAX) },
+            type = type?.also { validateTypeParam(it) },
+            categoryId = categoryId?.let { parseUuidParam(it, "category_id") },
+            accountId = accountId?.let { parseUuidParam(it, "account_id") },
+            tagIds = tagIds?.split(",")?.map { parseUuidParam(it.trim(), "tag_ids") },
             keyword = keyword
         )
 
@@ -340,6 +341,36 @@ class TransactionService(
         val field = parts.getOrElse(0) { "date" }
         val dir = parts.getOrElse(1) { "desc" }
         return Pair(field, dir)
+    }
+
+    private fun parseDateParam(value: String, paramName: String): LocalDate {
+        return try {
+            LocalDate.parse(value)
+        } catch (e: java.time.format.DateTimeParseException) {
+            throw ValidationException(
+                "${paramName}の日付形式が不正です",
+                listOf(FieldError(paramName, "YYYY-MM-DD 形式で指定してください"))
+            )
+        }
+    }
+
+    private fun parseUuidParam(value: String, paramName: String): UUID {
+        if (!ValidationRules.validateUuid(value)) {
+            throw ValidationException(
+                "${paramName}の形式が不正です",
+                listOf(FieldError(paramName, "UUID 形式で指定してください"))
+            )
+        }
+        return UUID.fromString(value)
+    }
+
+    private fun validateTypeParam(value: String) {
+        if (value !in VALID_TRANSACTION_TYPES) {
+            throw ValidationException(
+                "typeの値が不正です",
+                listOf(FieldError("type", "income または expense を指定してください"))
+            )
+        }
     }
 
     private fun invalidateCacheForDate(dateStr: String) {

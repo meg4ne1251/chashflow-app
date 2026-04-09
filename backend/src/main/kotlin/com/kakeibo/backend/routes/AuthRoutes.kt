@@ -18,18 +18,19 @@ import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger("AuthRoutes")
 
+// モジュールロード時に一度だけ環境判定を行う（ホットパスでの env 読み取りを避ける）
+private val IS_PRODUCTION: Boolean = System.getenv("KTOR_ENV") == "production"
+private val COOKIE_SAME_SITE: String = if (IS_PRODUCTION) "Strict" else "Lax"
+
 // Cookie設定用のヘルパー関数
 private fun ApplicationCall.setAuthCookies(accessToken: String, refreshToken: String, expiresIn: Int) {
-    // 本番環境かどうかを判定（環境変数またはプロファイルで制御）
-    val isProduction = System.getenv("KTOR_ENV") == "production"
-    
     response.cookies.append(
         Cookie(
             name = "access_token",
             value = accessToken,
             httpOnly = true,
-            secure = isProduction,  // 本番ではtrue、開発ではfalse
-            extensions = mapOf("SameSite" to if (isProduction) "Strict" else "Lax"),
+            secure = IS_PRODUCTION,
+            extensions = mapOf("SameSite" to COOKIE_SAME_SITE),
             maxAge = expiresIn,
             path = "/api"
         )
@@ -39,8 +40,8 @@ private fun ApplicationCall.setAuthCookies(accessToken: String, refreshToken: St
             name = "refresh_token",
             value = refreshToken,
             httpOnly = true,
-            secure = isProduction,
-            extensions = mapOf("SameSite" to if (isProduction) "Strict" else "Lax"),
+            secure = IS_PRODUCTION,
+            extensions = mapOf("SameSite" to COOKIE_SAME_SITE),
             maxAge = (AppConstants.REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60).toInt(),
             path = "/api/v1/auth"
         )
@@ -130,6 +131,7 @@ fun Route.authRoutes(authService: AuthService, accountService: AccountService) {
             get("/me") {
                 val principal = call.principal<JWTPrincipal>()
                 val username = principal?.payload?.getClaim("username")?.asString()
+                    ?: throw UnauthorizedException("ユーザー情報を取得できません")
                 call.respond(HttpStatusCode.OK, mapOf("username" to username))
             }
             

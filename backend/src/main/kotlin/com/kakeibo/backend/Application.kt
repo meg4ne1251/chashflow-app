@@ -242,6 +242,8 @@ fun Application.module() {
             authRoutes(authService, accountService)
             healthRoutes(scheduler)
             cspReportRoutes()
+            // /metrics はデフォルトでループバックのみ許可し、
+            // 必要に応じて共有トークン (METRICS_TOKEN 環境変数) で認証する
             metricsRoutes(prometheusMeterRegistry)
 
             authenticate("auth-jwt") {

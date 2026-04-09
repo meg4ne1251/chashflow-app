@@ -7,6 +7,7 @@ import com.kakeibo.shared.model.*
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
 import java.time.LocalDate
 import java.time.OffsetDateTime
@@ -27,6 +28,7 @@ class SyncService(
     companion object {
         private const val MAX_BATCH_SIZE = 100
         private const val PULL_LIMIT = 1000
+        private val logger = LoggerFactory.getLogger(SyncService::class.java)
     }
 
     fun push(request: SyncPushRequest): SyncPushResponse {
@@ -39,20 +41,29 @@ class SyncService(
 
         val results = mutableListOf<SyncResult>()
         for (change in request.changes) {
+            val changeId = change.data["id"]?.jsonPrimitive?.contentOrNull ?: ""
             val result = try {
                 processChange(change)
             } catch (e: ConflictException) {
+                logger.info(
+                    "Sync conflict: entity={} id={} op={} clientVersion={}",
+                    change.entity_type, changeId, change.operation, change.client_version
+                )
                 SyncResult(
                     entity_type = change.entity_type,
-                    id = change.data["id"]?.jsonPrimitive?.contentOrNull ?: "",
+                    id = changeId,
                     status = "conflict",
                     server_version = null,
                     server_data = null
                 )
             } catch (e: Exception) {
+                logger.error(
+                    "Sync error: entity={} id={} op={}",
+                    change.entity_type, changeId, change.operation, e
+                )
                 SyncResult(
                     entity_type = change.entity_type,
-                    id = change.data["id"]?.jsonPrimitive?.contentOrNull ?: "",
+                    id = changeId,
                     status = "error",
                     server_version = null,
                     server_data = null
@@ -220,7 +231,7 @@ class SyncService(
                 )
             }
             "delete" -> {
-                transaction {
+                val deleted = transaction {
                     when (change.entity_type) {
                         "transaction" -> transactionRepository.softDelete(uuid, version)
                         "category" -> categoryRepository.softDelete(uuid, version)
@@ -230,7 +241,16 @@ class SyncService(
                         "recurring_transaction" -> recurringTransactionRepository.softDelete(uuid, version)
                         "budget" -> budgetRepository.softDelete(uuid, version)
                         "transfer" -> transferRepository.softDelete(uuid, version)
+                        else -> throw ValidationException(
+                            "未対応のエンティティ種別です: ${change.entity_type}",
+                            listOf(FieldError("entity_type", "entity_type が不正です"))
+                        )
                     }
+                }
+                // softDelete が false を返した場合はバージョン不一致（または既に削除済み）
+                // クライアントの削除要求を黙って成功扱いすると同期が破綻するので conflict として返す
+                if (!deleted) {
+                    throw ConflictException("削除対象のバージョンが一致しません")
                 }
                 SyncResult(
                     entity_type = change.entity_type,

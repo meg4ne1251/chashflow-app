@@ -421,12 +421,46 @@ class TransactionRepository {
     }
 
     /**
-     * Batch calculate balances for multiple accounts.
-     * Returns Map<accountId, actualBalance>
+     * Batch calculate balances for multiple accounts in a single grouped query.
+     *
+     * N+1 を回避するため、income / expense の集計をそれぞれ 1 クエリで行い、
+     * 初期残高と合算する。
+     *
+     * @param accountBalances 口座ID → 初期残高
+     * @return 口座ID → 実残高 (initialBalance + Σincome - Σexpense)
      */
     fun calculateAccountBalances(accountBalances: Map<UUID, Long>): Map<UUID, Long> = transaction {
+        if (accountBalances.isEmpty()) return@transaction emptyMap()
+
+        val accountIds = accountBalances.keys.toList()
+        val amountSum = Transactions.amount.sum()
+        val incomeMap = mutableMapOf<UUID, Long>()
+        val expenseMap = mutableMapOf<UUID, Long>()
+
+        Transactions.select(Transactions.accountId, amountSum)
+            .where {
+                (Transactions.accountId inList accountIds) and
+                    (Transactions.type eq "income") and
+                    Transactions.deletedAt.isNull()
+            }
+            .groupBy(Transactions.accountId)
+            .forEach { row ->
+                row[Transactions.accountId]?.let { incomeMap[it] = row[amountSum] ?: 0L }
+            }
+
+        Transactions.select(Transactions.accountId, amountSum)
+            .where {
+                (Transactions.accountId inList accountIds) and
+                    (Transactions.type eq "expense") and
+                    Transactions.deletedAt.isNull()
+            }
+            .groupBy(Transactions.accountId)
+            .forEach { row ->
+                row[Transactions.accountId]?.let { expenseMap[it] = row[amountSum] ?: 0L }
+            }
+
         accountBalances.mapValues { (accountId, initialBalance) ->
-            calculateAccountBalance(accountId, initialBalance)
+            initialBalance + (incomeMap[accountId] ?: 0L) - (expenseMap[accountId] ?: 0L)
         }
     }
 }
