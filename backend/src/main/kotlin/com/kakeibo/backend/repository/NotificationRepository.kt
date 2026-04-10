@@ -87,13 +87,13 @@ class NotificationRepository {
     fun existsTodayByTypeAndMessageContaining(type: String, keyword: String): Boolean = transaction {
         val todayStart = OffsetDateTime.now(ZoneId.of("Asia/Tokyo"))
             .toLocalDate().atStartOfDay().atOffset(OffsetDateTime.now(ZoneId.of("Asia/Tokyo")).offset)
-        // SQLインジェクション対策: LIKE特殊文字をエスケープ
         val escaped = keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        val pattern = LikePattern("%${escaped}%", '\\')
         Notifications.selectAll()
             .where {
                 (Notifications.type eq type) and
                 (Notifications.createdAt greaterEq todayStart) and
-                (Notifications.message like "%$escaped%")
+                (Notifications.message like pattern)
             }
             .count() > 0
     }

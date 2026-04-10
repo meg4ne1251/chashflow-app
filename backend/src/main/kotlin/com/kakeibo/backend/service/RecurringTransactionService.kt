@@ -168,7 +168,7 @@ class RecurringTransactionService(
                         monthOfYear = row[RecurringTransactions.monthOfYear],
                         fromDate = row[RecurringTransactions.nextExecutionDate]
                     )
-                    recurringTransactionRepository.updateNextExecutionDate(rtId, nextDate)
+                    recurringTransactionRepository.updateNextExecutionDate(rtId, nextDate, row[RecurringTransactions.version])
                     created++
                 }
             } catch (e: Exception) {

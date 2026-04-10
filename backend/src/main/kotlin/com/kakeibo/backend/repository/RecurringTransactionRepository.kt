@@ -106,11 +106,15 @@ class RecurringTransactionRepository {
         if (updated > 0) findById(id) else null
     }
 
-    fun updateNextExecutionDate(id: UUID, nextDate: LocalDate) = transaction {
-        RecurringTransactions.update({ RecurringTransactions.id eq id }) {
+    fun updateNextExecutionDate(id: UUID, nextDate: LocalDate, currentVersion: Int) = transaction {
+        val updated = RecurringTransactions.update({
+            (RecurringTransactions.id eq id) and (RecurringTransactions.version eq currentVersion)
+        }) {
             it[RecurringTransactions.nextExecutionDate] = nextDate
+            it[RecurringTransactions.version] = currentVersion + 1
             it[RecurringTransactions.updatedAt] = OffsetDateTime.now()
         }
+        updated
     }
 
     fun toggleActive(id: UUID): ResultRow? = transaction {
@@ -158,10 +162,10 @@ class RecurringTransactionTagRepository {
         RecurringTransactionTags.deleteWhere {
             RecurringTransactionTags.recurringTransactionId eq recurringTransactionId
         }
-        tagIds.forEach { tagId ->
-            RecurringTransactionTags.insert {
-                it[RecurringTransactionTags.recurringTransactionId] = recurringTransactionId
-                it[RecurringTransactionTags.tagId] = tagId
+        if (tagIds.isNotEmpty()) {
+            RecurringTransactionTags.batchInsert(tagIds) { tagId ->
+                this[RecurringTransactionTags.recurringTransactionId] = recurringTransactionId
+                this[RecurringTransactionTags.tagId] = tagId
             }
         }
     }

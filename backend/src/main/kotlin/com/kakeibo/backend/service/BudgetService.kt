@@ -24,8 +24,9 @@ class BudgetService(
         val budgets = budgetRepository.findByYearMonth(yearMonth)
         val categoryIds = budgets.map { it[Budgets.categoryId] }
         val categoryMap = categoryRepository.findByIds(categoryIds).associateBy { it[Categories.id] }
+        val spentMap = transactionRepository.sumAllCategoriesByMonth(yearMonth)
 
-        return budgets.map { it.toResponse(yearMonth, categoryMap) }
+        return budgets.map { it.toResponse(yearMonth, categoryMap, spentMap) }
     }
 
     fun upsert(request: BudgetUpsertRequest): List<BudgetResponse> {
@@ -57,10 +58,10 @@ class BudgetService(
         }
     }
 
-    private fun ResultRow.toResponse(yearMonth: String, categoryMap: Map<UUID, ResultRow>): BudgetResponse {
+    private fun ResultRow.toResponse(yearMonth: String, categoryMap: Map<UUID, ResultRow>, spentMap: Map<UUID, Long>? = null): BudgetResponse {
         val catId = this[Budgets.categoryId]
         val budgetAmount = this[Budgets.amount]
-        val spent = transactionRepository.sumByCategoryAndMonth(catId, yearMonth)
+        val spent = spentMap?.get(catId) ?: transactionRepository.sumByCategoryAndMonth(catId, yearMonth)
         val rate = if (budgetAmount > 0) (spent.toDouble() / budgetAmount.toDouble()) * 100.0 else 0.0
         val catRow = categoryMap[catId]
 

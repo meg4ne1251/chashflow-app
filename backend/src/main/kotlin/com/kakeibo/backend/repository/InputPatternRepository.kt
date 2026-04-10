@@ -14,9 +14,10 @@ class InputPatternRepository {
     }
 
     fun searchByKeyword(keyword: String, limit: Int = 10): List<ResultRow> = transaction {
-        val escaped = keyword.replace("%", "\\%").replace("_", "\\_")
+        val escaped = keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        val pattern = LikePattern("${escaped}%", '\\')
         InputPatterns.selectAll().where {
-            (InputPatterns.keyword like "$escaped%") and InputPatterns.deletedAt.isNull()
+            (InputPatterns.keyword like pattern) and InputPatterns.deletedAt.isNull()
         }
             .orderBy(InputPatterns.hitCount to SortOrder.DESC)
             .limit(limit)

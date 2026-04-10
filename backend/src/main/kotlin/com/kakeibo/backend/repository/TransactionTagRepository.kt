@@ -26,10 +26,10 @@ class TransactionTagRepository {
 
     fun setTags(transactionId: UUID, tagIds: List<UUID>) = transaction {
         TransactionTags.deleteWhere { TransactionTags.transactionId eq transactionId }
-        tagIds.forEach { tagId ->
-            TransactionTags.insert {
-                it[TransactionTags.transactionId] = transactionId
-                it[TransactionTags.tagId] = tagId
+        if (tagIds.isNotEmpty()) {
+            TransactionTags.batchInsert(tagIds) { tagId ->
+                this[TransactionTags.transactionId] = transactionId
+                this[TransactionTags.tagId] = tagId
             }
         }
     }

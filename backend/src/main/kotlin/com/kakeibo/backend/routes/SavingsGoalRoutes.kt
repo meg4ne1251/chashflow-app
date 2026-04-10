@@ -15,15 +15,15 @@ fun Route.savingsGoalRoutes(savingsGoalService: SavingsGoalService) {
             call.respond(HttpStatusCode.OK, goals)
         }
 
+        get("/summary") {
+            val summaries = savingsGoalService.getActiveSummaries()
+            call.respond(HttpStatusCode.OK, summaries)
+        }
+
         get("/{id}") {
             val id = validateUuidParam(call.parameters["id"])
             val goal = savingsGoalService.getById(id)
             call.respond(HttpStatusCode.OK, goal)
-        }
-
-        get("/summary") {
-            val summaries = savingsGoalService.getActiveSummaries()
-            call.respond(HttpStatusCode.OK, summaries)
         }
 
         post {

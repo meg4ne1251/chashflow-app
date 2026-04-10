@@ -55,18 +55,18 @@ class TagService(
         tagRepository.findActiveById(uuid)
             ?: throw NotFoundException("タグが見つかりません")
 
-        val affectedCount = transactionTagRepository.countByTagId(uuid)
+        return transaction {
+            val affectedCount = transactionTagRepository.countByTagId(uuid)
 
-        transaction {
             // Physical delete junction records
             transactionTagRepository.deleteByTagId(uuid)
             templateTagRepository.deleteByTagId(uuid)
             recurringTransactionTagRepository.deleteByTagId(uuid)
             // Logical delete the tag
             tagRepository.softDelete(uuid, version)
-        }
 
-        return mapOf("affected_transactions" to affectedCount)
+            mapOf("affected_transactions" to affectedCount)
+        }
     }
 
     companion object {

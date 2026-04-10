@@ -104,10 +104,10 @@ class TemplateTagRepository {
 
     fun setTags(templateId: UUID, tagIds: List<UUID>) = transaction {
         TemplateTags.deleteWhere { TemplateTags.templateId eq templateId }
-        tagIds.forEach { tagId ->
-            TemplateTags.insert {
-                it[TemplateTags.templateId] = templateId
-                it[TemplateTags.tagId] = tagId
+        if (tagIds.isNotEmpty()) {
+            TemplateTags.batchInsert(tagIds) { tagId ->
+                this[TemplateTags.templateId] = templateId
+                this[TemplateTags.tagId] = tagId
             }
         }
     }

@@ -96,8 +96,17 @@ fun Route.importExportRoutes(importExportService: ImportExportService) {
 
         get("/pdf") {
             val type = call.request.queryParameters["type"] ?: "monthly"
-            val yearMonth = call.request.queryParameters["year_month"]
-            val year = call.request.queryParameters["year"]?.toIntOrNull()
+            if (type !in listOf("monthly", "yearly")) {
+                throw InvalidRequestException("レポートタイプは 'monthly' または 'yearly' を指定してください")
+            }
+            val yearMonth = call.request.queryParameters["year_month"]?.also {
+                if (!ValidationRules.validateYearMonth(it))
+                    throw InvalidRequestException("年月の形式が不正です（YYYY-MM）")
+            }
+            val year = call.request.queryParameters["year"]?.toIntOrNull()?.also {
+                if (it !in 2000..2100)
+                    throw InvalidRequestException("年は2000〜2100の範囲で指定してください")
+            }
             val pdfBytes = importExportService.generatePdf(type, yearMonth, year)
             call.response.header(
                 HttpHeaders.ContentDisposition,
