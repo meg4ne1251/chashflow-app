@@ -105,10 +105,17 @@ class AuthService(
         val newTokenHash = RefreshTokenRepository.hashToken(newRefreshToken)
         val expiresAt = OffsetDateTime.now().plusDays(AppConstants.REFRESH_TOKEN_EXPIRY_DAYS)
 
-        // Atomically revoke old token and create new one.
-        // If create fails after revoke, the transaction rolls back and the original token remains valid.
+        // 同時実行リクエストによるリフレッシュトークン再利用を防ぐ:
+        // `revokeIfActive` は WHERE revokedAt IS NULL の条件付き UPDATE を発行するため、
+        // 並行する 2 つの refresh() 呼び出しのうち 1 つだけが 1 行更新できる。
+        // 0 行だった側は「他リクエストが既にローテーションを完了した」と判断して拒否する。
+        // 失効判定 (上の `revokedAt != null` チェック) は読み取り時点のスナップショットに過ぎず、
+        // この条件付き UPDATE が真の TOCTOU ガードとして機能する。
         transaction {
-            refreshTokenRepository.revoke(tokenHash)
+            val revoked = refreshTokenRepository.revokeIfActive(tokenHash)
+            if (revoked == 0) {
+                throw UnauthorizedException("リフレッシュトークンが失効しています", "TOKEN_REVOKED")
+            }
             refreshTokenRepository.create(user.id, newTokenHash, expiresAt)
         }
 

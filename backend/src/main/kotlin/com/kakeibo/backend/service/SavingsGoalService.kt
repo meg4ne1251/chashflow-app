@@ -240,13 +240,21 @@ class SavingsGoalService(
     }
 
     private fun computeSavingsBalances(accountMap: Map<UUID, ResultRow>): Map<UUID, Long> {
-        return accountMap.filter { (_, row) -> row[Accounts.type] == "savings" }
-            .mapValues { (id, row) ->
-                val initialBalance = row[Accounts.initialBalance]
-                val transferIn = transferRepository.sumByAccountDirection(id, "to")
-                val transferOut = transferRepository.sumByAccountDirection(id, "from")
-                initialBalance + transferIn - transferOut
-            }
+        // N+1 回避: 貯蓄口座ごとにループで sumByAccountDirection を呼ばず、
+        // 流入/流出をそれぞれ 1 クエリで集計する。
+        val savingsAccounts = accountMap.filter { (_, row) -> row[Accounts.type] == "savings" }
+        if (savingsAccounts.isEmpty()) return emptyMap()
+
+        val ids = savingsAccounts.keys.toList()
+        val inflow = transferRepository.sumByAccountDirectionBatch(ids, "to")
+        val outflow = transferRepository.sumByAccountDirectionBatch(ids, "from")
+
+        return savingsAccounts.mapValues { (id, row) ->
+            val initialBalance = row[Accounts.initialBalance]
+            val transferIn = inflow[id] ?: 0L
+            val transferOut = outflow[id] ?: 0L
+            initialBalance + transferIn - transferOut
+        }
     }
 
     private fun ResultRow.toResponse(accountMap: Map<UUID, ResultRow>, balanceMap: Map<UUID, Long>): SavingsGoalResponse {

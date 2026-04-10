@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
 import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.time.format.DateTimeParseException
 import java.util.*
 
 class SyncService(
@@ -76,7 +77,14 @@ class SyncService(
     }
 
     fun pull(since: String): SyncPullResponse {
-        val sinceTime = OffsetDateTime.parse(since)
+        val sinceTime = try {
+            OffsetDateTime.parse(since)
+        } catch (e: DateTimeParseException) {
+            throw ValidationException(
+                "sinceパラメータの形式が不正です (ISO-8601 OffsetDateTime 形式で指定してください)",
+                listOf(FieldError("since", "ISO-8601 OffsetDateTime 形式で指定してください"))
+            )
+        }
         val now = OffsetDateTime.now()
 
         val transactions = transactionRepository.findUpdatedSince(sinceTime, PULL_LIMIT)

@@ -1,13 +1,16 @@
 package com.kakeibo.backend.service
 
+import com.kakeibo.backend.middleware.ValidationException
 import com.kakeibo.backend.repository.BudgetRepository
 import com.kakeibo.backend.repository.CategoryRepository
 import com.kakeibo.backend.repository.TransactionRepository
 import com.kakeibo.backend.db.Budgets
 import com.kakeibo.backend.db.Categories
+import com.kakeibo.shared.model.FieldError
 import com.kakeibo.shared.model.*
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.format.DateTimeParseException
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.round
 
@@ -29,6 +32,21 @@ class AnalyticsService(
     // In-memory cache with TTL and bounded size
     private data class CacheEntry<T>(val data: T, val expireAt: Long)
     private val cache = ConcurrentHashMap<String, CacheEntry<*>>()
+
+    /**
+     * "YYYY-MM" 形式の文字列を検証して YearMonth に変換する。
+     * 不正な形式の場合は 400 ValidationException を投げる (500 にしない)。
+     */
+    private fun parseYearMonthOrThrow(yearMonth: String, fieldName: String = "year_month"): YearMonth {
+        return try {
+            YearMonth.parse(yearMonth)
+        } catch (e: DateTimeParseException) {
+            throw ValidationException(
+                "${fieldName}の形式が不正です (YYYY-MM 形式で指定してください)",
+                listOf(FieldError(fieldName, "YYYY-MM 形式で指定してください"))
+            )
+        }
+    }
 
     fun invalidateCache(yearMonth: String) {
         // yearMonthを含むキーを正確に無効化する
@@ -186,10 +204,10 @@ class AnalyticsService(
     }
 
     fun getCategoryBreakdown(yearMonth: String, type: String?): CategoryBreakdownResponse {
+        val ym = parseYearMonthOrThrow(yearMonth)
         return cached("breakdown:$yearMonth:${type ?: "expense"}") {
-            val parts = yearMonth.split("-")
-            val year = parts[0].toInt()
-            val month = parts[1].toInt()
+            val year = ym.year
+            val month = ym.monthValue
             val targetType = type ?: "expense"
 
             // Batch-load category colors to eliminate N+1 findById calls
@@ -217,9 +235,15 @@ class AnalyticsService(
     }
 
     fun getTrends(from: String, to: String): TrendResponse {
+        val fromYm = parseYearMonthOrThrow(from, "from")
+        val toYm = parseYearMonthOrThrow(to, "to")
+        if (fromYm.isAfter(toYm)) {
+            throw ValidationException(
+                "fromはtoより前の年月を指定してください",
+                listOf(FieldError("from", "fromはtoより前を指定してください"))
+            )
+        }
         return cached("trends:$from:$to") {
-            val fromYm = YearMonth.parse(from)
-            val toYm = YearMonth.parse(to)
 
             // Single batch query instead of N months × 2 types
             val allData = transactionRepository.getCategoryBreakdownRange(
@@ -266,8 +290,8 @@ class AnalyticsService(
     }
 
     fun getComparison(yearMonth: String): ComparisonResponse {
+        val ym = parseYearMonthOrThrow(yearMonth)
         return cached("comparison:$yearMonth") {
-            val ym = YearMonth.parse(yearMonth)
             val prevMonthYm = ym.minusMonths(1)
             val prevYearYm = ym.minusYears(1)
 

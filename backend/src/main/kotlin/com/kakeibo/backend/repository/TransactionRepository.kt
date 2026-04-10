@@ -26,6 +26,24 @@ data class TransactionFilter(
     val includeDeleted: Boolean = false
 )
 
+/**
+ * 任意のキーワードを LIKE の "%...%" (substring) パターンに変換する。
+ *
+ * - キーワード中の `\` `%` `_` をバックスラッシュでエスケープし、
+ * - lowercase() されたカラムと比較するため `lowercase()` した上で `%` で囲み、
+ * - LikePattern にエスケープ文字 `\` を明示することで、生成 SQL に
+ *   `LIKE ... ESCAPE '\'` 句を発行させる。
+ *
+ * これにより、ユーザー入力中の `%` `_` がワイルドカードとして解釈されるのを防ぐ。
+ */
+private fun buildLikeContainsPattern(keyword: String): LikePattern {
+    val escaped = keyword.lowercase()
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_")
+    return LikePattern("%${escaped}%", '\\')
+}
+
 class TransactionRepository {
     fun findAll(
         filter: TransactionFilter,
@@ -42,11 +60,14 @@ class TransactionRepository {
             filter.categoryId?.let { andWhere { Transactions.categoryId eq it } }
             filter.accountId?.let { andWhere { Transactions.accountId eq it } }
             filter.keyword?.let { kw ->
-                // SQLインジェクション対策: LIKE特殊文字をエスケープ
-                val escaped = kw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                // LIKEワイルドカードを ESCAPE 句で確実に無効化する。
+                // Exposed の `like(String)` は ESCAPE 句を発行せず、PostgreSQL 側で
+                // バックスラッシュエスケープが効かないため、LikePattern で明示的に
+                // エスケープ文字を伝える。
+                val pattern = buildLikeContainsPattern(kw)
                 andWhere {
-                    (Transactions.memo.lowerCase() like "%${escaped.lowercase()}%") or
-                    (Transactions.name.lowerCase() like "%${escaped.lowercase()}%")
+                    (Transactions.memo.lowerCase() like pattern) or
+                    (Transactions.name.lowerCase() like pattern)
                 }
             }
         }
@@ -250,13 +271,13 @@ class TransactionRepository {
     }
 
     fun getDistinctMemos(keyword: String, limit: Int = 10): List<Pair<String, Long>> = transaction {
-        // SQLインジェクション対策: LIKE特殊文字をエスケープ
-        val escaped = keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        // LIKEワイルドカードを ESCAPE 句で確実に無効化する
+        val pattern = buildLikeContainsPattern(keyword)
         Transactions
             .select(Transactions.memo, Transactions.memo.count())
             .where {
                 Transactions.memo.isNotNull() and
-                        (Transactions.memo.lowerCase() like "%${escaped.lowercase()}%") and
+                        (Transactions.memo.lowerCase() like pattern) and
                         Transactions.deletedAt.isNull()
             }
             .groupBy(Transactions.memo)

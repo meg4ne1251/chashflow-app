@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authApi } from '@/api/auth';
+import { logger } from '@/utils/logger';
 
 /**
  * 認証状態を管理するZustandストア
@@ -68,8 +69,11 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         try {
           await authApi.logout();
-        } catch {
-          // Ignore logout errors
+        } catch (err) {
+          // サーバー側logout (トークン無効化) が失敗しても、
+          // クライアント側の状態クリアは必ず行う。
+          // デバッグ性のためエラーは warn に出す (サイレントに握りつぶさない)。
+          logger.warn('Logout API call failed; clearing client state anyway', err);
         } finally {
           broadcastLogout();
           set({ isAuthenticated: false, username: null });

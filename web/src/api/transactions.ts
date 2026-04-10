@@ -17,7 +17,6 @@ export interface TransactionQueryParams {
   keyword?: string;
   page?: number;
   size?: number;
-  cursor?: string;
   sort?: string;
 }
 

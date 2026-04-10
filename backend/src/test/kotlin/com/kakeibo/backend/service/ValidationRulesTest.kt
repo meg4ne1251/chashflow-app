@@ -11,36 +11,44 @@ class ValidationRulesTest {
 
     @Test
     fun `validatePassword - valid password returns empty list`() {
-        val errors = ValidationRules.validatePassword("Password1")
-        assertTrue(errors.isEmpty())
+        // 12文字以上、英大小数字記号を含む
+        val errors = ValidationRules.validatePassword("StrongPass1!")
+        assertTrue(errors.isEmpty(), "Expected no errors but got: $errors")
     }
 
     @Test
     fun `validatePassword - too short returns error`() {
-        val errors = ValidationRules.validatePassword("Pass1")
+        val errors = ValidationRules.validatePassword("Pass1!")
         assertTrue(errors.isNotEmpty())
-        assertTrue(errors.any { it.contains("8文字") })
+        assertTrue(errors.any { it.contains("${ValidationRules.PASSWORD_MIN_LENGTH}文字") })
     }
 
     @Test
     fun `validatePassword - no uppercase returns error`() {
-        val errors = ValidationRules.validatePassword("password1")
+        val errors = ValidationRules.validatePassword("password1!ab")
         assertTrue(errors.isNotEmpty())
         assertTrue(errors.any { it.contains("英大文字") })
     }
 
     @Test
     fun `validatePassword - no lowercase returns error`() {
-        val errors = ValidationRules.validatePassword("PASSWORD1")
+        val errors = ValidationRules.validatePassword("PASSWORD1!AB")
         assertTrue(errors.isNotEmpty())
         assertTrue(errors.any { it.contains("英小文字") })
     }
 
     @Test
     fun `validatePassword - no digit returns error`() {
-        val errors = ValidationRules.validatePassword("PasswordOnly")
+        val errors = ValidationRules.validatePassword("PasswordOnly!")
         assertTrue(errors.isNotEmpty())
         assertTrue(errors.any { it.contains("数字") })
+    }
+
+    @Test
+    fun `validatePassword - no special char returns error`() {
+        val errors = ValidationRules.validatePassword("PasswordOnly1")
+        assertTrue(errors.isNotEmpty())
+        assertTrue(errors.any { it.contains("記号") })
     }
 
     // ===========================

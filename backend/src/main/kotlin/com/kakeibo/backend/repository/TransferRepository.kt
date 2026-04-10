@@ -104,6 +104,26 @@ class TransferRepository {
             .singleOrNull()?.get(Transfers.amount.sum()) ?: 0L
     }
 
+    /**
+     * Batch sum of transfers by direction for multiple accounts in a single GROUP BY query.
+     * 使用例: 貯蓄口座ごとの流入/流出合計をまとめて取得する (N+1 回避)。
+     *
+     * @param accountIds 集計対象の口座IDリスト
+     * @param direction "from" ("from_account_id" 側で集計) または "to" ("to_account_id" 側で集計)
+     * @return 口座ID → 合計金額 (該当行が無い口座は含まれない)
+     */
+    fun sumByAccountDirectionBatch(accountIds: List<UUID>, direction: String): Map<UUID, Long> = transaction {
+        if (accountIds.isEmpty()) return@transaction emptyMap()
+        val column = if (direction == "from") Transfers.fromAccountId else Transfers.toAccountId
+        val amountSum = Transfers.amount.sum()
+        Transfers.select(column, amountSum)
+            .where { (column inList accountIds) and Transfers.deletedAt.isNull() }
+            .groupBy(column)
+            .associate { row ->
+                row[column] to (row[amountSum] ?: 0L)
+            }
+    }
+
     fun findUpdatedSince(since: OffsetDateTime, limit: Int = 1000): List<ResultRow> = transaction {
         Transfers.selectAll()
             .where { Transfers.updatedAt greater since }

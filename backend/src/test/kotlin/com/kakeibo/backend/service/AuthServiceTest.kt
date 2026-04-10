@@ -39,7 +39,7 @@ class AuthServiceTest {
         every { userRepository.count() } returns 1
 
         val exception = assertFailsWith<ConflictException> {
-            authService.setup(SetupRequest("testuser", "Password1"))
+            authService.setup(SetupRequest("testuser", "StrongPass1!"))
         }
         assertEquals("初期セットアップは既に完了しています", exception.message)
     }
@@ -49,7 +49,7 @@ class AuthServiceTest {
         every { userRepository.count() } returns 0
 
         assertFailsWith<ValidationException> {
-            authService.setup(SetupRequest("", "Password1"))
+            authService.setup(SetupRequest("", "StrongPass1!"))
         }
     }
 
@@ -75,7 +75,7 @@ class AuthServiceTest {
             updatedAt = OffsetDateTime.now()
         )
 
-        val result = authService.setup(SetupRequest("testuser", "Password1"))
+        val result = authService.setup(SetupRequest("testuser", "StrongPass1!"))
         assertNotNull(result)
         assertEquals("testuser", result.user.username)
 
@@ -91,7 +91,7 @@ class AuthServiceTest {
         every { userRepository.findByUsername(any()) } returns null
 
         assertFailsWith<UnauthorizedException> {
-            authService.login(LoginRequest("nonexistent", "Password1"))
+            authService.login(LoginRequest("nonexistent", "StrongPass1!"))
         }
     }
 
@@ -117,7 +117,7 @@ class AuthServiceTest {
     @Test
     fun `login - should succeed with valid credentials`() {
         val userId = UUID.randomUUID()
-        val passwordHash = BCrypt.hashpw("Password1", BCrypt.gensalt(4))
+        val passwordHash = BCrypt.hashpw("StrongPass1!", BCrypt.gensalt(4))
         every { userRepository.findByUsername("testuser") } returns UserEntity(
             id = userId,
             username = "testuser",
@@ -131,7 +131,7 @@ class AuthServiceTest {
         every { jwtConfig.generateAccessToken(any(), any()) } returns "access-token"
         every { jwtConfig.generateRefreshToken() } returns "refresh-token"
 
-        val result = authService.login(LoginRequest("testuser", "Password1"))
+        val result = authService.login(LoginRequest("testuser", "StrongPass1!"))
 
         assertEquals("access-token", result.access_token)
         assertEquals("refresh-token", result.refresh_token)

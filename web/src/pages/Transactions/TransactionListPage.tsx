@@ -112,6 +112,9 @@ export default function TransactionListPage() {
   });
 
   // Infinite query for transactions
+  // NOTE: バックエンドは page/size ベースのページネーションを返す (total_count/total_pages)。
+  // 以前はカーソルベース (has_next/next_cursor) を前提にしていたため 2 ページ目以降が
+  // 読み込まれない問題があった。ページ番号方式に統一する。
   const {
     data,
     fetchNextPage,
@@ -123,7 +126,7 @@ export default function TransactionListPage() {
     queryKey: ['transactions', { keyword: debouncedKeyword, typeFilter, categoryFilter, accountFilter, dateFrom, dateTo, tagFilter, sortValue }],
     queryFn: ({ pageParam }) =>
       transactionApi.list({
-        cursor: pageParam as string | undefined,
+        page: pageParam as number,
         size: DEFAULT_PAGE_SIZE,
         keyword: debouncedKeyword || undefined,
         type: typeFilter || undefined,
@@ -134,10 +137,12 @@ export default function TransactionListPage() {
         tag_ids: tagFilter.length > 0 ? tagFilter.join(',') : undefined,
         sort: sortValue,
       }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => {
+    initialPageParam: 1 as number,
+    getNextPageParam: (lastPage, _pages, lastPageParam) => {
       const pagination = lastPage.data.pagination;
-      return pagination.has_next ? pagination.next_cursor ?? undefined : undefined;
+      const currentPage = (lastPageParam as number) ?? 1;
+      const totalPages = pagination.total_pages ?? 0;
+      return currentPage < totalPages ? currentPage + 1 : undefined;
     },
     staleTime: QUERY_STALE_TIME_MS,
   });

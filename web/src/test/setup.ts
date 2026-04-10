@@ -32,6 +32,20 @@ const ResizeObserverMock = vi.fn().mockImplementation(() => ({
 
 (window as unknown as { ResizeObserver: typeof ResizeObserverMock }).ResizeObserver = ResizeObserverMock;
 
+// IntersectionObserverモック (jsdom には存在しない)
+// 無限スクロール (TransactionListPage 等) で使用される
+class IntersectionObserverMock {
+  root = null;
+  rootMargin = '';
+  thresholds: number[] = [];
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  takeRecords = vi.fn(() => []);
+}
+
+(window as unknown as { IntersectionObserver: typeof IntersectionObserverMock }).IntersectionObserver = IntersectionObserverMock;
+
 // localStorageモック（Zustand persist用）
 const localStorageMock = (() => {
   let store: Record<string, string> = {};

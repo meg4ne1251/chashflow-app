@@ -37,8 +37,21 @@ class RefreshTokenRepository {
             }
     }
 
-    fun revoke(tokenHash: String) = transaction {
+    fun revoke(tokenHash: String): Int = transaction {
         RefreshTokens.update({ RefreshTokens.tokenHash eq tokenHash }) {
+            it[RefreshTokens.revokedAt] = OffsetDateTime.now()
+        }
+    }
+
+    /**
+     * Atomically revoke only if the token is not already revoked.
+     * Returns the number of rows affected (1 if the caller successfully revoked it,
+     * 0 if it was already revoked — used to detect concurrent reuse).
+     */
+    fun revokeIfActive(tokenHash: String): Int = transaction {
+        RefreshTokens.update({
+            (RefreshTokens.tokenHash eq tokenHash) and RefreshTokens.revokedAt.isNull()
+        }) {
             it[RefreshTokens.revokedAt] = OffsetDateTime.now()
         }
     }
