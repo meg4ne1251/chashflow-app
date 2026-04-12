@@ -52,9 +52,9 @@ val CsrfProtection = createRouteScopedPlugin(
         
         // 認証エンドポイントは除外（ログイン前なのでOriginが異なる場合がある）
         val path = call.request.path()
-        if (path.startsWith("/api/v1/auth/login") || 
-            path.startsWith("/api/v1/auth/setup") ||
-            path.startsWith("/api/v1/health")) {
+        if (path == "/api/v1/auth/login" ||
+            path == "/api/v1/auth/setup" ||
+            path == "/api/v1/health") {
             return@onCall
         }
         

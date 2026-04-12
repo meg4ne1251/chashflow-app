@@ -66,12 +66,5 @@ private fun isLoopbackHost(host: String): Boolean {
 }
 
 private fun constantTimeEquals(a: String, b: String): Boolean {
-    val aBytes = a.toByteArray()
-    val bBytes = b.toByteArray()
-    if (aBytes.size != bBytes.size) return false
-    var result = 0
-    for (i in aBytes.indices) {
-        result = result or (aBytes[i].toInt() xor bBytes[i].toInt())
-    }
-    return result == 0
+    return java.security.MessageDigest.isEqual(a.toByteArray(), b.toByteArray())
 }

@@ -58,12 +58,15 @@ class TagService(
         return transaction {
             val affectedCount = transactionTagRepository.countByTagId(uuid)
 
+            // Logical delete the tag first — if version conflicts, no junction records are removed
+            if (!tagRepository.softDelete(uuid, version)) {
+                throw ConflictException("バージョン競合が発生しました")
+            }
+
             // Physical delete junction records
             transactionTagRepository.deleteByTagId(uuid)
             templateTagRepository.deleteByTagId(uuid)
             recurringTransactionTagRepository.deleteByTagId(uuid)
-            // Logical delete the tag
-            tagRepository.softDelete(uuid, version)
 
             mapOf("affected_transactions" to affectedCount)
         }

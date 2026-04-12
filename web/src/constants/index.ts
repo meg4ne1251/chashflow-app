@@ -34,9 +34,13 @@ export const FALLBACK_INCOME_CATEGORY_ID = 'b0000000-0000-0000-0000-000000000005
 /**
  * Empty initial value for numeric form fields.
  * react-hook-form requires a typed default, but number inputs should start blank.
- * Using this constant avoids scattered `as unknown as number` casts.
+ * Using this constant centralises the single unavoidable type assertion.
+ *
+ * Ideally, form schemas should type these fields as `number | undefined`,
+ * but RHF's generic inference makes this impractical in some cases.
  */
-export const EMPTY_NUMBER = undefined as unknown as number;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const EMPTY_NUMBER: any = undefined;
 
 // =========================================
 // File upload limits

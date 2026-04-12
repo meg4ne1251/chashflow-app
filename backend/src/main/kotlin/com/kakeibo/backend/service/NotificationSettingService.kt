@@ -45,7 +45,7 @@ class NotificationSettingService(
             timeOfDay = timeOfDay,
             thresholdPercent = request.threshold_percent,
             currentVersion = currentVersion
-        ) ?: throw NotFoundException("通知設定が見つかりません")
+        ) ?: throw ConflictException("バージョン競合が発生しました")
 
         return row.toResponse()
     }

@@ -140,7 +140,6 @@ export function downloadBlob(blob: Blob, filename: string): void {
   try {
     a.click();
   } catch (error) {
-    URL.revokeObjectURL(url);
     throw new Error(`ファイルのダウンロードに失敗しました: ${filename}`);
   } finally {
     document.body.removeChild(a);

@@ -168,7 +168,10 @@ class RecurringTransactionService(
                         monthOfYear = row[RecurringTransactions.monthOfYear],
                         fromDate = row[RecurringTransactions.nextExecutionDate]
                     )
-                    recurringTransactionRepository.updateNextExecutionDate(rtId, nextDate, row[RecurringTransactions.version])
+                    val updatedRows = recurringTransactionRepository.updateNextExecutionDate(rtId, nextDate, row[RecurringTransactions.version])
+                    if (updatedRows == 0) {
+                        logger.warn("定期取引 {} の次回実行日の更新に失敗しました（バージョン競合の可能性）", rtId)
+                    }
                     created++
                 }
             } catch (e: Exception) {

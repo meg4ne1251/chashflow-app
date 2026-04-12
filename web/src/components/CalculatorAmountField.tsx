@@ -62,7 +62,7 @@ export default function CalculatorAmountField({
   // Sync from external value changes (form reset, template prefill, edit load)
   useEffect(() => {
     if (value !== lastInternalValue.current) {
-      setText(value != null ? String(value) : '');
+      setText(value != null && !Number.isNaN(value) ? String(value) : '');
       setPreview(null);
       lastInternalValue.current = value;
     }

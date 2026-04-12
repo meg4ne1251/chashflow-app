@@ -23,8 +23,9 @@ class Logger {
    * Log warnings that should be monitored
    */
   warn(message: string, error?: unknown, context?: LogContext): void {
-    console.warn(`[WARN] ${message}`, error || '', context || '');
-    
+    if (this.isDevelopment) {
+      console.warn(`[WARN] ${message}`, error || '', context || '');
+    }
     // TODO: In production, send to monitoring service
     // this.sendToMonitoring('warn', message, error, context);
   }

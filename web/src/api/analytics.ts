@@ -5,13 +5,14 @@ import type {
   TrendResponse,
   ComparisonResponse,
   YearlySummaryResponse,
+  TransactionType,
 } from '@/types';
 
 export const analyticsApi = {
   dashboard: () =>
     apiClient.get<DashboardResponse>('/analytics/dashboard'),
 
-  categoryBreakdown: (yearMonth: string, type?: string) =>
+  categoryBreakdown: (yearMonth: string, type?: TransactionType) =>
     apiClient.get<CategoryBreakdownResponse>('/analytics/category-breakdown', {
       params: { year_month: yearMonth, type },
     }),

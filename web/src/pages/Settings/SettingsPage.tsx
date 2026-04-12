@@ -361,7 +361,7 @@ export default function SettingsPage() {
           <Paper key={setting.id} variant="outlined" sx={{ p: 2, mb: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
               <Typography fontWeight={600}>
-                {setting.type === 'input_remind' ? '入力リマインダー' : setting.type === 'credit_card_payment' ? 'クレジットカード引落しリマインダー' : '予算アラート'}
+                {setting.type === 'input_remind' ? '入力リマインダー' : setting.type === 'credit_card_payment' ? 'クレジットカード引落しリマインダー' : setting.type === 'savings_goal_achieved' ? '貯蓄目標達成通知' : '予算アラート'}
               </Typography>
               <FormControlLabel
                 control={

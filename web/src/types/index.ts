@@ -44,16 +44,22 @@ export interface LoginRequest {
   password: string;
 }
 
+/**
+ * @deprecated These token-based types are no longer used.
+ * Authentication now uses httpOnly cookies. Kept for backward compatibility with bot API client.
+ */
 export interface LoginResponse {
   access_token: string;
   refresh_token: string;
   expires_in: number;
 }
 
+/** @deprecated Authentication now uses httpOnly cookies. */
 export interface RefreshRequest {
   refresh_token: string;
 }
 
+/** @deprecated Authentication now uses httpOnly cookies. */
 export interface LogoutRequest {
   refresh_token: string;
 }

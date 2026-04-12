@@ -44,7 +44,7 @@ function parseTerm(tokens: Token[], pos: number): { value: number; pos: number }
       result = { value: result.value * right.value, pos: right.pos };
     } else {
       if (right.value === 0) return null;
-      result = { value: Math.ceil(result.value / right.value), pos: right.pos };
+      result = { value: Math.round(result.value / right.value), pos: right.pos };
     }
   }
 
@@ -75,7 +75,7 @@ function parseExpr(tokens: Token[], pos: number): { value: number; pos: number }
 /**
  * Evaluate a simple arithmetic expression.
  * Supports +, -, *, / with standard operator precedence.
- * Division rounds up (Math.ceil).
+ * Division rounds to nearest integer (Math.round).
  * Returns null for invalid expressions or division by zero.
  */
 export function evaluateExpression(expr: string): number | null {

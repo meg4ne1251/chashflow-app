@@ -7,15 +7,27 @@ import com.kakeibo.shared.model.*
 import com.kakeibo.shared.validation.ValidationRules
 import org.jetbrains.exposed.sql.ResultRow
 import java.time.LocalDate
+import java.time.format.DateTimeParseException
 import java.util.*
 
 class TransferService(
     private val transferRepository: TransferRepository
 ) {
+    private fun parseDateParam(value: String, fieldName: String): LocalDate {
+        return try {
+            LocalDate.parse(value)
+        } catch (e: DateTimeParseException) {
+            throw ValidationException(
+                "${fieldName}の形式が不正です (YYYY-MM-DD 形式で指定してください)",
+                listOf(FieldError(fieldName, "YYYY-MM-DD 形式で指定してください"))
+            )
+        }
+    }
+
     fun getAll(dateFrom: String?, dateTo: String?, accountId: String?, page: Int, size: Int): PaginatedResponse<TransferResponse> {
         val (rows, total) = transferRepository.findAll(
-            dateFrom = dateFrom?.let { LocalDate.parse(it) },
-            dateTo = dateTo?.let { LocalDate.parse(it) },
+            dateFrom = dateFrom?.let { parseDateParam(it, "date_from") },
+            dateTo = dateTo?.let { parseDateParam(it, "date_to") },
             accountId = accountId?.let { UUID.fromString(it) },
             page = page,
             size = size

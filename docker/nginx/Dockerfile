@@ -6,7 +6,7 @@ FROM node:20-alpine AS frontend-build
 WORKDIR /build
 
 COPY web/package.json web/package-lock.json* ./
-RUN npm ci --ignore-scripts 2>/dev/null || npm install
+RUN npm ci --ignore-scripts
 
 COPY web/ ./
 RUN npm run build

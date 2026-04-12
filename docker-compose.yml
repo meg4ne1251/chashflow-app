@@ -74,8 +74,9 @@ services:
     profiles: [monitoring]
     image: prom/prometheus:v2.51.0
     restart: unless-stopped
-    ports:
-      - "9090:9090"
+    # Do not expose Prometheus port externally; access via docker exec
+    # ports:
+    #   - "9090:9090"
     volumes:
       - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus

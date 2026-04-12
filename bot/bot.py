@@ -57,7 +57,14 @@ API_PASSWORD = _get_required_env("CASHFLOW_PASSWORD")
 
 # ALLOWED_USER_ID: None = 全員許可、int = 特定ユーザーのみ許可
 _allowed_user_raw = os.environ.get("DISCORD_ALLOWED_USER_ID")
-ALLOWED_USER_ID: Optional[int] = int(_allowed_user_raw) if _allowed_user_raw else None
+if _allowed_user_raw:
+    try:
+        ALLOWED_USER_ID: Optional[int] = int(_allowed_user_raw)
+    except ValueError:
+        logger.critical("DISCORD_ALLOWED_USER_ID must be a valid integer: %s", _allowed_user_raw)
+        sys.exit(1)
+else:
+    ALLOWED_USER_ID: Optional[int] = None
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -385,6 +392,12 @@ class CashflowBot(discord.Client):
         await super().close()
 
     async def on_ready(self) -> None:
+        # Write heartbeat file for Docker HEALTHCHECK
+        try:
+            with open("/tmp/bot_heartbeat", "w") as f:
+                f.write(str(datetime.now(timezone.utc).isoformat()))
+        except OSError:
+            pass
         logger.info("Ready: %s (id=%d)", self.user, self.user.id)
 
 
