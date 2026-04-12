@@ -393,8 +393,9 @@ class CashflowBot(discord.Client):
 
     async def on_ready(self) -> None:
         # Write heartbeat file for Docker HEALTHCHECK
+        # Use /app/.heartbeat instead of /tmp to avoid symlink attacks in shared directories
         try:
-            with open("/tmp/bot_heartbeat", "w") as f:
+            with open("/app/.heartbeat", "w") as f:
                 f.write(str(datetime.now(timezone.utc).isoformat()))
         except OSError:
             pass

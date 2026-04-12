@@ -18,7 +18,7 @@ export function useAuthSync() {
     const channel = new BroadcastChannel('auth-sync');
 
     channel.onmessage = (event) => {
-      if (event.data.type === 'LOGOUT') {
+      if (event.data && event.data.type === 'LOGOUT') {
         setAuthenticated(false);
         navigate('/login', { replace: true });
       }

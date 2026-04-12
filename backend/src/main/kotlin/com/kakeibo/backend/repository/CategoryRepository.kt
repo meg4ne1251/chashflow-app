@@ -86,9 +86,10 @@ class CategoryRepository {
     }
 
     fun findFallbackCategory(type: String): ResultRow? = transaction {
+        val pattern = LikePattern("%その他%", '\\')
         Categories.selectAll().where {
             (Categories.type eq type) and Categories.deletedAt.isNull() and Categories.isDefault and
-                    (Categories.name like "%その他%")
+                    (Categories.name like pattern)
         }.singleOrNull()
     }
 
