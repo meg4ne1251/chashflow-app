@@ -34,6 +34,7 @@ import { getApiErrorMessage } from '@/types';
 import { DEBOUNCE_DELAY_MS, AUTO_COMPLETE_CONFIDENCE_THRESHOLD, MEMO_SUGGESTION_MIN_LENGTH } from '@/constants';
 import { useMobile } from '@/hooks/useMobile';
 import CalculatorAmountField from '@/components/CalculatorAmountField';
+import { logger } from '@/utils/logger';
 
 export default function TransactionFormPage() {
   const isMobile = useMobile();
@@ -157,7 +158,7 @@ export default function TransactionFormPage() {
         if (!mountedRef.current) return;
         setMemoSuggestions(res.data.map((s) => s.memo));
       } catch (err) {
-        console.warn('Memo suggestion failed:', err);
+        logger.warn('Memo suggestion failed', err);
       }
 
       // Auto-complete category/account
@@ -171,7 +172,7 @@ export default function TransactionFormPage() {
           setValue('account_id', res.data.account_id);
         }
       } catch (err) {
-        console.warn('Auto-complete failed:', err);
+        logger.warn('Auto-complete failed', err);
       }
     }, DEBOUNCE_DELAY_MS);
   };
@@ -228,6 +229,11 @@ export default function TransactionFormPage() {
     }
   };
 
+  const filteredCategories = useMemo(
+    () => categories?.filter((c) => c.type === selectedType) || [],
+    [categories, selectedType]
+  );
+
   if (isEdit && loadingTx) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -235,11 +241,6 @@ export default function TransactionFormPage() {
       </Box>
     );
   }
-
-  const filteredCategories = useMemo(
-    () => categories?.filter((c) => c.type === selectedType) || [],
-    [categories, selectedType]
-  );
 
   return (
     <Box sx={{ maxWidth: isMobile ? '100%' : 600, mx: 'auto' }}>

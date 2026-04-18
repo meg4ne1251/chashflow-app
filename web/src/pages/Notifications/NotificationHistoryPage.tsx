@@ -132,7 +132,7 @@ export default function NotificationHistoryPage() {
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography variant="body2" fontWeight={600}>{n.title}</Typography>
                       <Chip
-                        label={TYPE_LABELS[n.type as NotificationType] ?? n.type}
+                        label={TYPE_LABELS[n.type] ?? n.type}
                         size="small"
                         variant="outlined"
                         sx={{ fontSize: '0.7rem' }}

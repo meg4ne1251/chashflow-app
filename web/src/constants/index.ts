@@ -39,8 +39,7 @@ export const FALLBACK_INCOME_CATEGORY_ID = 'b0000000-0000-0000-0000-000000000005
  * Ideally, form schemas should type these fields as `number | undefined`,
  * but RHF's generic inference makes this impractical in some cases.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const EMPTY_NUMBER: any = undefined;
+export const EMPTY_NUMBER: number = undefined as unknown as number;
 
 // =========================================
 // File upload limits

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { logger } from '@/utils/logger';
 
 /**
  * Custom hook for consistent error handling across components.
@@ -10,10 +11,9 @@ export const useErrorHandler = () => {
   const handleError = useCallback((message?: string, err?: unknown) => {
     const errorMessage = message || 'エラーが発生しました';
     setError(errorMessage);
-    
-    // Log to console for debugging (in production, this could send to monitoring service)
+
     if (err) {
-      console.error(errorMessage, err);
+      logger.error(errorMessage, err);
     }
   }, []);
 

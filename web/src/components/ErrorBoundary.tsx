@@ -1,6 +1,9 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Box, Typography, Button, Paper, Stack, Collapse } from '@mui/material';
 import { Refresh, Home, ExpandMore, ExpandLess } from '@mui/icons-material';
+import { logger } from '@/utils/logger';
+
+const IS_DEV = import.meta.env.DEV;
 
 interface Props {
   children: ReactNode;
@@ -30,7 +33,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error('ErrorBoundary caught an error', error, { componentStack: errorInfo.componentStack });
     this.setState({ errorInfo });
     this.props.onError?.(error, errorInfo);
   }
@@ -73,7 +76,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               再試行するか、ホームに戻ってください。
             </Typography>
 
-            {error?.message && (
+            {IS_DEV && error?.message && (
               <Typography
                 variant="body2"
                 sx={{
@@ -106,7 +109,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               </Button>
             </Stack>
 
-            {errorInfo && (
+            {IS_DEV && errorInfo && (
               <>
                 <Button
                   size="small"
