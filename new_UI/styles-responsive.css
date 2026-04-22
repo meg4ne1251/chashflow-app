@@ -1,0 +1,383 @@
+/* ============================================================
+   Responsive — Mobile & Tablet overlay
+   Targets: Mobile (≤640px), Small tablet (641–900px)
+   Desktop (1100px+) remains the default layout in styles.css.
+   ============================================================ */
+
+/* ====== TABLET (641 — 1100px) ====== */
+@media (max-width: 1100px) {
+  .app { grid-template-columns: 72px 1fr; }
+
+  /* Collapsed sidebar — icon only */
+  .sidebar { padding: 14px 8px; }
+  .brand { padding: 2px 4px 10px; justify-content: center; }
+  .brand > div:not(.brand-mark) { display: none; }
+  .nav-item { justify-content: center; padding: 10px 6px; }
+  .nav-item span:not(.badge):not(.kbd) { display: none; }
+  .nav-item .badge { display: none; }
+  .nav-label { display: none; }
+  .cmd-hint { padding: 8px; justify-content: center; }
+  .cmd-hint > span:not(.kbd) { display: none; }
+  .cmd-hint > span:last-child { display: none; }
+
+  /* Top bar cleanup */
+  .searchbar { width: 200px; }
+  .searchbar > span:not(.kbd):nth-child(2) { font-size: 12px; }
+
+  .content { padding: 20px 16px; }
+
+  /* Grid collapse already handled in styles.css but reinforce */
+  .col-4, .col-6, .col-8 { grid-column: span 12; }
+
+  /* Analysis — hero KPI grid wraps */
+  .kpi-grid { grid-auto-flow: row; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+}
+
+/* ====== MOBILE (≤ 640px) ====== */
+@media (max-width: 640px) {
+  /* Layout: remove sidebar, add bottom tab bar */
+  .app { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+
+  /* Topbar — compact */
+  .topbar {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+  .crumb { font-size: 14px; }
+  .crumb b { font-size: 15px; }
+  .searchbar {
+    width: auto; flex: 0 0 auto;
+    padding: 7px 9px;
+  }
+  .searchbar > span:not(.kbd):not(:first-child) { display: none; }
+  .searchbar .kbd { display: none; }
+  .topbar .avatar { display: none; }
+
+  /* Mobile hamburger (shows full sidebar menu as drawer — optional; hide default) */
+  .topbar-mobile-menu {
+    display: grid !important;
+  }
+
+  /* Content padding */
+  .content { padding: 16px 14px 100px; /* leave room for bottom tab */ }
+
+  /* Page header stacks */
+  .page-h {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .page-h h1 { font-size: 20px; }
+  .page-h .actions { flex-wrap: wrap; gap: 6px; }
+  .page-h .actions .btn { flex: 1 1 auto; justify-content: center; }
+  .page-h .actions .row { flex: 1 1 100%; justify-content: space-between; }
+
+  /* Hero — compact */
+  .hero { padding: 18px 16px; border-radius: 16px; }
+  .hero-top { flex-direction: column; gap: 12px; }
+  .hero-label { font-size: 11px; }
+  .hero-amt { font-size: 38px; margin: 4px 0 4px; }
+  .hero-amt .yen { font-size: 22px; }
+  .hero-sub { font-size: 12px; gap: 8px; }
+  .hero-tabs { align-self: flex-start; }
+  .hero-tab { font-size: 11px; padding: 5px 9px; }
+  .kpi-grid {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+    margin-top: 6px;
+  }
+  .kpi-v { font-size: 15px; }
+  .kpi-l { font-size: 10px; }
+
+  /* Stat cards in 3-up → stay 3-up but smaller */
+  .grid-12 { gap: 12px; }
+  .col-4 { grid-column: span 12; }
+
+  /* Stat numbers */
+  .stat-amt { font-size: 22px; }
+  .card { padding: 14px; border-radius: 14px; }
+  .card-h { margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+  .card-h h3 { font-size: 12.5px; }
+
+  /* Quick-add grid — 3 wide on mobile */
+  .dash-quick { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .dash-quick-btn { padding: 10px 8px; }
+  .dash-quick-btn .name { font-size: 11px; line-height: 1.25; }
+  .dash-quick-btn .amt { font-size: 11px; }
+
+  /* Accounts list — more compact */
+  .acct { padding: 8px 2px; gap: 10px; }
+  .acct .name { font-size: 12.5px; }
+  .acct .bal { font-size: 13px; }
+
+  /* Budget cards — each takes full width */
+  .bud-card { padding: 14px; gap: 11px; }
+  .bud-foot { grid-template-columns: repeat(3, 1fr); gap: 8px; padding-top: 8px; }
+  .bud-foot-l { font-size: 9.5px; }
+  .bud-foot-v { font-size: 12px; }
+  .bud-amt-main { font-size: 18px; }
+
+  /* Month stacked bars — horizontal scroll */
+  .month-bars {
+    grid-template-columns: repeat(22, 24px);
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .month-bar-stack { height: 140px; }
+
+  /* Analysis: comparison chart — horizontal scroll when too narrow */
+  .card svg { min-width: 0; }
+
+  /* Category breakdown — single column stacked rows */
+  .catbr-row {
+    grid-template-columns: 28px 1fr auto;
+    gap: 8px;
+    padding: 10px 2px;
+  }
+  .catbr-name { grid-column: 2 / span 2; order: 0; }
+  .catbr-name-t { font-size: 13px; }
+  .catbr-name-s { font-size: 10.5px; }
+  .catbr-row .cat { grid-row: 1; order: -1; }
+  .catbr-bars {
+    grid-column: 1 / -1;
+    order: 2;
+    margin-top: 4px;
+  }
+  .catbr-delta {
+    grid-row: 1; grid-column: 3;
+    order: 1;
+    font-size: 11px;
+  }
+  .catbr-bar-row {
+    grid-template-columns: 28px 1fr 70px;
+    font-size: 10.5px;
+  }
+  .catbr-pill { font-size: 9px; }
+  .catbr-val { font-size: 11px; }
+
+  /* Donut — center, shrink */
+  .donut-legend-row { padding: 6px 0; gap: 6px; }
+
+  /* Heatmap — smaller labels, 28px cells min */
+  .heat-wrap {
+    grid-template-columns: 22px repeat(5, 1fr);
+    gap: 3px;
+  }
+  .heat-col-h, .heat-row-h { font-size: 10px; }
+  .heat-cell { min-height: 22px; }
+
+  /* Top transactions */
+  .top-row { grid-template-columns: 18px 28px 1fr auto; gap: 8px; padding: 8px 2px; }
+  .top-rank { font-size: 11px; }
+
+  /* Insights — single column */
+  .insight-grid { grid-template-columns: 1fr; gap: 8px; }
+  .insight-card { padding: 12px; gap: 10px; }
+  .insight-title { font-size: 12.5px; }
+  .insight-body { font-size: 11px; }
+  .insight-metric { font-size: 14px; }
+
+  /* ====== TRANSACTIONS LIST — 2-line rows ====== */
+  .toolbar {
+    gap: 6px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 6px;
+    margin-left: -14px; margin-right: -14px;
+    padding-left: 14px; padding-right: 14px;
+    scrollbar-width: none;
+  }
+  .toolbar::-webkit-scrollbar { display: none; }
+  .toolbar .search-input {
+    flex: 0 0 100%;
+    order: -1;
+    margin-bottom: 6px;
+  }
+  .filter-pill { flex: 0 0 auto; white-space: nowrap; font-size: 11.5px; }
+
+  .day-head { padding: 14px 4px 6px; }
+  .day-head .day-d { font-size: 16px; }
+  .day-head .day-w, .day-head .muted { font-size: 11px; }
+  .day-head .day-t { font-size: 12px; }
+
+  /* 2-line compact transaction row */
+  .tx-row {
+    grid-template-columns: 36px 1fr auto;
+    grid-template-rows: auto auto;
+    column-gap: 10px;
+    row-gap: 2px;
+    padding: 10px 6px;
+    align-items: center;
+  }
+  .tx-row > .cat { grid-row: 1 / span 2; }
+  .tx-row > div:nth-child(2) { grid-column: 2; grid-row: 1; min-width: 0; }
+  .tx-row .tx-name {
+    font-size: 13px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .tx-row .tx-meta { font-size: 11px; grid-column: 2; grid-row: 2; }
+  .tx-row .tx-meta .tx-tag { display: none; }
+  .tx-row .tx-tag {
+    display: none;
+  }
+  .tx-row .tx-amt {
+    grid-column: 3; grid-row: 1 / span 2;
+    font-size: 13px;
+    align-self: center;
+  }
+  .tx-actions { display: none; }
+
+  /* ====== ADD SHEET — Bottom sheet ====== */
+  .sheet-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .sheet {
+    max-width: 100%;
+    width: 100%;
+    max-height: 90vh;
+    border-radius: 18px 18px 0 0;
+    animation: sheetUp .25s ease;
+  }
+  @keyframes sheetUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .sheet-h { padding: 12px 16px; }
+  .sheet-h h2 { font-size: 14px; }
+  .amount-input { padding: 18px 16px 10px; }
+  .amount-input input { font-size: 44px; }
+  .amount-input .yen-sign { font-size: 22px; }
+  .calc-pad { padding: 0 12px 10px; gap: 5px; }
+  .calc-pad button { height: 40px; font-size: 15px; }
+  .field-list { padding: 6px 12px 0; }
+  .field { padding: 10px 4px; flex-wrap: wrap; gap: 8px; }
+  .field .lbl { width: auto; flex: 0 0 100%; font-size: 11px; }
+  .field .val { flex: 1 1 100%; }
+  .receipt-drop { margin: 8px 4px 0; padding: 12px; }
+  .receipt-drop .iconbox { width: 36px; height: 36px; }
+  .sheet-foot { padding: 12px 14px; flex-wrap: wrap; }
+  .sheet-foot .save-as { flex: 0 0 100%; order: -1; margin: 0 0 6px; }
+  .sheet-foot .btn { flex: 1; justify-content: center; }
+
+  /* ====== COMMAND PALETTE — Full-screen-ish on mobile ====== */
+  .cmd-overlay { padding-top: 8vh; }
+  .cmd-panel { max-width: 94%; }
+  .cmd-input-row { padding: 12px 14px; }
+  .cmd-input-row input { font-size: 14px; }
+  .cmd-foot { font-size: 10px; gap: 8px; padding: 8px 12px; flex-wrap: wrap; }
+  .cmd-foot > span:last-child { margin-left: 0 !important; width: 100%; color: var(--text-4); }
+
+  /* ====== FAB — keep right-bottom but avoid bottom tab ====== */
+  .fab { right: 16px; bottom: 84px; }
+  .fab-main { width: 52px; height: 52px; border-radius: 16px; }
+  .fab-quick { right: 0; bottom: 64px; width: min(280px, calc(100vw - 32px)); }
+
+  /* ====== NOTE / alert banner ====== */
+  .note { font-size: 11.5px; padding: 10px 12px; align-items: flex-start; }
+
+  /* Pace markers overlap — keep within bounds */
+  .pace-marker::after { font-size: 9px; padding: 1px 4px; }
+
+  /* Hide desktop-only savings ring dual column */
+  .goal-card { padding: 14px; gap: 12px; }
+  .goal-ring { flex-direction: column; align-items: stretch; gap: 10px; }
+  .goal-ring > svg { align-self: center; }
+  .goal-stats .cur { font-size: 20px; }
+
+  /* Page hero on savings page */
+  .hero-amt { flex-wrap: wrap; }
+
+  /* Legend row under chart header — allow wrap */
+  .card-h .row { flex-wrap: wrap; row-gap: 4px; }
+  .legend { margin-right: 8px; font-size: 10.5px; }
+}
+
+/* Very small phones (iPhone SE ~ 375px) */
+@media (max-width: 380px) {
+  .hero-amt { font-size: 32px; }
+  .dash-quick { grid-template-columns: repeat(2, 1fr); }
+  .stat-amt { font-size: 20px; }
+  .kpi-v { font-size: 14px; }
+  .bud-foot { grid-template-columns: 1fr 1fr; }
+  .bud-foot-item:nth-child(3) { grid-column: span 2; border-top: 1px solid var(--border-soft); padding-top: 6px; }
+}
+
+/* ====== Bottom tab bar (Mobile) ====== */
+.bottom-tabs {
+  display: none;
+}
+@media (max-width: 640px) {
+  .bottom-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: oklch(0.18 0.006 250 / 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid var(--border-soft);
+    z-index: 25;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .bottom-tab {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: transparent;
+    border: none;
+    color: var(--text-3);
+    font-size: 10px; font-weight: 500;
+    padding: 6px 2px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .bottom-tab.active { color: var(--accent-strong); }
+  .bottom-tab .lbl { line-height: 1; }
+
+  /* Hide desktop FAB when on transactions (bottom tab handles + button),
+     keep for other views */
+}
+
+/* Topbar mobile-menu icon — hidden by default, shown via CSS in mobile block above */
+.topbar-mobile-menu { display: none; }
+
+/* Mobile drawer for extended sidebar items (master data, settings) */
+.drawer-overlay {
+  position: fixed; inset: 0;
+  background: oklch(0 0 0 / 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 35;
+  animation: fadeIn .2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.drawer {
+  position: fixed; top: 0; bottom: 0; left: 0;
+  width: min(280px, 82vw);
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  padding: 14px 10px;
+  display: flex; flex-direction: column; gap: 12px;
+  animation: drawerIn .25s ease;
+  z-index: 36;
+  overflow-y: auto;
+}
+@keyframes drawerIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+.drawer .brand { padding: 4px 8px 10px; }
+.drawer .nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+  text-decoration: none;
+  font-weight: 500;
+}
+.drawer .nav-item.active { background: var(--bg-3); color: var(--text-1); }
+.drawer .nav-label {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-4); padding: 10px 10px 4px;
+}

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>家計簿アプリ — モダンUI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="styles2.css" />
+<link rel="stylesheet" href="styles3.css" />
+<link rel="stylesheet" href="styles-responsive.css" />
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="shell.jsx"></script>
+<script type="text/babel" src="page-dashboard.jsx"></script>
+<script type="text/babel" src="page-other.jsx"></script>
+<script type="text/babel" src="page-budget.jsx"></script>
+<script type="text/babel" src="page-analysis.jsx"></script>
+<script type="text/babel" src="mobile.jsx"></script>
+
+<script type="text/babel">
+function App() {
+  const [page, setPage] = React.useState(() => localStorage.getItem("page") || "dashboard");
+  const [sheet, setSheet] = React.useState(false);
+  const [cmd, setCmd] = React.useState(false);
+  const [drawer, setDrawer] = React.useState(false);
+
+  React.useEffect(() => { localStorage.setItem("page", page); }, [page]);
+
+  React.useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCmd(c => !c);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        setSheet(true);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  const TITLES = {
+    dashboard:    { t: "ダッシュボード", s: "2026年4月" },
+    transactions: { t: "取引一覧",       s: "2026年4月" },
+    savings:      { t: "貯蓄目標",       s: "4 件" },
+    transfer:     { t: "振替",           s: "" },
+    category:     { t: "カテゴリ",       s: "マスタ" },
+    payment:      { t: "決済手段",       s: "マスタ" },
+    tags:         { t: "タグ",           s: "マスタ" },
+    template:     { t: "テンプレート",   s: "マスタ" },
+    recurring:    { t: "定期取引",       s: "マスタ" },
+    analysis:     { t: "分析",           s: "" },
+    budget:       { t: "予算",           s: "" },
+    settings:     { t: "設定",           s: "" },
+  };
+
+  const renderPage = () => {
+    switch (page) {
+      case "dashboard":    return <Dashboard onOpenForm={() => setSheet(true)} />;
+      case "transactions": return <TransactionsPage onOpenForm={() => setSheet(true)} />;
+      case "savings":      return <SavingsPage />;
+      case "budget":       return <BudgetPage />;
+      case "analysis":     return <AnalysisPage />;
+      default:
+        return (
+          <div className="content">
+            <div className="page-h">
+              <div>
+                <h1>{TITLES[page]?.t || page}</h1>
+                <div className="sub">この画面はモック対象外です</div>
+              </div>
+            </div>
+            <div className="card" style={{ padding: 40, textAlign: "center", color: "var(--text-3)" }}>
+              <div style={{ fontSize: 13 }}>
+                今回のスコープではダッシュボード / 取引一覧 / 取引追加 / 貯蓄目標 のみデザインしています。
+              </div>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  const meta = TITLES[page] || { t: page };
+
+  return (
+    <div className="app">
+      <Sidebar active={page} onNav={setPage} />
+      <div className="main">
+        <Topbar
+          title={meta.t}
+          sub={meta.s}
+          onCmd={() => setCmd(true)}
+          onMenu={() => setDrawer(true)}
+        />
+        {renderPage()}
+      </div>
+      <FAB onOpenForm={() => setSheet(true)} />
+      <AddSheet open={sheet} onClose={() => setSheet(false)} />
+      <CommandPalette open={cmd} onClose={() => setCmd(false)} />
+      <BottomTabs active={page} onNav={setPage} onOpenForm={() => setSheet(true)} />
+      <MobileDrawer open={drawer} onClose={() => setDrawer(false)} active={page} onNav={setPage} />
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
