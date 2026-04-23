@@ -181,9 +181,10 @@ class NotificationService(
         val isEnabled = setting[com.kakeibo.backend.db.NotificationSettings.isEnabled]
         if (!isEnabled) return
 
+        val daysBefore = setting[com.kakeibo.backend.db.NotificationSettings.reminderDaysBefore] ?: 3
         val now = ZonedDateTime.now(TARGET_ZONE)
         val today = now.toLocalDate()
-        val reminderTarget = today.plusDays(3)
+        val reminderTarget = today.plusDays(daysBefore.toLong())
         val targetDay = reminderTarget.dayOfMonth
 
         val creditCards = accountRepository.findCreditCardsWithPaymentDay()
@@ -202,12 +203,56 @@ class NotificationService(
                 )) continue
 
             val paymentDateStr = String.format("%d/%d", reminderTarget.monthValue, reminderTarget.dayOfMonth)
+            val whenStr = if (daysBefore == 0) "本日" else "${daysBefore}日後"
             notificationRepository.create(
                 type = "credit_card_payment",
                 title = "クレジットカード引落し予定",
-                message = "「${cardName}」の引落し日が3日後（${paymentDateStr}）です。口座残高を確認してください。[${cardId}]"
+                message = "「${cardName}」の引落し日が${whenStr}（${paymentDateStr}）です。口座残高を確認してください。[${cardId}]"
             )
             logger.info("クレジットカード引落しリマインダーを生成しました: $cardName ($paymentDateStr)")
+        }
+    }
+
+    fun checkAndGenerateCreditCardTransferReminders() {
+        val setting = notificationSettingRepository.findByType("credit_card_transfer") ?: return
+        val isEnabled = setting[com.kakeibo.backend.db.NotificationSettings.isEnabled]
+        if (!isEnabled) return
+
+        val now = ZonedDateTime.now(TARGET_ZONE)
+        val today = now.toLocalDate()
+        val yesterday = today.minusDays(1)
+
+        val creditCards = accountRepository.findCreditCardsWithPaymentDay()
+        if (creditCards.isEmpty()) return
+
+        for (card in creditCards) {
+            val paymentDay = card[Accounts.paymentDay] ?: continue
+
+            // Fire on the day after the payment day.
+            // Also handle the case where payment_day is past the last day of the previous month
+            // (e.g. paymentDay=31 in February): fire on day 1 of the month if yesterday was the
+            // last day of the previous month and paymentDay >= that day count.
+            val prevMonthLastDay = yesterday.lengthOfMonth()
+            val isDayAfterPayment = yesterday.dayOfMonth == paymentDay ||
+                (today.dayOfMonth == 1 && paymentDay > prevMonthLastDay)
+
+            if (!isDayAfterPayment) continue
+
+            val cardName = card[Accounts.name]
+            val cardId = card[Accounts.id].toString()
+
+            // Avoid duplicate per card per day
+            if (notificationRepository.existsTodayByTypeAndMessageContaining(
+                    "credit_card_transfer", cardId
+                )) continue
+
+            val paymentDateStr = String.format("%d/%d", yesterday.monthValue, yesterday.dayOfMonth)
+            notificationRepository.create(
+                type = "credit_card_transfer",
+                title = "振替記録のリマインド",
+                message = "「${cardName}」の引落し日（${paymentDateStr}）を過ぎました。銀行口座からカードへの振替を記録してください。[${cardId}]"
+            )
+            logger.info("クレジットカード振替リマインダーを生成しました: $cardName ($paymentDateStr)")
         }
     }
 

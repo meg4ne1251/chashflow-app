@@ -245,7 +245,7 @@ export default function AccountListPage() {
                   inputProps={{ min: 1, max: 31, step: 1 }}
                   {...form.register('payment_day', { valueAsNumber: true })}
                   error={!!form.formState.errors.payment_day}
-                  helperText={form.formState.errors.payment_day?.message || '1〜31の日付を入力（引落し日の3日前に通知されます）'}
+                  helperText={form.formState.errors.payment_day?.message || '1〜31の日付を入力（引落し日前と引落し後に通知します。通知日数は設定画面で変更可能）'}
                 />
               )}
               <TextField fullWidth label="表示順" type="number" {...form.register('sort_order', { valueAsNumber: true })} />

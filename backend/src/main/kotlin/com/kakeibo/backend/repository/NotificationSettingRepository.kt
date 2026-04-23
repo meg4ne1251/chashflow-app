@@ -29,7 +29,7 @@ class NotificationSettingRepository {
     fun update(
         id: UUID, isEnabled: Boolean?, frequency: String?,
         dayOfWeek: String?, timeOfDay: java.time.LocalTime?,
-        thresholdPercent: Int?, currentVersion: Int
+        thresholdPercent: Int?, reminderDaysBefore: Int?, currentVersion: Int
     ): ResultRow? = transaction {
         val row = findById(id) ?: return@transaction null
         if (row[NotificationSettings.deletedAt] != null) return@transaction null
@@ -40,6 +40,7 @@ class NotificationSettingRepository {
             dayOfWeek?.let { v -> it[NotificationSettings.dayOfWeek] = v }
             timeOfDay?.let { v -> it[NotificationSettings.timeOfDay] = v }
             thresholdPercent?.let { v -> it[NotificationSettings.thresholdPercent] = v }
+            reminderDaysBefore?.let { v -> it[NotificationSettings.reminderDaysBefore] = v }
             it[NotificationSettings.version] = currentVersion + 1
             it[NotificationSettings.updatedAt] = OffsetDateTime.now()
         }

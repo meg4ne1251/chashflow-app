@@ -366,7 +366,11 @@ export default function SettingsPage() {
           <Paper key={setting.id} variant="outlined" sx={{ p: 2, mb: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
               <Typography fontWeight={600}>
-                {setting.type === 'input_remind' ? '入力リマインダー' : setting.type === 'credit_card_payment' ? 'クレジットカード引落しリマインダー' : setting.type === 'savings_goal_achieved' ? '貯蓄目標達成通知' : '予算アラート'}
+                {setting.type === 'input_remind' ? '入力リマインダー'
+                  : setting.type === 'credit_card_payment' ? 'クレジットカード引落しリマインダー'
+                  : setting.type === 'credit_card_transfer' ? 'クレカ振替記録リマインダー'
+                  : setting.type === 'savings_goal_achieved' ? '貯蓄目標達成通知'
+                  : '予算アラート'}
               </Typography>
               <FormControlLabel
                 control={
@@ -455,8 +459,31 @@ export default function SettingsPage() {
               </Stack>
             )}
             {setting.type === 'credit_card_payment' && (
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mt: 1 }}>
+                <TextField
+                  size="small"
+                  type="number"
+                  label="通知タイミング（日前）"
+                  value={setting.reminder_days_before ?? 3}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isNaN(v)) return;
+                    notifMutation.mutate({
+                      id: setting.id,
+                      data: { reminder_days_before: v, version: setting.version },
+                    });
+                  }}
+                  inputProps={{ min: 0, max: 31 }}
+                  sx={{ width: 180 }}
+                />
+                <Typography variant="body2" color="text.secondary">
+                  各クレジットカードの引落し日の指定日数前に通知します。引落し日は決済手段管理で設定できます（0を指定すると当日通知）。
+                </Typography>
+              </Stack>
+            )}
+            {setting.type === 'credit_card_transfer' && (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                各クレジットカードに設定された引落し日の3日前に通知します。引落し日は決済手段管理で設定できます。
+                各クレジットカードの引落し日を過ぎた翌日に、銀行口座→カードへの振替記録を促す通知を送信します。
               </Typography>
             )}
           </Paper>

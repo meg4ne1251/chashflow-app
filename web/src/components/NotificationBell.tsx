@@ -17,6 +17,7 @@ import {
   EditNote as InputRemindIcon,
   WarningAmber as BudgetAlertIcon,
   CreditCard as CreditCardIcon,
+  SwapHoriz as TransferReminderIcon,
   EmojiEvents as SavingsAchievedIcon,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
@@ -51,6 +52,8 @@ export default function NotificationBell() {
       navigate('/budgets');
     } else if (type === 'credit_card_payment') {
       navigate('/accounts');
+    } else if (type === 'credit_card_transfer') {
+      navigate('/transfers');
     } else if (type === 'savings_goal_achieved') {
       navigate('/savings-goals');
     }
@@ -117,6 +120,8 @@ export default function NotificationBell() {
                     <InputRemindIcon color="primary" />
                   ) : notification.type === 'credit_card_payment' ? (
                     <CreditCardIcon color="info" />
+                  ) : notification.type === 'credit_card_transfer' ? (
+                    <TransferReminderIcon color="secondary" />
                   ) : notification.type === 'savings_goal_achieved' ? (
                     <SavingsAchievedIcon color="success" />
                   ) : (

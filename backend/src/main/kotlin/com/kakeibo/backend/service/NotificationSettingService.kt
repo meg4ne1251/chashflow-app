@@ -37,6 +37,13 @@ class NotificationSettingService(
             )
         }
 
+        request.reminder_days_before?.let {
+            if (it !in 0..31) throw ValidationException(
+                "通知日数は0〜31の範囲で指定してください",
+                listOf(FieldError("reminder_days_before", "0〜31の範囲で指定してください"))
+            )
+        }
+
         val row = notificationSettingRepository.update(
             id = uuid,
             isEnabled = request.is_enabled,
@@ -44,6 +51,7 @@ class NotificationSettingService(
             dayOfWeek = request.day_of_week,
             timeOfDay = timeOfDay,
             thresholdPercent = request.threshold_percent,
+            reminderDaysBefore = request.reminder_days_before,
             currentVersion = currentVersion
         ) ?: throw ConflictException("バージョン競合が発生しました")
 
@@ -58,6 +66,7 @@ class NotificationSettingService(
         day_of_week = this[NotificationSettings.dayOfWeek],
         time_of_day = this[NotificationSettings.timeOfDay]?.toString(),
         threshold_percent = this[NotificationSettings.thresholdPercent],
+        reminder_days_before = this[NotificationSettings.reminderDaysBefore],
         version = this[NotificationSettings.version],
         created_at = this[NotificationSettings.createdAt].toString(),
         updated_at = this[NotificationSettings.updatedAt].toString()

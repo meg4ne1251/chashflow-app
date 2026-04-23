@@ -296,6 +296,7 @@ object NotificationSettings : Table("notification_settings") {
     val dayOfWeek = varchar("day_of_week", 20).nullable()
     val timeOfDay = time("time_of_day").nullable()
     val thresholdPercent = integer("threshold_percent").nullable()
+    val reminderDaysBefore = integer("reminder_days_before").nullable()
     val version = integer("version")
     val createdAt = timestampWithTimeZone("created_at")
     val updatedAt = timestampWithTimeZone("updated_at")

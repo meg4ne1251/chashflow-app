@@ -406,6 +406,7 @@ data class NotificationSettingRequest(
     val day_of_week: String? = null,
     val time_of_day: String? = null,
     val threshold_percent: Int? = null,
+    val reminder_days_before: Int? = null,
     val version: Int? = null
 )
 
@@ -418,6 +419,7 @@ data class NotificationSettingResponse(
     val day_of_week: String? = null,
     val time_of_day: String? = null,
     val threshold_percent: Int? = null,
+    val reminder_days_before: Int? = null,
     val version: Int,
     val created_at: String,
     val updated_at: String

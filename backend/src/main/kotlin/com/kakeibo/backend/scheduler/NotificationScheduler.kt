@@ -27,6 +27,7 @@ class NotificationScheduler(
                     notificationService.checkAndGenerateInputReminder()
                     notificationService.checkAndGenerateBudgetAlerts()
                     notificationService.checkAndGenerateCreditCardPaymentReminders()
+                    notificationService.checkAndGenerateCreditCardTransferReminders()
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {

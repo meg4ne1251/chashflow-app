@@ -414,6 +414,7 @@ class SyncService(
         day_of_week = this[NotificationSettings.dayOfWeek],
         time_of_day = this[NotificationSettings.timeOfDay]?.toString(),
         threshold_percent = this[NotificationSettings.thresholdPercent],
+        reminder_days_before = this[NotificationSettings.reminderDaysBefore],
         version = this[NotificationSettings.version],
         created_at = this[NotificationSettings.createdAt].toString(),
         updated_at = this[NotificationSettings.updatedAt].toString()

@@ -8,7 +8,7 @@ export type AccountType = 'cash' | 'bank' | 'credit_card' | 'e_money' | 'other' 
 /** 定期取引の繰り返し頻度 */
 export type Frequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 /** 通知の種類 */
-export type NotificationType = 'input_remind' | 'budget_alert' | 'credit_card_payment' | 'savings_goal_achieved';
+export type NotificationType = 'input_remind' | 'budget_alert' | 'credit_card_payment' | 'credit_card_transfer' | 'savings_goal_achieved';
 /** 貯蓄目標の状態 */
 export type SavingsGoalStatus = 'active' | 'achieved' | 'cancelled';
 /** リマインダー通知の頻度 */
@@ -417,6 +417,7 @@ export interface NotificationSettingRequest {
   day_of_week?: string;
   time_of_day?: string;
   threshold_percent?: number;
+  reminder_days_before?: number;
   version?: number;
 }
 
@@ -428,6 +429,7 @@ export interface NotificationSettingResponse {
   day_of_week?: string | null;
   time_of_day?: string | null;
   threshold_percent?: number | null;
+  reminder_days_before?: number | null;
   version: number;
   created_at: string;
   updated_at: string;
