@@ -89,8 +89,9 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('¥100,000')).toBeInTheDocument();
-      expect(screen.getByText('¥50,000')).toBeInTheDocument();
+      // 新デザインでは収入は +¥, 支出は −¥ で表示
+      expect(screen.getAllByText(/100,000/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/50,000/).length).toBeGreaterThan(0);
     });
   });
 
@@ -117,8 +118,8 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      // 収支が表示される
-      const balanceElements = screen.getAllByText('¥50,000');
+      // 新デザインでは符号付きで表示される
+      const balanceElements = screen.getAllByText(/50,000/);
       expect(balanceElements.length).toBeGreaterThan(0);
     });
   });
@@ -146,7 +147,8 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/前月比/i)).toBeInTheDocument();
+      // 収入カードと支出カードに「前月比」が出る
+      expect(screen.getAllByText(/前月比/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -236,7 +238,8 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/最近の取引/i)).toBeInTheDocument();
+      // 新デザインのカード見出しは「直近の取引」
+      expect(screen.getByText(/直近の取引/i)).toBeInTheDocument();
       expect(screen.getByText('ランチ')).toBeInTheDocument();
     });
   });
@@ -289,8 +292,9 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('現金')).toBeInTheDocument();
-      expect(screen.getByText('銀行口座')).toBeInTheDocument();
+      // 名前と type ラベルの両方に同名が出る場合があるため、複数許容
+      expect(screen.getAllByText('現金').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('銀行口座').length).toBeGreaterThan(0);
     });
   });
 

@@ -184,7 +184,8 @@ describe('TransactionListPage', () => {
     render(<TransactionListPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/¥1,500/)).toBeInTheDocument();
+      // 新デザインでは day-head 合計と tx-row 金額の両方に同じ値が出る
+      expect(screen.getAllByText(/¥1,500/).length).toBeGreaterThan(0);
     });
   });
 
@@ -211,16 +212,14 @@ describe('TransactionListPage', () => {
     const user = userEvent.setup();
     render(<TransactionListPage />);
 
-    await waitFor(() => {
-      expect(screen.getByLabelText(/フィルター/i)).toBeInTheDocument();
+    const filterButton = await screen.findByRole('button', {
+      name: /詳細フィルタ/,
     });
-
-    const filterButton = screen.getByLabelText(/フィルター/i);
     await user.click(filterButton);
 
     await waitFor(() => {
-      // フィルターパネルが表示される
-      expect(screen.getByLabelText(/種別|タイプ/i)).toBeInTheDocument();
+      // 詳細パネルが開くと「ソート」セレクトの label が現れる
+      expect(screen.getAllByText(/ソート/).length).toBeGreaterThan(0);
     });
   });
 });
