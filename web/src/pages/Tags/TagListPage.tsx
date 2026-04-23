@@ -5,8 +5,9 @@ import {
   IconButton, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, TextField, Typography, Paper, Alert, Stack, CircularProgress,
 } from '@mui/material';
-import { Add, Edit, Delete } from '@mui/icons-material';
+import { Edit, Delete } from '@mui/icons-material';
 import { useMobile } from '@/hooks/useMobile';
+import { Icon as UiIcon } from '@/components/Icon';
 import { useForm } from 'react-hook-form';
 import { zodFormResolver } from '@/validation/resolver';
 import { tagSchema, type TagFormData } from '@/validation/schemas';
@@ -72,17 +73,23 @@ export default function TagListPage() {
 
   return (
     <Box>
-      {!isMobile && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h5" fontWeight={700}>タグ管理</Typography>
-          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>追加</Button>
-        </Box>
-      )}
-      {isMobile && (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
-          <Button variant="contained" size="small" startIcon={<Add />} onClick={openCreate}>追加</Button>
-        </Box>
-      )}
+      <div className="page-h">
+        <div>
+          <h1>タグ管理</h1>
+          <div className="sub">
+            {tags?.length ?? 0} 件 · 取引へ柔軟にラベル付け
+          </div>
+        </div>
+        <div className="actions">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={openCreate}
+          >
+            <UiIcon name="plus" size={14} stroke={2.4} /> タグ追加
+          </button>
+        </div>
+      </div>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
       {isMobile ? (

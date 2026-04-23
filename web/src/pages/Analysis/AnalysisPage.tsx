@@ -1,32 +1,48 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Box, Typography, Paper, Grid, ToggleButtonGroup, ToggleButton,
-  CircularProgress, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, TextField, Stack, Card, CardContent, Alert,
-  IconButton,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, LineChart, Line,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
 } from 'recharts';
+import dayjs from 'dayjs';
+import { Icon } from '@/components/Icon';
 import { analyticsApi } from '@/api/analytics';
-import { formatCurrency, getCurrentYearMonth, getCurrentYear, shiftYearMonth } from '@/utils/format';
+import {
+  formatCurrency,
+  getCurrentYearMonth,
+  getCurrentYear,
+  shiftYearMonth,
+} from '@/utils/format';
 import type { CategoryBreakdownItem, MonthlySummaryItem } from '@/types';
 import { CHART_COLORS } from '@/constants';
-import { useMobile } from '@/hooks/useMobile';
 
 type ViewMode = 'monthly' | 'yearly' | 'comparison';
 
+const yen = (n: number) => `¥${Math.round(n).toLocaleString('ja-JP')}`;
+const yenSigned = (n: number) =>
+  (n >= 0 ? '+' : '−') + '¥' + Math.abs(Math.round(n)).toLocaleString('ja-JP');
+
 export default function AnalysisPage() {
-  const isMobile = useMobile();
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [yearMonth, setYearMonth] = useState(getCurrentYearMonth());
   const [year, setYear] = useState(getCurrentYear());
   const [compareMonth, setCompareMonth] = useState(getCurrentYearMonth());
 
-  // Monthly view: category breakdowns for expense and income
   const expenseBreakdownQ = useQuery({
     queryKey: ['analytics', 'categoryBreakdown', yearMonth, 'expense'],
     queryFn: () => analyticsApi.categoryBreakdown(yearMonth, 'expense'),
@@ -41,7 +57,6 @@ export default function AnalysisPage() {
     enabled: viewMode === 'monthly',
   });
 
-  // Yearly view
   const yearlyQ = useQuery({
     queryKey: ['analytics', 'yearly', year],
     queryFn: () => analyticsApi.yearlySummary(year),
@@ -49,7 +64,6 @@ export default function AnalysisPage() {
     enabled: viewMode === 'yearly',
   });
 
-  // Comparison view
   const comparisonQ = useQuery({
     queryKey: ['analytics', 'comparison', compareMonth],
     queryFn: () => analyticsApi.comparison(compareMonth),
@@ -57,24 +71,36 @@ export default function AnalysisPage() {
     enabled: viewMode === 'comparison',
   });
 
-  // Pie chart data
   const expensePieData = useMemo(() => {
-    return expenseBreakdownQ.data?.breakdown?.filter((c: CategoryBreakdownItem) => c.amount > 0)
-      .map((c: CategoryBreakdownItem) => ({ name: c.category_name, value: c.amount, percentage: c.percentage })) ?? [];
+    return (
+      expenseBreakdownQ.data?.breakdown
+        ?.filter((c: CategoryBreakdownItem) => c.amount > 0)
+        .map((c: CategoryBreakdownItem) => ({
+          name: c.category_name,
+          value: c.amount,
+          percentage: c.percentage,
+        })) ?? []
+    );
   }, [expenseBreakdownQ.data]);
 
   const incomePieData = useMemo(() => {
-    return incomeBreakdownQ.data?.breakdown?.filter((c: CategoryBreakdownItem) => c.amount > 0)
-      .map((c: CategoryBreakdownItem) => ({ name: c.category_name, value: c.amount, percentage: c.percentage })) ?? [];
+    return (
+      incomeBreakdownQ.data?.breakdown
+        ?.filter((c: CategoryBreakdownItem) => c.amount > 0)
+        .map((c: CategoryBreakdownItem) => ({
+          name: c.category_name,
+          value: c.amount,
+          percentage: c.percentage,
+        })) ?? []
+    );
   }, [incomeBreakdownQ.data]);
 
-  // Bar chart data for yearly monthly trend
   const yearlyBarData = useMemo(() => {
     if (!yearlyQ.data?.monthly) return [];
     return yearlyQ.data.monthly.map((m: MonthlySummaryItem) => {
       const month = m.year_month.split('-')[1];
       return {
-        name: `${parseInt(month)}月`,
+        name: `${parseInt(month, 10)}月`,
         収入: m.income,
         支出: m.expense,
         差額: m.balance,
@@ -82,209 +108,731 @@ export default function AnalysisPage() {
     });
   }, [yearlyQ.data]);
 
-  const renderPie = (data: { name: string; value: number; percentage: number }[], title: string, total?: number) => (
-    <Paper sx={{ p: isMobile ? 1.5 : 2, height: '100%' }}>
-      <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} gutterBottom>{title}</Typography>
-      {total != null && <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>合計: {formatCurrency(total)}</Typography>}
+  const monthLabel = dayjs(yearMonth + '-01').format('YYYY年M月');
+
+  const renderPieCard = (
+    data: { name: string; value: number; percentage: number }[],
+    title: string,
+    total?: number,
+  ) => (
+    <div className="card" style={{ padding: 16 }}>
+      <div className="card-h">
+        <h3>{title}</h3>
+        {total != null && (
+          <div
+            className="mono"
+            style={{ fontSize: 13, color: 'var(--text-2)' }}
+          >
+            合計 {yen(total)}
+          </div>
+        )}
+      </div>
       {data.length === 0 ? (
-        <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>データがありません</Typography>
+        <div
+          style={{
+            color: 'var(--text-3)',
+            textAlign: 'center',
+            padding: '32px 0',
+          }}
+        >
+          データがありません
+        </div>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-          <ResponsiveContainer width="100%" height={isMobile ? 220 : 280}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+            gap: 16,
+            alignItems: 'center',
+          }}
+        >
+          <ResponsiveContainer width="100%" height={220}>
             <PieChart>
-              <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={isMobile ? 70 : 100}
-                label={isMobile ? undefined : ({ name, percentage }: { name?: string; percentage?: number }) => `${name ?? ''} ${(Number(percentage) || 0).toFixed(1)}%`}>
-                {data.map((entry: { name: string }, i: number) => <Cell key={entry.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                innerRadius={48}
+                paddingAngle={2}
+                stroke="var(--bg-1)"
+              >
+                {data.map((entry, i) => (
+                  <Cell
+                    key={entry.name}
+                    fill={CHART_COLORS[i % CHART_COLORS.length]}
+                  />
+                ))}
               </Pie>
-              <Tooltip formatter={(v: unknown) => formatCurrency(Number(v))} />
+              <Tooltip
+                formatter={(v: unknown) => yen(Number(v))}
+                contentStyle={{
+                  background: 'var(--bg-2)',
+                  border: '1px solid var(--border-soft)',
+                  borderRadius: 8,
+                  color: 'var(--text-1)',
+                  fontSize: 12,
+                }}
+              />
             </PieChart>
           </ResponsiveContainer>
-          <Box sx={{ width: '100%' }}>
+          <div style={{ minWidth: 0 }}>
             {data.map((d, i) => (
-              <Box key={d.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: CHART_COLORS[i % CHART_COLORS.length], flexShrink: 0 }} />
-                <Typography variant="body2" noWrap sx={{ flex: 1 }}>{d.name}</Typography>
-                <Typography variant="body2" fontWeight={600}>{formatCurrency(d.value)}</Typography>
-              </Box>
+              <div
+                key={d.name}
+                className="donut-legend-row"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '6px 0',
+                  borderBottom:
+                    i === data.length - 1
+                      ? 'none'
+                      : '1px solid var(--border-soft)',
+                  fontSize: 12.5,
+                }}
+              >
+                <span
+                  aria-hidden
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 3,
+                    background: CHART_COLORS[i % CHART_COLORS.length],
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    flex: 1,
+                    color: 'var(--text-2)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {d.name}
+                </span>
+                <span
+                  className="mono"
+                  style={{ color: 'var(--text-1)', fontWeight: 500 }}
+                >
+                  {yen(d.value)}
+                </span>
+                <span
+                  className="mono dim"
+                  style={{ minWidth: 44, textAlign: 'right' }}
+                >
+                  {d.percentage.toFixed(1)}%
+                </span>
+              </div>
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
-    </Paper>
+    </div>
   );
 
-  return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', mb: isMobile ? 2 : 3, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 1 : 2 }}>
-        {!isMobile && <Typography variant="h5" fontWeight={700}>分析</Typography>}
-        <ToggleButtonGroup value={viewMode} exclusive onChange={(_, v) => v && setViewMode(v)} size="small" fullWidth={isMobile}>
-          <ToggleButton value="monthly">月次</ToggleButton>
-          <ToggleButton value="yearly">年次</ToggleButton>
-          <ToggleButton value="comparison">月比較</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+  const tooltipStyle = {
+    background: 'var(--bg-2)',
+    border: '1px solid var(--border-soft)',
+    borderRadius: 8,
+    color: 'var(--text-1)',
+    fontSize: 12,
+  };
 
-      {/* ===== MONTHLY VIEW ===== */}
+  const monthlyBalance =
+    (incomeBreakdownQ.data?.total ?? 0) -
+    (expenseBreakdownQ.data?.total ?? 0);
+
+  return (
+    <div>
+      <div className="page-h">
+        <div>
+          <h1>分析</h1>
+          <div className="sub">
+            {viewMode === 'monthly' && monthLabel}
+            {viewMode === 'yearly' && `${year}年`}
+            {viewMode === 'comparison' &&
+              `基準 ${dayjs(compareMonth + '-01').format('YYYY年M月')}`}
+          </div>
+        </div>
+        <div className="actions">
+          <div className="seg">
+            <button
+              type="button"
+              className={viewMode === 'monthly' ? 'active' : ''}
+              onClick={() => setViewMode('monthly')}
+            >
+              月次
+            </button>
+            <button
+              type="button"
+              className={viewMode === 'yearly' ? 'active' : ''}
+              onClick={() => setViewMode('yearly')}
+            >
+              年次
+            </button>
+            <button
+              type="button"
+              className={viewMode === 'comparison' ? 'active' : ''}
+              onClick={() => setViewMode('comparison')}
+            >
+              月比較
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* MONTHLY */}
       {viewMode === 'monthly' && (
         <>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
-            <IconButton size="small" onClick={() => setYearMonth(shiftYearMonth(yearMonth, -1))}><ChevronLeft /></IconButton>
-            <TextField label="年月" type="month" value={yearMonth} onChange={(e) => setYearMonth(e.target.value)} size="small" InputLabelProps={{ shrink: true }} />
-            <IconButton size="small" onClick={() => setYearMonth(shiftYearMonth(yearMonth, 1))}><ChevronRight /></IconButton>
-          </Stack>
-          {(expenseBreakdownQ.isLoading || incomeBreakdownQ.isLoading) ? <CircularProgress /> : (expenseBreakdownQ.error || incomeBreakdownQ.error) ? <Alert severity="error">データの取得に失敗しました</Alert> : (
+          <div className="toolbar">
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="前の月"
+              onClick={() => setYearMonth(shiftYearMonth(yearMonth, -1))}
+            >
+              <Icon name="chev-l" size={14} />
+            </button>
+            <input
+              type="month"
+              value={yearMonth}
+              onChange={(e) => setYearMonth(e.target.value)}
+              aria-label="年月"
+              style={{
+                padding: '6px 10px',
+                fontSize: 13,
+                borderRadius: 9,
+                border: '1px solid var(--border-soft)',
+                background: 'var(--bg-2)',
+                color: 'var(--text-1)',
+                fontFamily: 'inherit',
+              }}
+            />
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="次の月"
+              onClick={() => setYearMonth(shiftYearMonth(yearMonth, 1))}
+            >
+              <Icon name="chev-r" size={14} />
+            </button>
+          </div>
+
+          {expenseBreakdownQ.isLoading || incomeBreakdownQ.isLoading ? (
+            <div style={{ display: 'grid', placeItems: 'center', padding: 48 }}>
+              <CircularProgress size={28} />
+            </div>
+          ) : expenseBreakdownQ.error || incomeBreakdownQ.error ? (
+            <Alert severity="error">データの取得に失敗しました</Alert>
+          ) : (
             <>
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid size={{ xs: 12, sm: 4 }}><Card><CardContent><Typography variant="body2" color="text.secondary">収入合計</Typography><Typography variant="h5" color="success.main" fontWeight={700}>{formatCurrency(incomeBreakdownQ.data?.total ?? 0)}</Typography></CardContent></Card></Grid>
-                <Grid size={{ xs: 12, sm: 4 }}><Card><CardContent><Typography variant="body2" color="text.secondary">支出合計</Typography><Typography variant="h5" color="error.main" fontWeight={700}>{formatCurrency(expenseBreakdownQ.data?.total ?? 0)}</Typography></CardContent></Card></Grid>
-                <Grid size={{ xs: 12, sm: 4 }}><Card><CardContent><Typography variant="body2" color="text.secondary">収支</Typography><Typography variant="h5" fontWeight={700} color={(incomeBreakdownQ.data?.total ?? 0) - (expenseBreakdownQ.data?.total ?? 0) >= 0 ? 'success.main' : 'error.main'}>{formatCurrency((incomeBreakdownQ.data?.total ?? 0) - (expenseBreakdownQ.data?.total ?? 0))}</Typography></CardContent></Card></Grid>
-              </Grid>
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>{renderPie(expensePieData, '支出内訳', expenseBreakdownQ.data?.total)}</Grid>
-                <Grid size={{ xs: 12, md: 6 }}>{renderPie(incomePieData, '収入内訳', incomeBreakdownQ.data?.total)}</Grid>
-              </Grid>
+              <div className="grid-12" style={{ marginBottom: 20 }}>
+                <div className="col-4">
+                  <div className="card" style={{ padding: 16 }}>
+                    <div className="kpi">
+                      <div className="kpi-l">収入合計</div>
+                      <div
+                        className="kpi-v mono"
+                        style={{ color: 'var(--pos)' }}
+                      >
+                        {yen(incomeBreakdownQ.data?.total ?? 0)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-4">
+                  <div className="card" style={{ padding: 16 }}>
+                    <div className="kpi">
+                      <div className="kpi-l">支出合計</div>
+                      <div
+                        className="kpi-v mono"
+                        style={{ color: 'var(--neg)' }}
+                      >
+                        {yen(expenseBreakdownQ.data?.total ?? 0)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-4">
+                  <div className="card" style={{ padding: 16 }}>
+                    <div className="kpi">
+                      <div className="kpi-l">収支</div>
+                      <div
+                        className="kpi-v mono"
+                        style={{
+                          color:
+                            monthlyBalance >= 0
+                              ? 'var(--pos)'
+                              : 'var(--neg)',
+                        }}
+                      >
+                        {yenSigned(monthlyBalance)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid-12">
+                <div className="col-6">
+                  {renderPieCard(
+                    expensePieData,
+                    '支出内訳',
+                    expenseBreakdownQ.data?.total,
+                  )}
+                </div>
+                <div className="col-6">
+                  {renderPieCard(
+                    incomePieData,
+                    '収入内訳',
+                    incomeBreakdownQ.data?.total,
+                  )}
+                </div>
+              </div>
             </>
           )}
         </>
       )}
 
-      {/* ===== YEARLY VIEW ===== */}
+      {/* YEARLY */}
       {viewMode === 'yearly' && (
         <>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
-            <IconButton size="small" onClick={() => setYear((y) => y - 1)}><ChevronLeft /></IconButton>
-            <TextField label="年" type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} size="small" inputProps={{ min: 2000, max: 2100 }} sx={{ width: 120 }} />
-            <IconButton size="small" onClick={() => setYear((y) => y + 1)}><ChevronRight /></IconButton>
-          </Stack>
-          {yearlyQ.isLoading ? <CircularProgress /> : yearlyQ.error ? <Alert severity="error">データの取得に失敗しました</Alert> : yearlyQ.data && (
-            <>
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid size={{ xs: 12, sm: 4 }}><Card><CardContent><Typography variant="body2" color="text.secondary">年間収入</Typography><Typography variant="h5" color="success.main" fontWeight={700}>{formatCurrency(yearlyQ.data.total_income)}</Typography></CardContent></Card></Grid>
-                <Grid size={{ xs: 12, sm: 4 }}><Card><CardContent><Typography variant="body2" color="text.secondary">年間支出</Typography><Typography variant="h5" color="error.main" fontWeight={700}>{formatCurrency(yearlyQ.data.total_expense)}</Typography></CardContent></Card></Grid>
-                <Grid size={{ xs: 12, sm: 4 }}><Card><CardContent><Typography variant="body2" color="text.secondary">年間貯蓄</Typography><Typography variant="h5" fontWeight={700} color={yearlyQ.data.total_savings >= 0 ? 'success.main' : 'error.main'}>{formatCurrency(yearlyQ.data.total_savings)}</Typography></CardContent></Card></Grid>
-              </Grid>
-              <Paper sx={{ p: isMobile ? 1.5 : 2, mb: 3 }}>
-                <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} gutterBottom>月別推移</Typography>
-                <ResponsiveContainer width="100%" height={isMobile ? 250 : 350}>
-                  <BarChart data={yearlyBarData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" fontSize={isMobile ? 11 : 12} />
-                    <YAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} fontSize={isMobile ? 11 : 12} width={isMobile ? 40 : 60} />
-                    <Tooltip formatter={(v: unknown) => formatCurrency(Number(v))} />
-                    <Legend />
-                    <Bar dataKey="収入" fill="#4CAF50" />
-                    <Bar dataKey="支出" fill="#F44336" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Paper>
-              <Paper sx={{ p: isMobile ? 1.5 : 2 }}>
-                <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} gutterBottom>月別収支差額</Typography>
-                <ResponsiveContainer width="100%" height={isMobile ? 220 : 300}>
-                  <LineChart data={yearlyBarData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" fontSize={isMobile ? 11 : 12} />
-                    <YAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} fontSize={isMobile ? 11 : 12} width={isMobile ? 40 : 60} />
-                    <Tooltip formatter={(v: unknown) => formatCurrency(Number(v))} />
-                    <Line type="monotone" dataKey="差額" stroke="#2196F3" strokeWidth={2} dot={{ r: 4 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Paper>
-            </>
+          <div className="toolbar">
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="前の年"
+              onClick={() => setYear((y) => y - 1)}
+            >
+              <Icon name="chev-l" size={14} />
+            </button>
+            <input
+              type="number"
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              min={2000}
+              max={2100}
+              aria-label="年"
+              style={{
+                width: 100,
+                padding: '6px 10px',
+                fontSize: 13,
+                borderRadius: 9,
+                border: '1px solid var(--border-soft)',
+                background: 'var(--bg-2)',
+                color: 'var(--text-1)',
+                fontFamily: 'inherit',
+              }}
+            />
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="次の年"
+              onClick={() => setYear((y) => y + 1)}
+            >
+              <Icon name="chev-r" size={14} />
+            </button>
+          </div>
+
+          {yearlyQ.isLoading ? (
+            <div style={{ display: 'grid', placeItems: 'center', padding: 48 }}>
+              <CircularProgress size={28} />
+            </div>
+          ) : yearlyQ.error ? (
+            <Alert severity="error">データの取得に失敗しました</Alert>
+          ) : (
+            yearlyQ.data && (
+              <>
+                <div className="grid-12" style={{ marginBottom: 20 }}>
+                  <div className="col-4">
+                    <div className="card" style={{ padding: 16 }}>
+                      <div className="kpi">
+                        <div className="kpi-l">年間収入</div>
+                        <div
+                          className="kpi-v mono"
+                          style={{ color: 'var(--pos)' }}
+                        >
+                          {yen(yearlyQ.data.total_income)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-4">
+                    <div className="card" style={{ padding: 16 }}>
+                      <div className="kpi">
+                        <div className="kpi-l">年間支出</div>
+                        <div
+                          className="kpi-v mono"
+                          style={{ color: 'var(--neg)' }}
+                        >
+                          {yen(yearlyQ.data.total_expense)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-4">
+                    <div className="card" style={{ padding: 16 }}>
+                      <div className="kpi">
+                        <div className="kpi-l">年間貯蓄</div>
+                        <div
+                          className="kpi-v mono"
+                          style={{
+                            color:
+                              yearlyQ.data.total_savings >= 0
+                                ? 'var(--pos)'
+                                : 'var(--neg)',
+                          }}
+                        >
+                          {yenSigned(yearlyQ.data.total_savings)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card" style={{ padding: 16, marginBottom: 20 }}>
+                  <div className="card-h">
+                    <h3>月別推移</h3>
+                  </div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={yearlyBarData}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="var(--border-soft)"
+                      />
+                      <XAxis
+                        dataKey="name"
+                        fontSize={11}
+                        tick={{ fill: 'var(--text-3)' }}
+                      />
+                      <YAxis
+                        tickFormatter={(v: number) =>
+                          `${(v / 1000).toFixed(0)}k`
+                        }
+                        fontSize={11}
+                        width={50}
+                        tick={{ fill: 'var(--text-3)' }}
+                      />
+                      <Tooltip
+                        formatter={(v: unknown) => yen(Number(v))}
+                        contentStyle={tooltipStyle}
+                      />
+                      <Legend
+                        wrapperStyle={{
+                          fontSize: 12,
+                          color: 'var(--text-2)',
+                        }}
+                      />
+                      <Bar dataKey="収入" fill="var(--pos)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="支出" fill="var(--neg)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="card" style={{ padding: 16 }}>
+                  <div className="card-h">
+                    <h3>月別収支差額</h3>
+                  </div>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart data={yearlyBarData}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="var(--border-soft)"
+                      />
+                      <XAxis
+                        dataKey="name"
+                        fontSize={11}
+                        tick={{ fill: 'var(--text-3)' }}
+                      />
+                      <YAxis
+                        tickFormatter={(v: number) =>
+                          `${(v / 1000).toFixed(0)}k`
+                        }
+                        fontSize={11}
+                        width={50}
+                        tick={{ fill: 'var(--text-3)' }}
+                      />
+                      <Tooltip
+                        formatter={(v: unknown) => yen(Number(v))}
+                        contentStyle={tooltipStyle}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="差額"
+                        stroke="var(--info)"
+                        strokeWidth={2}
+                        dot={{ r: 4, fill: 'var(--info)' }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )
           )}
         </>
       )}
 
-      {/* ===== COMPARISON VIEW ===== */}
+      {/* COMPARISON */}
       {viewMode === 'comparison' && (
         <>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
-            <IconButton size="small" onClick={() => setCompareMonth(shiftYearMonth(compareMonth, -1))}><ChevronLeft /></IconButton>
-            <TextField label="基準月" type="month" value={compareMonth} onChange={(e) => setCompareMonth(e.target.value)} size="small" InputLabelProps={{ shrink: true }} />
-            <IconButton size="small" onClick={() => setCompareMonth(shiftYearMonth(compareMonth, 1))}><ChevronRight /></IconButton>
-          </Stack>
-          {comparisonQ.isLoading ? <CircularProgress /> : comparisonQ.error ? <Alert severity="error">データの取得に失敗しました</Alert> : comparisonQ.data && (
-            <>
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <Card><CardContent>
-                    <Typography variant="subtitle2" color="text.secondary">当月</Typography>
-                    <Typography>収入: {formatCurrency(comparisonQ.data.current.income)} / 支出: {formatCurrency(comparisonQ.data.current.expense)}</Typography>
-                    <Typography fontWeight={700} color={comparisonQ.data.current.balance >= 0 ? 'success.main' : 'error.main'}>収支: {formatCurrency(comparisonQ.data.current.balance)}</Typography>
-                  </CardContent></Card>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <Card><CardContent>
-                    <Typography variant="subtitle2" color="text.secondary">前月</Typography>
-                    <Typography>収入: {formatCurrency(comparisonQ.data.previous_month.income)} / 支出: {formatCurrency(comparisonQ.data.previous_month.expense)}</Typography>
-                    <Typography fontWeight={700} color={comparisonQ.data.previous_month.balance >= 0 ? 'success.main' : 'error.main'}>収支: {formatCurrency(comparisonQ.data.previous_month.balance)}</Typography>
-                  </CardContent></Card>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <Card><CardContent>
-                    <Typography variant="subtitle2" color="text.secondary">前年同月</Typography>
-                    <Typography>収入: {formatCurrency(comparisonQ.data.previous_year.income)} / 支出: {formatCurrency(comparisonQ.data.previous_year.expense)}</Typography>
-                    <Typography fontWeight={700} color={comparisonQ.data.previous_year.balance >= 0 ? 'success.main' : 'error.main'}>収支: {formatCurrency(comparisonQ.data.previous_year.balance)}</Typography>
-                  </CardContent></Card>
-                </Grid>
-              </Grid>
+          <div className="toolbar">
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="前の月"
+              onClick={() =>
+                setCompareMonth(shiftYearMonth(compareMonth, -1))
+              }
+            >
+              <Icon name="chev-l" size={14} />
+            </button>
+            <input
+              type="month"
+              value={compareMonth}
+              onChange={(e) => setCompareMonth(e.target.value)}
+              aria-label="基準月"
+              style={{
+                padding: '6px 10px',
+                fontSize: 13,
+                borderRadius: 9,
+                border: '1px solid var(--border-soft)',
+                background: 'var(--bg-2)',
+                color: 'var(--text-1)',
+                fontFamily: 'inherit',
+              }}
+            />
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="次の月"
+              onClick={() =>
+                setCompareMonth(shiftYearMonth(compareMonth, 1))
+              }
+            >
+              <Icon name="chev-r" size={14} />
+            </button>
+          </div>
 
-              {/* MoM Changes Table */}
-              <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} sx={{ mb: 1 }}>前月比カテゴリ増減</Typography>
-              <TableContainer component={Paper} sx={{ mb: 3 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>カテゴリ</TableCell>
-                      <TableCell align="right">当月</TableCell>
-                      <TableCell align="right">前月</TableCell>
-                      <TableCell align="right">差額</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {comparisonQ.data.mom_change.category_changes.map((row) => (
-                      <TableRow key={row.category_id} hover>
-                        <TableCell>{row.category_name}</TableCell>
-                        <TableCell align="right">{formatCurrency(row.current_amount)}</TableCell>
-                        <TableCell align="right">{formatCurrency(row.previous_amount)}</TableCell>
-                        <TableCell align="right" sx={{ color: row.change_amount > 0 ? 'error.main' : row.change_amount < 0 ? 'success.main' : 'text.primary', fontWeight: 600 }}>
-                          {row.change_amount > 0 ? '+' : ''}{formatCurrency(row.change_amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+          {comparisonQ.isLoading ? (
+            <div style={{ display: 'grid', placeItems: 'center', padding: 48 }}>
+              <CircularProgress size={28} />
+            </div>
+          ) : comparisonQ.error ? (
+            <Alert severity="error">データの取得に失敗しました</Alert>
+          ) : (
+            comparisonQ.data && (
+              <>
+                <div className="grid-12" style={{ marginBottom: 20 }}>
+                  {(
+                    [
+                      { key: 'current', label: '当月', d: comparisonQ.data.current },
+                      {
+                        key: 'pm',
+                        label: '前月',
+                        d: comparisonQ.data.previous_month,
+                      },
+                      {
+                        key: 'py',
+                        label: '前年同月',
+                        d: comparisonQ.data.previous_year,
+                      },
+                    ] as const
+                  ).map((b) => (
+                    <div className="col-4" key={b.key}>
+                      <div className="card" style={{ padding: 16 }}>
+                        <div className="kpi-l">{b.label}</div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            marginTop: 8,
+                            fontSize: 12.5,
+                            color: 'var(--text-2)',
+                          }}
+                        >
+                          <span>収入</span>
+                          <span className="mono">{yen(b.d.income)}</span>
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            marginTop: 4,
+                            fontSize: 12.5,
+                            color: 'var(--text-2)',
+                          }}
+                        >
+                          <span>支出</span>
+                          <span className="mono">{yen(b.d.expense)}</span>
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            marginTop: 8,
+                            paddingTop: 8,
+                            borderTop: '1px solid var(--border-soft)',
+                            fontWeight: 600,
+                          }}
+                        >
+                          <span>収支</span>
+                          <span
+                            className="mono"
+                            style={{
+                              color:
+                                b.d.balance >= 0
+                                  ? 'var(--pos)'
+                                  : 'var(--neg)',
+                            }}
+                          >
+                            {yenSigned(b.d.balance)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-              {/* YoY Changes Table */}
-              <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600} sx={{ mb: 1 }}>前年同月比カテゴリ増減</Typography>
-              <TableContainer component={Paper}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>カテゴリ</TableCell>
-                      <TableCell align="right">当月</TableCell>
-                      <TableCell align="right">前年同月</TableCell>
-                      <TableCell align="right">差額</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {comparisonQ.data.yoy_change.category_changes.map((row) => (
-                      <TableRow key={row.category_id} hover>
-                        <TableCell>{row.category_name}</TableCell>
-                        <TableCell align="right">{formatCurrency(row.current_amount)}</TableCell>
-                        <TableCell align="right">{formatCurrency(row.previous_amount)}</TableCell>
-                        <TableCell align="right" sx={{ color: row.change_amount > 0 ? 'error.main' : row.change_amount < 0 ? 'success.main' : 'text.primary', fontWeight: 600 }}>
-                          {row.change_amount > 0 ? '+' : ''}{formatCurrency(row.change_amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </>
+                <div className="card" style={{ padding: 16, marginBottom: 20 }}>
+                  <div className="card-h">
+                    <h3>前月比カテゴリ増減</h3>
+                  </div>
+                  <ChangeTable
+                    rows={comparisonQ.data.mom_change.category_changes}
+                    prevLabel="前月"
+                  />
+                </div>
+
+                <div className="card" style={{ padding: 16 }}>
+                  <div className="card-h">
+                    <h3>前年同月比カテゴリ増減</h3>
+                  </div>
+                  <ChangeTable
+                    rows={comparisonQ.data.yoy_change.category_changes}
+                    prevLabel="前年同月"
+                  />
+                </div>
+              </>
+            )
           )}
         </>
       )}
-    </Box>
+    </div>
+  );
+}
+
+interface ChangeRow {
+  category_id: string;
+  category_name: string;
+  current_amount: number;
+  previous_amount: number;
+  change_amount: number;
+}
+
+function ChangeTable({
+  rows,
+  prevLabel,
+}: {
+  rows: ChangeRow[];
+  prevLabel: string;
+}) {
+  if (rows.length === 0) {
+    return (
+      <div
+        style={{
+          textAlign: 'center',
+          color: 'var(--text-3)',
+          padding: '24px 0',
+          fontSize: 13,
+        }}
+      >
+        差分はありません
+      </div>
+    );
+  }
+  return (
+    <table
+      className="tbl"
+      style={{ width: '100%', borderCollapse: 'collapse', marginTop: 4 }}
+    >
+      <thead>
+        <tr
+          style={{
+            color: 'var(--text-4)',
+            fontSize: 11,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+          }}
+        >
+          <th style={{ textAlign: 'left', padding: '8px 8px' }}>カテゴリ</th>
+          <th style={{ textAlign: 'right', padding: '8px 8px' }}>当月</th>
+          <th style={{ textAlign: 'right', padding: '8px 8px' }}>{prevLabel}</th>
+          <th style={{ textAlign: 'right', padding: '8px 8px' }}>差額</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr
+            key={row.category_id}
+            style={{ borderTop: '1px solid var(--border-soft)' }}
+          >
+            <td
+              style={{
+                padding: '10px 8px',
+                color: 'var(--text-1)',
+                fontSize: 13,
+              }}
+            >
+              {row.category_name}
+            </td>
+            <td
+              className="mono"
+              style={{
+                padding: '10px 8px',
+                textAlign: 'right',
+                color: 'var(--text-2)',
+                fontSize: 13,
+              }}
+            >
+              {formatCurrency(row.current_amount)}
+            </td>
+            <td
+              className="mono"
+              style={{
+                padding: '10px 8px',
+                textAlign: 'right',
+                color: 'var(--text-3)',
+                fontSize: 13,
+              }}
+            >
+              {formatCurrency(row.previous_amount)}
+            </td>
+            <td
+              className="mono"
+              style={{
+                padding: '10px 8px',
+                textAlign: 'right',
+                fontWeight: 600,
+                color:
+                  row.change_amount > 0
+                    ? 'var(--neg)'
+                    : row.change_amount < 0
+                      ? 'var(--pos)'
+                      : 'var(--text-1)',
+              }}
+            >
+              {row.change_amount > 0 ? '+' : ''}
+              {formatCurrency(row.change_amount)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

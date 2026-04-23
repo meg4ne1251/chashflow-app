@@ -1,0 +1,53 @@
+/* Shell — App layout */
+.shell-app {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-0);
+  color: var(--text-1);
+}
+
+.shell-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.shell-content {
+  padding: 24px;
+  max-width: 1400px;
+  width: 100%;
+  outline: none;
+}
+
+@media (max-width: 640px) {
+  .shell-content {
+    padding: 16px 14px calc(var(--bottom-tabs-h) + 24px);
+  }
+}
+
+/* Skip link (a11y) */
+.shell-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: -999;
+}
+.shell-skip-link:focus,
+.shell-skip-link:active {
+  left: 8px;
+  top: 8px;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  z-index: 9999;
+  padding: 12px 24px;
+  background-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 8px;
+}

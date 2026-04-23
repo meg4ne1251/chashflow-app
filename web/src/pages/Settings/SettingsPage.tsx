@@ -169,7 +169,12 @@ export default function SettingsPage() {
 
   return (
     <Box>
-      {!isMobile && <Typography variant="h5" fontWeight={700} sx={{ mb: 3 }}>設定</Typography>}
+      <div className="page-h">
+        <div>
+          <h1>設定</h1>
+          <div className="sub">アカウント / バックアップ / 通知</div>
+        </div>
+      </div>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
       {/* Password Change */}

@@ -6,8 +6,9 @@ import {
   Snackbar, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Stack, FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
-import { Add, Edit, Delete, SwapHoriz } from '@mui/icons-material';
+import { Edit, Delete, SwapHoriz } from '@mui/icons-material';
 import { useMobile } from '@/hooks/useMobile';
+import { Icon as UiIcon } from '@/components/Icon';
 import { useForm, Controller } from 'react-hook-form';
 import { transferSchema, type TransferFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
@@ -106,17 +107,23 @@ export default function TransferListPage() {
 
   return (
     <Box>
-      {!isMobile && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h5" fontWeight={700}>振替一覧</Typography>
-          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>新規振替</Button>
-        </Box>
-      )}
-      {isMobile && (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
-          <Button variant="contained" size="small" startIcon={<Add />} onClick={openCreate}>新規振替</Button>
-        </Box>
-      )}
+      <div className="page-h">
+        <div>
+          <h1>振替一覧</h1>
+          <div className="sub">
+            {transfers?.length ?? 0} 件 · 決済手段間の資金移動
+          </div>
+        </div>
+        <div className="actions">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={openCreate}
+          >
+            <UiIcon name="swap" size={14} stroke={2.4} /> 新規振替
+          </button>
+        </div>
+      </div>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
       {isMobile ? (

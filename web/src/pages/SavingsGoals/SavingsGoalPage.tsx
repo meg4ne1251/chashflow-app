@@ -1,33 +1,63 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Box, Typography, Paper, Grid, Card, CardContent, TextField,
-  LinearProgress, IconButton, Dialog, DialogTitle, DialogContent,
-  DialogActions, Button, Stack, FormControl, InputLabel, Select,
-  MenuItem, Alert, CircularProgress, Snackbar, Chip, Icon,
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Snackbar,
+  Stack,
+  TextField,
+  Typography,
 } from '@mui/material';
-import { Add, Edit, Delete, SavingsOutlined, EmojiEvents } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
-import { savingsGoalSchema, savingsDepositSchema, type SavingsGoalFormData, type SavingsDepositFormData } from '@/validation/schemas';
+import dayjs from 'dayjs';
+import { Icon } from '@/components/Icon';
+import DonutRing from '@/components/charts/DonutRing';
+import IconPicker from '@/components/IconPicker';
+import {
+  savingsGoalSchema,
+  savingsDepositSchema,
+  type SavingsGoalFormData,
+  type SavingsDepositFormData,
+} from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
 import { savingsGoalApi } from '@/api/savingsGoals';
 import { accountApi } from '@/api/accounts';
 import { formatCurrency } from '@/utils/format';
 import { EMPTY_NUMBER } from '@/constants';
 import type { SavingsGoalResponse } from '@/types';
-import { useMobile } from '@/hooks/useMobile';
-import IconPicker from '@/components/IconPicker';
+
+type StatusFilter = 'all' | 'active' | 'achieved';
+
+function monthsUntil(deadline: string): number {
+  const t = dayjs(deadline);
+  if (!t.isValid()) return 0;
+  const today = dayjs();
+  const diff = (t.year() - today.year()) * 12 + (t.month() - today.month());
+  return Math.max(1, diff);
+}
 
 export default function SavingsGoalPage() {
-  const isMobile = useMobile();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<SavingsGoalResponse | null>(null);
-  const [depositDialog, setDepositDialog] = useState<SavingsGoalResponse | null>(null);
+  const [depositDialog, setDepositDialog] =
+    useState<SavingsGoalResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [snackMsg, setSnackMsg] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<SavingsGoalResponse | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'achieved'>('all');
+  const [deleteConfirm, setDeleteConfirm] =
+    useState<SavingsGoalResponse | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [depositTargetId, setDepositTargetId] = useState<string | null>(null);
 
   const { data: goals, isLoading } = useQuery({
     queryKey: ['savings-goals'],
@@ -38,29 +68,41 @@ export default function SavingsGoalPage() {
   const { data: accounts } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => accountApi.list(),
-    select: (r) => r.data.filter((a) => !a.deleted_at && a.type !== 'savings'),
+    select: (r) =>
+      r.data.filter((a) => !a.deleted_at && a.type !== 'savings'),
   });
 
   const form = useForm<SavingsGoalFormData>({
     resolver: zodFormResolver(savingsGoalSchema),
     defaultValues: {
-      name: '', target_amount: EMPTY_NUMBER,
-      deadline: '', icon: '', color: '', sort_order: 0,
+      name: '',
+      target_amount: EMPTY_NUMBER,
+      deadline: '',
+      icon: '',
+      color: '',
+      sort_order: 0,
     },
   });
 
   const depositForm = useForm<SavingsDepositFormData>({
     resolver: zodFormResolver(savingsDepositSchema),
     defaultValues: {
-      from_account_id: '', amount: EMPTY_NUMBER, date: '', memo: '',
+      from_account_id: '',
+      amount: EMPTY_NUMBER,
+      date: '',
+      memo: '',
     },
   });
 
   const openCreate = () => {
     setEditing(null);
     form.reset({
-      name: '', target_amount: EMPTY_NUMBER,
-      deadline: '', icon: '', color: '', sort_order: 0,
+      name: '',
+      target_amount: EMPTY_NUMBER,
+      deadline: '',
+      icon: '',
+      color: '',
+      sort_order: 0,
     });
     setDialogOpen(true);
   };
@@ -70,9 +112,9 @@ export default function SavingsGoalPage() {
     form.reset({
       name: g.name,
       target_amount: g.target_amount,
-      deadline: g.deadline || '',
-      icon: g.icon || '',
-      color: g.color || '',
+      deadline: g.deadline ?? '',
+      icon: g.icon ?? '',
+      color: g.color ?? '',
       sort_order: g.sort_order,
     });
     setDialogOpen(true);
@@ -81,9 +123,11 @@ export default function SavingsGoalPage() {
   const openDepositDialog = (g: SavingsGoalResponse) => {
     setDepositDialog(g);
     setDepositTargetId(g.id);
-    const today = new Date().toISOString().slice(0, 10);
     depositForm.reset({
-      from_account_id: '', amount: EMPTY_NUMBER, date: today, memo: '',
+      from_account_id: '',
+      amount: EMPTY_NUMBER,
+      date: dayjs().format('YYYY-MM-DD'),
+      memo: '',
     });
   };
 
@@ -94,14 +138,15 @@ export default function SavingsGoalPage() {
   };
 
   const createMutation = useMutation({
-    mutationFn: (data: SavingsGoalFormData) => savingsGoalApi.create({
-      name: data.name,
-      target_amount: data.target_amount,
-      deadline: data.deadline || undefined,
-      icon: data.icon || undefined,
-      color: data.color || undefined,
-      sort_order: data.sort_order,
-    }),
+    mutationFn: (data: SavingsGoalFormData) =>
+      savingsGoalApi.create({
+        name: data.name,
+        target_amount: data.target_amount,
+        deadline: data.deadline || undefined,
+        icon: data.icon || undefined,
+        color: data.color || undefined,
+        sort_order: data.sort_order,
+      }),
     onSuccess: () => {
       invalidateAll();
       setDialogOpen(false);
@@ -111,15 +156,16 @@ export default function SavingsGoalPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: SavingsGoalFormData) => savingsGoalApi.update(editing!.id, {
-      name: data.name,
-      target_amount: data.target_amount,
-      deadline: data.deadline || undefined,
-      icon: data.icon || undefined,
-      color: data.color || undefined,
-      sort_order: data.sort_order,
-      version: editing!.version,
-    }),
+    mutationFn: (data: SavingsGoalFormData) =>
+      savingsGoalApi.update(editing!.id, {
+        name: data.name,
+        target_amount: data.target_amount,
+        deadline: data.deadline || undefined,
+        icon: data.icon || undefined,
+        color: data.color || undefined,
+        sort_order: data.sort_order,
+        version: editing!.version,
+      }),
     onSuccess: () => {
       invalidateAll();
       setDialogOpen(false);
@@ -127,8 +173,6 @@ export default function SavingsGoalPage() {
     },
     onError: () => setError('貯蓄目標の更新に失敗しました'),
   });
-
-  const [depositTargetId, setDepositTargetId] = useState<string | null>(null);
 
   const depositMutation = useMutation({
     mutationFn: (data: SavingsDepositFormData & { goalId: string }) =>
@@ -147,7 +191,8 @@ export default function SavingsGoalPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (g: SavingsGoalResponse) => savingsGoalApi.delete(g.id, g.version),
+    mutationFn: (g: SavingsGoalResponse) =>
+      savingsGoalApi.delete(g.id, g.version),
     onSuccess: () => {
       invalidateAll();
       setSnackMsg('貯蓄目標を削除しました');
@@ -167,213 +212,397 @@ export default function SavingsGoalPage() {
     depositMutation.mutate({ ...data, goalId: depositTargetId });
   };
 
-  const filteredGoals = goals?.filter((g) => {
-    if (statusFilter === 'all') return true;
-    return g.status === statusFilter;
-  });
+  const filteredGoals = useMemo(() => {
+    return (
+      goals?.filter((g) => {
+        if (statusFilter === 'all') return true;
+        return g.status === statusFilter;
+      }) ?? []
+    );
+  }, [goals, statusFilter]);
 
   const activeGoals = goals?.filter((g) => g.status === 'active') ?? [];
+  const achievedCount = goals?.filter((g) => g.status === 'achieved').length ?? 0;
   const totalTarget = activeGoals.reduce((s, g) => s + g.target_amount, 0);
   const totalCurrent = activeGoals.reduce((s, g) => s + g.current_amount, 0);
-  const totalPct = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
+  const overall = totalTarget > 0 ? totalCurrent / totalTarget : 0;
 
-  const getProgressColor = (rate: number) => {
-    if (rate >= 100) return 'success.main';
-    if (rate >= 60) return 'primary.main';
-    if (rate >= 30) return 'warning.main';
-    return 'error.main';
-  };
-
-  const getProgressBarColor = (rate: number): 'success' | 'primary' | 'warning' | 'error' => {
-    if (rate >= 100) return 'success';
-    if (rate >= 60) return 'primary';
-    if (rate >= 30) return 'warning';
-    return 'error';
-  };
+  const yen = (n: number) => `¥${Math.round(n).toLocaleString('ja-JP')}`;
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', mb: isMobile ? 2 : 3, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 1 : 2 }}>
-        {!isMobile && <Typography variant="h5" fontWeight={700}>貯蓄目標</Typography>}
-        <Stack direction="row" spacing={1} alignItems="center">
-          <FormControl size="small" sx={{ minWidth: 100 }}>
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'achieved')}
-              displayEmpty
+    <div>
+      <div className="page-h">
+        <div>
+          <h1>貯蓄目標</h1>
+          <div className="sub">
+            {goals?.length ?? 0} 件 · 全体進捗 {Math.round(overall * 100)}%
+          </div>
+        </div>
+        <div className="actions">
+          {(['all', 'active', 'achieved'] as const).map((f) => (
+            <button
+              type="button"
+              key={f}
+              className={'filter-pill' + (statusFilter === f ? ' active' : '')}
+              onClick={() => setStatusFilter(f)}
             >
-              <MenuItem value="all">すべて</MenuItem>
-              <MenuItem value="active">進行中</MenuItem>
-              <MenuItem value="achieved">達成済み</MenuItem>
-            </Select>
-          </FormControl>
-          <Button variant="contained" size={isMobile ? 'small' : 'medium'} startIcon={<Add />} onClick={openCreate}>追加</Button>
-        </Stack>
-      </Box>
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+              {f === 'all' ? 'すべて' : f === 'active' ? '進行中' : '達成済み'}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={openCreate}
+          >
+            <Icon name="plus" size={14} stroke={2.4} /> 目標を追加
+          </button>
+        </div>
+      </div>
 
-      {/* Summary */}
-      {activeGoals.length > 0 && (
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Typography variant="body2" color="text.secondary">目標総額</Typography>
-              <Typography variant="h5" fontWeight={700}>{formatCurrency(totalTarget)}</Typography>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Typography variant="body2" color="text.secondary">現在の積立総額</Typography>
-              <Typography variant="h5" fontWeight={700} color="primary.main">{formatCurrency(totalCurrent)}</Typography>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Typography variant="body2" color="text.secondary">全体進捗</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <LinearProgress
-                  variant="determinate"
-                  value={Math.min(totalPct, 100)}
-                  color={getProgressBarColor(totalPct)}
-                  sx={{ flex: 1, height: 10, borderRadius: 5 }}
-                />
-                <Typography fontWeight={600}>{totalPct.toFixed(1)}%</Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </Paper>
+      {error && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          onClose={() => setError(null)}
+        >
+          {error}
+        </Alert>
       )}
 
-      {isLoading ? <CircularProgress /> : filteredGoals?.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <SavingsOutlined sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-          <Typography color="text.secondary">
-            {statusFilter === 'all' ? '貯蓄目標がありません' : statusFilter === 'active' ? '進行中の目標がありません' : '達成済みの目標がありません'}
-          </Typography>
+      {activeGoals.length > 0 && (
+        <div className="hero" style={{ padding: '20px 24px' }}>
+          <div className="hero-top">
+            <div>
+              <div className="hero-label">現在の積立総額</div>
+              <div className="hero-amt">
+                <span className="yen">¥</span>
+                {totalCurrent.toLocaleString('ja-JP')}
+                <span
+                  style={{
+                    fontSize: 16,
+                    color: 'var(--text-3)',
+                    fontWeight: 400,
+                    fontFamily: 'var(--font-sans)',
+                    marginLeft: 8,
+                  }}
+                >
+                  / 目標 {yen(totalTarget)}
+                </span>
+              </div>
+              <div className="hero-sub">
+                <span>達成 {achievedCount} 件 · 進行中 {activeGoals.length} 件</span>
+              </div>
+            </div>
+          </div>
+          <div className="pace-wrap">
+            <div className="bar">
+              <i style={{ width: `${Math.min(overall, 1) * 100}%` }} />
+            </div>
+            <div className="pace-row" style={{ marginTop: 14 }}>
+              <span className="muted">¥0</span>
+              <span className="mono dim" style={{ fontSize: 11 }}>
+                {Math.round(overall * 100)}% 達成
+              </span>
+              <span className="muted" style={{ textAlign: 'right' }}>
+                {yen(totalTarget)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ height: 16 }} />
+
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+          <CircularProgress size={28} />
+        </Box>
+      ) : filteredGoals.length === 0 ? (
+        <div
+          className="card"
+          style={{ padding: 32, textAlign: 'center' }}
+        >
+          <div
+            style={{
+              color: 'var(--text-3)',
+              marginBottom: 12,
+              fontSize: 13,
+            }}
+          >
+            {statusFilter === 'all'
+              ? '貯蓄目標がありません'
+              : statusFilter === 'active'
+                ? '進行中の目標がありません'
+                : '達成済みの目標がありません'}
+          </div>
           {statusFilter !== 'achieved' && (
-            <Button variant="outlined" sx={{ mt: 2 }} onClick={openCreate}>最初の目標を作成する</Button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={openCreate}
+            >
+              <Icon name="plus" size={14} stroke={2.4} /> 最初の目標を作成
+            </button>
           )}
-        </Paper>
+        </div>
       ) : (
-        <Grid container spacing={2}>
-          {filteredGoals?.map((g) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={g.id}>
-              <Card variant="outlined" sx={{ position: 'relative', overflow: 'visible' }}>
-                {g.status === 'achieved' && (
-                  <Chip
-                    icon={<EmojiEvents sx={{ fontSize: 16 }} />}
-                    label="達成"
-                    color="success"
-                    size="small"
-                    sx={{ position: 'absolute', top: -10, right: 12 }}
+        <div className="grid-12">
+          {filteredGoals.map((g) => {
+            const pct = g.progress_rate / 100;
+            const monthly =
+              g.deadline && g.status === 'active'
+                ? Math.ceil(
+                    g.remaining_amount / Math.max(1, monthsUntil(g.deadline)),
+                  )
+                : 0;
+            const color = g.color || 'var(--accent)';
+            const isAchieved = g.status === 'achieved';
+            return (
+              <div className="col-6" key={g.id}>
+                <div className="card goal-card">
+                  <div className="goal-h">
+                    <div
+                      className="goal-icon"
+                      style={
+                        { '--goal-color': color } as React.CSSProperties
+                      }
+                    >
+                      {g.icon ? (
+                        <span
+                          className="material-icons"
+                          aria-hidden="true"
+                          style={{ fontSize: 20, color }}
+                        >
+                          {g.icon}
+                        </span>
+                      ) : (
+                        <Icon name="piggy" size={20} />
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="goal-name">{g.name}</div>
+                      <div className="goal-due">
+                        {g.deadline
+                          ? `期日 ${g.deadline} まで残り ${monthsUntil(g.deadline)} ヶ月`
+                          : '期日なし'}
+                      </div>
+                    </div>
+                    {isAchieved ? (
+                      <span className="chip chip-pos">
+                        <Icon name="check" size={11} /> 達成
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => openDepositDialog(g)}
+                      >
+                        <Icon name="plus" size={12} /> 積立
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      aria-label="編集"
+                      onClick={() => openEdit(g)}
+                    >
+                      <Icon name="edit" size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      aria-label="削除"
+                      onClick={() => setDeleteConfirm(g)}
+                    >
+                      <Icon name="trash" size={14} />
+                    </button>
+                  </div>
+
+                  <div className="goal-ring">
+                    <DonutRing
+                      value={pct}
+                      size={96}
+                      stroke={10}
+                      color={color}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="goal-stats">
+                        <div className="cur">
+                          {yen(g.current_amount)}
+                        </div>
+                        <div className="tgt">
+                          / {yen(g.target_amount)} 目標
+                        </div>
+                      </div>
+                      <div className="bar" style={{ marginTop: 12 }}>
+                        <i
+                          style={{
+                            width: `${Math.min(pct, 1) * 100}%`,
+                            background: color,
+                          }}
+                        />
+                      </div>
+                      <div
+                        className="goal-meta"
+                        style={{
+                          marginTop: 8,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <span>
+                          残り{' '}
+                          <span className="mono">
+                            {yen(g.remaining_amount)}
+                          </span>
+                        </span>
+                        {monthly > 0 && (
+                          <span className="chip chip-info">
+                            月あたり推奨 {yen(monthly)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editing ? '貯蓄目標の編集' : '貯蓄目標の作成'}
+        </DialogTitle>
+        <DialogContent>
+          <Box
+            component="form"
+            id="savings-goal-form"
+            onSubmit={form.handleSubmit(onSubmit)}
+            noValidate
+            sx={{ pt: 1 }}
+          >
+            <Stack spacing={2}>
+              <TextField
+                fullWidth
+                label="目標名"
+                {...form.register('name')}
+                error={!!form.formState.errors.name}
+                helperText={form.formState.errors.name?.message}
+                placeholder="例: 旅行資金、緊急資金"
+              />
+              <TextField
+                fullWidth
+                label="目標額"
+                type="number"
+                inputProps={{ step: 1, min: 1 }}
+                {...form.register('target_amount', { valueAsNumber: true })}
+                error={!!form.formState.errors.target_amount}
+                helperText={form.formState.errors.target_amount?.message}
+              />
+              <TextField
+                fullWidth
+                label="期限"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                {...form.register('deadline')}
+              />
+              <Controller
+                name="icon"
+                control={form.control}
+                render={({ field }) => (
+                  <IconPicker
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    error={!!form.formState.errors.icon}
+                    helperText={form.formState.errors.icon?.message}
                   />
                 )}
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {g.icon ? (
-                        <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: g.color || 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Icon sx={{ color: '#fff', fontSize: 18 }}>{g.icon}</Icon>
-                        </Box>
-                      ) : g.color ? (
-                        <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: g.color }} />
-                      ) : null}
-                      <Typography fontWeight={600}>{g.name}</Typography>
-                    </Box>
-                    <Box>
-                      {g.status === 'active' && (
-                        <Button size="small" variant="text" onClick={() => openDepositDialog(g)} sx={{ minWidth: 'auto', px: 1 }}>
-                          積立
-                        </Button>
-                      )}
-                      <IconButton size="small" onClick={() => openEdit(g)}><Edit fontSize="small" /></IconButton>
-                      <IconButton size="small" color="error" onClick={() => setDeleteConfirm(g)}><Delete fontSize="small" /></IconButton>
-                    </Box>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {formatCurrency(g.current_amount)} / {formatCurrency(g.target_amount)}
-                    </Typography>
-                    <Typography variant="body2" fontWeight={600} color={getProgressColor(g.progress_rate)}>
-                      {g.progress_rate.toFixed(1)}%
-                    </Typography>
-                  </Box>
-
-                  <LinearProgress
-                    variant="determinate"
-                    value={Math.min(g.progress_rate, 100)}
-                    color={getProgressBarColor(g.progress_rate)}
-                    sx={{ height: 8, borderRadius: 4, mb: 1 }}
-                  />
-
-                  <Stack spacing={0.5}>
-                    <Typography variant="caption" color="text.secondary">
-                      残り {formatCurrency(g.remaining_amount)}
-                    </Typography>
-                    {g.deadline && (
-                      <Typography variant="caption" color="text.secondary">
-                        期限: {g.deadline}
-                      </Typography>
-                    )}
-                    {g.monthly_recommended != null && g.status === 'active' && (
-                      <Typography variant="caption" color="info.main">
-                        月あたり推奨積立額: {formatCurrency(g.monthly_recommended)}
-                      </Typography>
-                    )}
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-
-      {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
-        <DialogTitle>{editing ? '貯蓄目標の編集' : '貯蓄目標の作成'}</DialogTitle>
-        <DialogContent>
-          <Box component="form" id="savings-goal-form" onSubmit={form.handleSubmit(onSubmit)} noValidate sx={{ pt: 1 }}>
-            <Stack spacing={2}>
-              <TextField fullWidth label="目標名" {...form.register('name')} error={!!form.formState.errors.name} helperText={form.formState.errors.name?.message} placeholder="例: 旅行資金、緊急資金" />
-              <TextField fullWidth label="目標額" type="number" inputProps={{ step: 1, min: 1 }} {...form.register('target_amount', { valueAsNumber: true })} error={!!form.formState.errors.target_amount} helperText={form.formState.errors.target_amount?.message} />
-              <TextField fullWidth label="期限" type="date" InputLabelProps={{ shrink: true }} {...form.register('deadline')} />
-              <Controller name="icon" control={form.control} render={({ field }) => (
-                <IconPicker value={field.value ?? ''} onChange={field.onChange} error={!!form.formState.errors.icon} helperText={form.formState.errors.icon?.message} />
-              )} />
-              <TextField fullWidth label="カラー" type="color" InputLabelProps={{ shrink: true }} {...form.register('color')} sx={{ '& input': { height: 40 } }} />
+              />
+              <TextField
+                fullWidth
+                label="カラー"
+                type="color"
+                InputLabelProps={{ shrink: true }}
+                {...form.register('color')}
+                sx={{ '& input': { height: 40 } }}
+              />
             </Stack>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>キャンセル</Button>
-          <Button type="submit" form="savings-goal-form" variant="contained">{editing ? '更新' : '作成'}</Button>
+          <Button type="submit" form="savings-goal-form" variant="contained">
+            {editing ? '更新' : '作成'}
+          </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Deposit Dialog */}
-      <Dialog open={!!depositDialog} onClose={() => setDepositDialog(null)} maxWidth="xs" fullWidth fullScreen={isMobile}>
+      <Dialog
+        open={!!depositDialog}
+        onClose={() => setDepositDialog(null)}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle>積立</DialogTitle>
         <DialogContent>
-          <Box component="form" id="deposit-form" onSubmit={depositForm.handleSubmit(onDeposit)} noValidate sx={{ pt: 1 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Box
+            component="form"
+            id="deposit-form"
+            onSubmit={depositForm.handleSubmit(onDeposit)}
+            noValidate
+            sx={{ pt: 1 }}
+          >
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: 2 }}
+            >
               「{depositDialog?.name}」に積立します
             </Typography>
             {depositDialog && (
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-                目標額: {formatCurrency(depositDialog.target_amount)}　現在: {formatCurrency(depositDialog.current_amount)}　残り: {formatCurrency(depositDialog.remaining_amount)}
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mb: 2, display: 'block' }}
+              >
+                目標額: {formatCurrency(depositDialog.target_amount)}　現在:{' '}
+                {formatCurrency(depositDialog.current_amount)}　残り:{' '}
+                {formatCurrency(depositDialog.remaining_amount)}
               </Typography>
             )}
             <Stack spacing={2}>
-              <Controller name="from_account_id" control={depositForm.control} render={({ field }) => (
-                <FormControl fullWidth error={!!depositForm.formState.errors.from_account_id}>
-                  <InputLabel>出金元決済手段</InputLabel>
-                  <Select {...field} value={field.value ?? ''} label="出金元決済手段">
-                    {accounts?.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}（{formatCurrency(a.balance)}）</MenuItem>)}
-                  </Select>
-                  {depositForm.formState.errors.from_account_id && (
-                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
-                      {depositForm.formState.errors.from_account_id.message}
-                    </Typography>
-                  )}
-                </FormControl>
-              )} />
+              <Controller
+                name="from_account_id"
+                control={depositForm.control}
+                render={({ field }) => (
+                  <FormControl
+                    fullWidth
+                    error={!!depositForm.formState.errors.from_account_id}
+                  >
+                    <InputLabel>出金元決済手段</InputLabel>
+                    <Select
+                      {...field}
+                      value={field.value ?? ''}
+                      label="出金元決済手段"
+                    >
+                      {accounts?.map((a) => (
+                        <MenuItem key={a.id} value={a.id}>
+                          {a.name}（{formatCurrency(a.balance)}）
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+              />
               <TextField
                 fullWidth
                 label="積立額"
@@ -383,33 +612,77 @@ export default function SavingsGoalPage() {
                 error={!!depositForm.formState.errors.amount}
                 helperText={depositForm.formState.errors.amount?.message}
               />
-              <TextField fullWidth label="日付" type="date" InputLabelProps={{ shrink: true }} {...depositForm.register('date')} />
-              <TextField fullWidth label="メモ（任意）" {...depositForm.register('memo')} multiline rows={2} />
+              <TextField
+                fullWidth
+                label="日付"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                {...depositForm.register('date')}
+              />
+              <TextField
+                fullWidth
+                label="メモ（任意）"
+                {...depositForm.register('memo')}
+                multiline
+                rows={2}
+              />
             </Stack>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDepositDialog(null)}>キャンセル</Button>
-          <Button type="submit" form="deposit-form" variant="contained" disabled={depositMutation.isPending}>
-            {depositMutation.isPending ? <CircularProgress size={20} /> : '積立実行'}
+          <Button
+            type="submit"
+            form="deposit-form"
+            variant="contained"
+            disabled={depositMutation.isPending}
+          >
+            {depositMutation.isPending ? (
+              <CircularProgress size={20} />
+            ) : (
+              '積立実行'
+            )}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation */}
-      <Dialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)}>
+      <Dialog
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+      >
         <DialogTitle>貯蓄目標の削除</DialogTitle>
         <DialogContent>
           <Typography>「{deleteConfirm?.name}」を削除しますか？</Typography>
-          <Typography variant="caption" color="text.secondary">紐付く貯蓄口座も削除されます。</Typography>
+          <Typography variant="caption" color="text.secondary">
+            紐付く貯蓄口座も削除されます。
+          </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteConfirm(null)}>キャンセル</Button>
-          <Button color="error" variant="contained" onClick={() => { if (deleteConfirm) { deleteMutation.mutate(deleteConfirm); setDeleteConfirm(null); } }}>削除</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => {
+              if (deleteConfirm) {
+                deleteMutation.mutate(deleteConfirm);
+                setDeleteConfirm(null);
+              }
+            }}
+          >
+            削除
+          </Button>
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={!!snackMsg} autoHideDuration={3000} onClose={() => setSnackMsg(null)} message={snackMsg} sx={isMobile ? { bottom: 72 } : undefined} />
-    </Box>
+      <Snackbar
+        open={!!snackMsg}
+        autoHideDuration={3000}
+        onClose={() => setSnackMsg(null)}
+        message={snackMsg}
+        sx={{
+          bottom: { xs: 'calc(var(--bottom-tabs-h) + 16px)', sm: 24 },
+        }}
+      />
+    </div>
   );
 }

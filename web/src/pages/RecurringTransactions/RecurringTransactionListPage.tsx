@@ -7,8 +7,9 @@ import {
   TextField, Stack, FormControl, InputLabel, Select, MenuItem,
   Chip, Switch, FormControlLabel,
 } from '@mui/material';
-import { Add, Edit, Delete } from '@mui/icons-material';
+import { Edit, Delete } from '@mui/icons-material';
 import { useMobile } from '@/hooks/useMobile';
+import { Icon as UiIcon } from '@/components/Icon';
 import { useForm, Controller } from 'react-hook-form';
 import { recurringTransactionSchema, type RecurringTransactionFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
@@ -109,17 +110,23 @@ export default function RecurringTransactionListPage() {
 
   return (
     <Box>
-      {!isMobile && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h5" fontWeight={700}>定期取引</Typography>
-          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>新規定期取引</Button>
-        </Box>
-      )}
-      {isMobile && (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
-          <Button variant="contained" size="small" startIcon={<Add />} onClick={openCreate}>追加</Button>
-        </Box>
-      )}
+      <div className="page-h">
+        <div>
+          <h1>定期取引</h1>
+          <div className="sub">
+            {items?.length ?? 0} 件 · 自動で記録される取引ルール
+          </div>
+        </div>
+        <div className="actions">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={openCreate}
+          >
+            <UiIcon name="plus" size={14} stroke={2.4} /> 定期取引追加
+          </button>
+        </div>
+      </div>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
       {isMobile ? (

@@ -1,0 +1,49 @@
+/* Shell — Bottom tabs (mobile only) */
+.shell-bottom-tabs {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .shell-bottom-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bottom-tabs-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid var(--border-soft);
+    z-index: 25;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .shell-bottom-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    color: var(--text-3);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 6px 2px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .shell-bottom-tab.active { color: var(--accent-strong); }
+  .shell-bottom-tab-lbl { line-height: 1; }
+  .shell-bottom-tab-big {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    display: grid;
+    place-items: center;
+    margin-bottom: 2px;
+    box-shadow: 0 6px 16px -4px oklch(0.74 0.14 155 / 0.55);
+  }
+}

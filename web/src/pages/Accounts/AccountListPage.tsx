@@ -7,8 +7,9 @@ import {
   InputLabel, Select, MenuItem, Stack, CircularProgress, Chip,
   Tooltip,
 } from '@mui/material';
-import { Add, Edit, Delete, AccountBalance } from '@mui/icons-material';
+import { Edit, Delete, AccountBalance } from '@mui/icons-material';
 import { useMobile } from '@/hooks/useMobile';
+import { Icon as UiIcon } from '@/components/Icon';
 import { useForm, Controller } from 'react-hook-form';
 import { accountSchema, type AccountFormData } from '@/validation/schemas';
 import { zodFormResolver } from '@/validation/resolver';
@@ -128,17 +129,23 @@ export default function AccountListPage() {
 
   return (
     <Box>
-      {!isMobile && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h5" fontWeight={700}>決済手段管理</Typography>
-          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>追加</Button>
-        </Box>
-      )}
-      {isMobile && (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
-          <Button variant="contained" size="small" startIcon={<Add />} onClick={openCreate}>追加</Button>
-        </Box>
-      )}
+      <div className="page-h">
+        <div>
+          <h1>決済手段管理</h1>
+          <div className="sub">
+            {accounts?.length ?? 0} 件 · 現金 / 銀行 / クレジットカード
+          </div>
+        </div>
+        <div className="actions">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={openCreate}
+          >
+            <UiIcon name="plus" size={14} stroke={2.4} /> 決済手段追加
+          </button>
+        </div>
+      </div>
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 

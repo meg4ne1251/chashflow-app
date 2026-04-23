@@ -61,12 +61,36 @@ export default function LoginPage() {
     >
       <Card sx={{ maxWidth: 400, width: '100%' }}>
         <CardContent sx={{ p: 4 }}>
-          <Typography variant="h4" align="center" fontWeight={700} gutterBottom>
-            家計簿
-          </Typography>
-          <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 3 }}>
-            ログイン
-          </Typography>
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Box
+              sx={{
+                width: 56,
+                height: 56,
+                borderRadius: '14px',
+                background:
+                  'linear-gradient(135deg, var(--accent), var(--accent-strong))',
+                color: 'var(--accent-ink)',
+                display: 'inline-grid',
+                placeItems: 'center',
+                mb: 1.5,
+                fontSize: 22,
+                fontWeight: 700,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              ¥
+            </Box>
+            <Typography
+              variant="h5"
+              fontWeight={600}
+              sx={{ letterSpacing: '-0.02em' }}
+            >
+              家計簿
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              ログインして続行
+            </Typography>
+          </Box>
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>

@@ -25,7 +25,6 @@ import {
 import dayjs from 'dayjs';
 import 'dayjs/locale/ja';
 import { useNotificationHistory } from '@/hooks/useNotificationHistory';
-import { useMobile } from '@/hooks/useMobile';
 import type { NotificationType } from '@/types';
 import { DEFAULT_PAGE_SIZE } from '@/constants';
 
@@ -39,7 +38,6 @@ const TYPE_LABELS: Record<NotificationType, string> = {
 };
 
 export default function NotificationHistoryPage() {
-  const isMobile = useMobile();
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [readFilter, setReadFilter] = useState<string>('');
@@ -57,16 +55,22 @@ export default function NotificationHistoryPage() {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent={isMobile ? 'flex-end' : 'space-between'} alignItems="center" mb={2}>
-        {!isMobile && <Typography variant="h5" fontWeight={600}>通知履歴</Typography>}
-        <Button
-          startIcon={<MarkAllReadIcon />}
-          onClick={() => markAllAsRead()}
-          size="small"
-        >
-          すべて既読にする
-        </Button>
-      </Stack>
+      <div className="page-h">
+        <div>
+          <h1>通知履歴</h1>
+          <div className="sub">予算アラート / リマインダー</div>
+        </div>
+        <div className="actions">
+          <Button
+            startIcon={<MarkAllReadIcon />}
+            onClick={() => markAllAsRead()}
+            size="small"
+            variant="outlined"
+          >
+            すべて既読にする
+          </Button>
+        </div>
+      </div>
 
       <Stack direction="row" spacing={2} mb={2}>
         <FormControl size="small" sx={{ minWidth: 160 }}>

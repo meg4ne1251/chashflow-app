@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import { AxiosError } from 'axios';
 import App from './App';
+import '@/theme/global.css';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useAppTheme } from '@/theme/useAppTheme';
 import { QUERY_STALE_TIME_MS } from '@/constants';

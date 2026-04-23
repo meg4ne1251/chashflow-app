@@ -1,76 +1,98 @@
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Paper, Grid } from '@mui/material';
-import {
-  SwapHoriz as SwapHorizIcon,
-  Category as CategoryIcon,
-  AccountBalance as AccountBalanceIcon,
-  Label as LabelIcon,
-  BookmarkBorder as TemplateIcon,
-  Repeat as RepeatIcon,
-  Savings as SavingsIcon,
-  SavingsOutlined as SavingsGoalIcon,
-  Settings as SettingsIcon,
-  Notifications as NotificationsIcon,
-} from '@mui/icons-material';
+import { Icon, type IconName } from '@/components/Icon';
 
-const menuItems = [
-  { label: '振替', path: '/transfers', icon: <SwapHorizIcon />, color: '#1976d2' },
-  { label: 'カテゴリ', path: '/categories', icon: <CategoryIcon />, color: '#9c27b0' },
-  { label: '決済手段', path: '/accounts', icon: <AccountBalanceIcon />, color: '#2e7d32' },
-  { label: 'タグ', path: '/tags', icon: <LabelIcon />, color: '#ed6c02' },
-  { label: 'テンプレート', path: '/templates', icon: <TemplateIcon />, color: '#0288d1' },
-  { label: '定期取引', path: '/recurring', icon: <RepeatIcon />, color: '#7b1fa2' },
-  { label: '予算', path: '/budgets', icon: <SavingsIcon />, color: '#c62828' },
-  { label: '貯蓄目標', path: '/savings-goals', icon: <SavingsGoalIcon />, color: '#2e7d32' },
-  { label: '設定', path: '/settings', icon: <SettingsIcon />, color: '#546e7a' },
-  { label: '通知履歴', path: '/notifications', icon: <NotificationsIcon />, color: '#f57c00' },
+interface MenuItem {
+  label: string;
+  path: string;
+  icon: IconName;
+  hue: string;
+}
+
+const menuItems: MenuItem[] = [
+  { label: '振替', path: '/transfers', icon: 'swap', hue: 'oklch(0.72 0.13 240)' },
+  { label: 'カテゴリ', path: '/categories', icon: 'folder', hue: 'oklch(0.72 0.13 320)' },
+  { label: '決済手段', path: '/accounts', icon: 'card', hue: 'oklch(0.72 0.13 155)' },
+  { label: 'タグ', path: '/tags', icon: 'tag', hue: 'oklch(0.72 0.13 70)' },
+  { label: 'テンプレート', path: '/templates', icon: 'bookmark', hue: 'oklch(0.72 0.13 200)' },
+  { label: '定期取引', path: '/recurring', icon: 'repeat', hue: 'oklch(0.72 0.13 290)' },
+  { label: '予算', path: '/budgets', icon: 'wallet', hue: 'oklch(0.72 0.16 25)' },
+  { label: '貯蓄目標', path: '/savings-goals', icon: 'piggy', hue: 'oklch(0.72 0.13 155)' },
+  { label: '通知履歴', path: '/notifications', icon: 'bell', hue: 'oklch(0.72 0.14 75)' },
+  { label: '設定', path: '/settings', icon: 'settings', hue: 'oklch(0.72 0.01 250)' },
 ];
 
 export default function MoreMenuPage() {
   const navigate = useNavigate();
 
   return (
-    <Box>
-      <Grid container spacing={1.5}>
+    <div>
+      <div className="page-h">
+        <div>
+          <h1>メニュー</h1>
+          <div className="sub">マスタ管理 / 分析 / 設定</div>
+        </div>
+      </div>
+
+      <div
+        className="card"
+        style={{
+          padding: 12,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+          gap: 8,
+        }}
+      >
         {menuItems.map((item) => (
-          <Grid size={{ xs: 4 }} key={item.path}>
-            <Paper
-              onClick={() => navigate(item.path)}
-              sx={{
-                p: 2,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 0.5,
-                cursor: 'pointer',
-                borderRadius: 2,
-                transition: 'background-color 0.15s',
-                '&:active': { bgcolor: 'action.selected' },
+          <button
+            type="button"
+            key={item.path}
+            onClick={() => navigate(item.path)}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--border-soft)',
+              borderRadius: 12,
+              padding: '14px 8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
+              cursor: 'pointer',
+              color: 'var(--text-1)',
+              fontFamily: 'inherit',
+              transition: 'background 0.15s, border-color 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <span
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                display: 'grid',
+                placeItems: 'center',
+                background: `color-mix(in oklch, ${item.hue} 18%, transparent)`,
+                color: item.hue,
               }}
-              elevation={0}
-              variant="outlined"
             >
-              <Box
-                sx={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: `${item.color}18`,
-                  color: item.color,
-                }}
-              >
-                {item.icon}
-              </Box>
-              <Typography variant="caption" textAlign="center" lineHeight={1.2}>
-                {item.label}
-              </Typography>
-            </Paper>
-          </Grid>
+              <Icon name={item.icon} size={20} />
+            </span>
+            <span
+              style={{
+                fontSize: 12,
+                lineHeight: 1.2,
+                color: 'var(--text-2)',
+              }}
+            >
+              {item.label}
+            </span>
+          </button>
         ))}
-      </Grid>
-    </Box>
+      </div>
+    </div>
   );
 }

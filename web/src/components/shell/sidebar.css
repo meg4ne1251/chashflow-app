@@ -1,0 +1,149 @@
+/* Shell — Sidebar (desktop) */
+.shell-sidebar {
+  background: var(--bg-1);
+  border-right: 1px solid var(--border-soft);
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.shell-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px 8px;
+}
+.shell-brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), oklch(0.78 0.13 195));
+  display: grid;
+  place-items: center;
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-size: 14px;
+  font-family: var(--font-mono);
+}
+.shell-brand-name {
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+}
+.shell-brand-sub {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: -2px;
+}
+
+.shell-nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.shell-nav-section-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-4);
+  padding: 10px 10px 6px;
+}
+.shell-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--text-2);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+.shell-nav-item:hover {
+  background: var(--bg-2);
+  color: var(--text-1);
+}
+.shell-nav-item.active {
+  background: var(--bg-3);
+  color: var(--text-1);
+  box-shadow: inset 0 0 0 1px var(--border-soft);
+}
+.shell-nav-item .ico {
+  width: 16px;
+  height: 16px;
+  opacity: 0.85;
+}
+.shell-nav-badge {
+  margin-left: auto;
+  background: var(--neg-soft);
+  color: var(--neg);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.shell-cmd-hint {
+  background: var(--bg-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.15s;
+}
+.shell-cmd-hint:hover {
+  background: var(--bg-3);
+  color: var(--text-2);
+}
+.shell-cmd-hint-kbd {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+}
+
+/* Tablet (641 — 1100px): icon-only collapsed */
+@media (max-width: 1100px) {
+  .shell-sidebar {
+    width: var(--sidebar-w-collapsed);
+    padding: 14px 8px;
+  }
+  .shell-brand {
+    padding: 2px 4px 10px;
+    justify-content: center;
+  }
+  .shell-brand-meta { display: none; }
+  .shell-nav-item {
+    justify-content: center;
+    padding: 10px 6px;
+  }
+  .shell-nav-label,
+  .shell-nav-badge,
+  .shell-nav-section-label,
+  .shell-cmd-hint-label,
+  .shell-cmd-hint-kbd { display: none; }
+  .shell-cmd-hint {
+    padding: 8px;
+    justify-content: center;
+  }
+}
+
+/* Mobile (≤640px): hide sidebar entirely */
+@media (max-width: 640px) {
+  .shell-sidebar { display: none; }
+}

@@ -1,0 +1,115 @@
+/* Shell — Topbar */
+.shell-topbar {
+  position: sticky;
+  top: 0;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  z-index: 10;
+}
+
+.shell-crumb {
+  color: var(--text-3);
+  font-size: 13px;
+}
+.shell-crumb b {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.shell-topbar-spacer { flex: 1; }
+
+.shell-searchbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-soft);
+  padding: 7px 12px;
+  border-radius: 10px;
+  width: 320px;
+  font-size: 13px;
+  color: var(--text-3);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.15s;
+}
+.shell-searchbar:hover { background: var(--bg-3); }
+.shell-searchbar-label { flex: 1; }
+.shell-searchbar-kbd {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+}
+
+.shell-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-2);
+  display: grid;
+  place-items: center;
+  position: relative;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.shell-icon-btn:hover {
+  background: var(--bg-2);
+  color: var(--text-1);
+}
+.shell-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shell-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, oklch(0.65 0.13 25), oklch(0.65 0.13 320));
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-1);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.shell-topbar-mobile-menu { display: none; }
+
+/* Tablet */
+@media (max-width: 1100px) {
+  .shell-searchbar { width: 200px; }
+}
+
+/* Mobile (≤640px) */
+@media (max-width: 640px) {
+  .shell-topbar {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+  .shell-crumb { font-size: 14px; }
+  .shell-crumb b { font-size: 15px; }
+  .shell-topbar-mobile-menu { display: grid; }
+  .shell-topbar-settings { display: none; }
+  .shell-searchbar {
+    width: auto;
+    flex: 0 0 auto;
+    padding: 7px 9px;
+  }
+  .shell-searchbar-label,
+  .shell-searchbar-kbd { display: none; }
+  .shell-avatar { display: none; }
+}

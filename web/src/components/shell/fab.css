@@ -1,0 +1,131 @@
+/* Shell — Floating Action Button + quick-add popover */
+.shell-fab {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 20;
+}
+
+.shell-fab-main {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow:
+    0 12px 32px -8px oklch(0.74 0.14 155 / 0.6),
+    0 0 0 1px oklch(1 0 0 / 0.08) inset;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.15s;
+  font-family: inherit;
+}
+.shell-fab-main:hover {
+  transform: scale(1.05);
+}
+
+.shell-fab-quick {
+  position: absolute;
+  right: 0;
+  bottom: 72px;
+  width: 280px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: 0 24px 60px -20px oklch(0 0 0 / 0.6);
+}
+.shell-fab-quick-h {
+  font-size: 11px;
+  color: var(--text-3);
+  padding: 6px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.shell-fab-empty {
+  padding: 12px 8px;
+  font-size: 12px;
+  color: var(--text-4);
+  text-align: center;
+}
+.shell-fab-quick-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 9px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-2);
+}
+.shell-fab-quick-item:hover {
+  background: var(--bg-3);
+  color: var(--text-1);
+}
+.shell-fab-quick-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--bg-3);
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+  flex-shrink: 0;
+}
+.shell-fab-quick-meta {
+  flex: 1;
+  min-width: 0;
+}
+.shell-fab-quick-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shell-fab-quick-sub {
+  font-size: 11px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shell-fab-quick-amt {
+  font-size: 13px;
+  color: var(--text-1);
+  flex-shrink: 0;
+}
+.shell-fab-quick-divider {
+  border-top: 1px solid var(--border-soft);
+  margin: 6px 0;
+  padding-top: 0;
+}
+
+@media (max-width: 640px) {
+  .shell-fab {
+    right: 16px;
+    bottom: 84px;
+  }
+  .shell-fab-main {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+  }
+  .shell-fab-quick {
+    right: 0;
+    bottom: 64px;
+    width: min(280px, calc(100vw - 32px));
+  }
+  /* Hide FAB on mobile — bottom-tabs has a + button */
+  .shell-fab { display: none; }
+}
