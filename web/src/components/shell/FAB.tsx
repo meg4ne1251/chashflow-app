@@ -17,7 +17,8 @@ export default function FAB() {
   // Top 4 most-used templates with an amount set
   const { data: templates } = useQuery({
     queryKey: ['templates'],
-    queryFn: () => templateApi.list().then((r) => r.data),
+    queryFn: () => templateApi.list(),
+    select: (r) => r.data,
     staleTime: 60_000,
   });
 

@@ -40,14 +40,16 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
   const { data: templates } = useQuery({
     queryKey: ['templates'],
-    queryFn: () => templateApi.list().then((r) => r.data),
+    queryFn: () => templateApi.list(),
+    select: (r) => r.data,
     staleTime: 60_000,
     enabled: open,
   });
 
   const { data: recentTransactionsPage } = useQuery({
     queryKey: ['transactions', { size: 50, sort: '-date' }],
-    queryFn: () => transactionApi.list({ size: 50, sort: '-date' }).then((r) => r.data),
+    queryFn: () => transactionApi.list({ size: 50, sort: '-date' }),
+    select: (r) => r.data,
     staleTime: 30_000,
     enabled: open && q.length > 0,
   });
