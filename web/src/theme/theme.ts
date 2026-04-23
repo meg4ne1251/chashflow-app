@@ -2,8 +2,11 @@ import { createTheme, type ThemeOptions } from '@mui/material/styles';
 
 /**
  * Design tokens — kept in sync with src/theme/global.css.
- * The CSS variables in global.css are the source of truth for custom CSS;
- * these constants mirror them for MUI palette / component overrides.
+ * The CSS variables in global.css are the source of truth for custom CSS
+ * (they use oklch()). These constants mirror them in sRGB/hex form for the
+ * MUI palette: MUI's color utilities (decomposeColor/alpha/lighten/darken)
+ * do not parse oklch and will throw at createTheme() time.
+ * When updating oklch values in global.css, regenerate the hex equivalents here.
  */
 type Tokens = {
   bg0: string; bg1: string; bg2: string; bg3: string; bgHover: string;
@@ -14,47 +17,47 @@ type Tokens = {
 };
 
 const darkTokens: Tokens = {
-  bg0: 'oklch(0.16 0.006 250)',
-  bg1: 'oklch(0.19 0.006 250)',
-  bg2: 'oklch(0.22 0.007 250)',
-  bg3: 'oklch(0.26 0.008 250)',
-  bgHover: 'oklch(0.28 0.009 250)',
-  borderSoft: 'oklch(0.30 0.01 250 / 0.5)',
-  border: 'oklch(0.34 0.012 250 / 0.7)',
-  borderStrong: 'oklch(0.42 0.014 250)',
-  text1: 'oklch(0.97 0.005 250)',
-  text2: 'oklch(0.78 0.008 250)',
-  text3: 'oklch(0.60 0.01 250)',
-  text4: 'oklch(0.46 0.012 250)',
-  accent: 'oklch(0.74 0.14 155)',
-  accentStrong: 'oklch(0.80 0.16 155)',
-  accentInk: 'oklch(0.18 0.04 155)',
-  pos: 'oklch(0.74 0.14 155)',
-  neg: 'oklch(0.70 0.16 25)',
-  warn: 'oklch(0.78 0.14 75)',
-  info: 'oklch(0.72 0.13 240)',
+  bg0: '#0b0d10',
+  bg1: '#121416',
+  bg2: '#181b1e',
+  bg3: '#212428',
+  bgHover: '#26292d',
+  borderSoft: 'rgba(42, 46, 51, 0.5)',
+  border: 'rgba(51, 57, 62, 0.7)',
+  borderStrong: '#474e55',
+  text1: '#f3f5f8',
+  text2: '#b4b8bc',
+  text3: '#7c8186',
+  text4: '#53595f',
+  accent: '#55c483',
+  accentStrong: '#56db8f',
+  accentInk: '#021709',
+  pos: '#55c483',
+  neg: '#f2716a',
+  warn: '#eba941',
+  info: '#4baeed',
 };
 
 const lightTokens: Tokens = {
-  bg0: 'oklch(0.985 0.003 250)',
-  bg1: 'oklch(1 0 0)',
-  bg2: 'oklch(0.965 0.004 250)',
-  bg3: 'oklch(0.94 0.005 250)',
-  bgHover: 'oklch(0.92 0.006 250)',
-  borderSoft: 'oklch(0.86 0.008 250 / 0.7)',
-  border: 'oklch(0.78 0.01 250 / 0.7)',
-  borderStrong: 'oklch(0.66 0.012 250)',
-  text1: 'oklch(0.20 0.01 250)',
-  text2: 'oklch(0.36 0.01 250)',
-  text3: 'oklch(0.50 0.01 250)',
-  text4: 'oklch(0.62 0.01 250)',
-  accent: 'oklch(0.62 0.14 155)',
-  accentStrong: 'oklch(0.56 0.16 155)',
-  accentInk: 'oklch(1 0 0)',
-  pos: 'oklch(0.58 0.15 155)',
-  neg: 'oklch(0.55 0.20 25)',
-  warn: 'oklch(0.62 0.16 75)',
-  info: 'oklch(0.55 0.16 240)',
+  bg0: '#f9fafc',
+  bg1: '#ffffff',
+  bg2: '#f1f4f6',
+  bg3: '#e9ebee',
+  bgHover: '#e2e5e8',
+  borderSoft: 'rgba(205, 209, 214, 0.7)',
+  border: 'rgba(179, 184, 190, 0.7)',
+  borderStrong: '#8d9399',
+  text1: '#13161a',
+  text2: '#393e42',
+  text3: '#5f6469',
+  text4: '#82878c',
+  accent: '#269e5f',
+  accentStrong: '#008e48',
+  accentInk: '#ffffff',
+  pos: '#009351',
+  neg: '#cc272e',
+  warn: '#bd7400',
+  info: '#0079c4',
 };
 
 const typography: ThemeOptions['typography'] = {
