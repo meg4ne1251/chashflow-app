@@ -138,9 +138,9 @@ export default function TransferListPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Typography variant="body2" fontWeight={600}>{t.from_account?.name || '-'}</Typography>
+                      <Typography variant="body2" fontWeight={600}>{accounts?.find((a) => a.id === t.from_account_id)?.name || '-'}</Typography>
                       <SwapHoriz fontSize="small" color="action" />
-                      <Typography variant="body2" fontWeight={600}>{t.to_account?.name || '-'}</Typography>
+                      <Typography variant="body2" fontWeight={600}>{accounts?.find((a) => a.id === t.to_account_id)?.name || '-'}</Typography>
                     </Box>
                     <Typography variant="caption" color="text.secondary">
                       {formatDate(t.date)}{t.memo ? ` / ${t.memo}` : ''}
@@ -177,9 +177,9 @@ export default function TransferListPage() {
               ) : transfers?.map((t) => (
                 <TableRow key={t.id} hover>
                   <TableCell>{formatDate(t.date)}</TableCell>
-                  <TableCell>{t.from_account?.name || '-'}</TableCell>
+                  <TableCell>{accounts?.find((a) => a.id === t.from_account_id)?.name || '-'}</TableCell>
                   <TableCell align="center">→</TableCell>
-                  <TableCell>{t.to_account?.name || '-'}</TableCell>
+                  <TableCell>{accounts?.find((a) => a.id === t.to_account_id)?.name || '-'}</TableCell>
                   <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.memo || '-'}</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(t.amount)}</TableCell>
                   <TableCell align="center">
