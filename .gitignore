@@ -49,6 +49,17 @@ web/.vite/
 logs/
 
 # ===========================
+# Android
+# ===========================
+local.properties
+android/**/build/
+*.apk
+*.ap_
+*.aab
+captures/
+.cxx/
+
+# ===========================
 # Misc
 # ===========================
 *.bak
