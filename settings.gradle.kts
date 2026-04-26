@@ -23,4 +23,3 @@ dependencyResolutionManagement {
 rootProject.name = "kakeibo"
 
 include("shared", "backend")
-include(":android:app")
