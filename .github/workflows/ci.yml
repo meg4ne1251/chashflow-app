@@ -97,7 +97,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.36.0
         with:
           scan-type: 'fs'
           ignore-unfixed: true
@@ -111,7 +111,10 @@ jobs:
   build-images:
     needs: [test-backend, lint-frontend]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # コンテナレジストリへの publish は ENABLE_REGISTRY_PUBLISH リポジトリ変数を
+    # 'true' に設定し、REGISTRY_URL / REGISTRY_USER / REGISTRY_PASSWORD シークレットを
+    # 登録した場合のみ実行される。デフォルトはスキップ。
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_REGISTRY_PUBLISH == 'true'
     steps:
       - uses: actions/checkout@v4
       

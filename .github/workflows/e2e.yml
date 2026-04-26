@@ -52,7 +52,9 @@ jobs:
         working-directory: web
         run: npm run e2e
         env:
-          DATABASE_URL: postgresql://kakeibo:kakeibo@localhost:5432/kakeibo_test
+          DATABASE_URL: jdbc:postgresql://localhost:5432/kakeibo_test
+          DATABASE_USER: kakeibo
+          DATABASE_PASSWORD: kakeibo
           JWT_SECRET: e2e-test-secret-must-be-at-least-32-characters-long
 
       - uses: actions/upload-artifact@v4
