@@ -1,11 +1,14 @@
 import { chromium, FullConfig } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 const TEST_USER = {
   username: 'e2e-testuser',
   password: 'E2eTestPass1!',
 };
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function globalSetup(config: FullConfig) {
   const baseURL = config.projects[0].use?.baseURL || 'http://localhost:5173';
