@@ -21,6 +21,7 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.plugins.forwardedheaders.*
 import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -106,6 +107,13 @@ fun Application.module() {
     )
 
     // Plugins
+    // 信頼するリバースプロキシ (nginx) からの X-Forwarded-* ヘッダーを尊重し、
+    // call.request.origin が実クライアントの IP / scheme を反映するようにする。
+    // これにより rate limit のクライアントキー、メトリクスのループバック判定、
+    // ログのリモートホスト記録が nginx コンテナの IP ではなく実クライアントの値になる。
+    // 本番では nginx -> app の経路でしか到達しない前提で XForwardedHeaders を使う。
+    install(XForwardedHeaders)
+
     install(ContentNegotiation) {
         json(Json {
             prettyPrint = false
@@ -239,7 +247,7 @@ fun Application.module() {
     // Routes
     routing {
         route("/api/v1") {
-            authRoutes(authService, accountService)
+            authRoutes(authService, accountService, parsedAllowedOrigins)
             healthRoutes(scheduler)
             cspReportRoutes()
             // /metrics はデフォルトでループバックのみ許可し、

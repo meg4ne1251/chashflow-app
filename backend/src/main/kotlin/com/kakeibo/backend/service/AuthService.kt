@@ -17,20 +17,35 @@ class AuthService(
     private val refreshTokenRepository: RefreshTokenRepository,
     private val jwtConfig: JwtConfig
 ) {
+    companion object {
+        // ユーザー名列挙のタイミング攻撃対策に使うダミーハッシュ。
+        // findByUsername が null を返した経路でも本物の checkpw と同じ計算量を発生させる。
+        // BCrypt 形式の固定値（このパスワードと一致することは絶対にないように "x" で
+        // チェックしても false になる）。コスト因子は AppConstants.BCRYPT_COST_FACTOR
+        // と揃え、本物のチェックと同等の計算量を保つ。
+        private val DUMMY_BCRYPT_HASH: String =
+            BCrypt.hashpw("dummy-password-for-timing-equalization", BCrypt.gensalt(AppConstants.BCRYPT_COST_FACTOR))
+    }
+
     fun isSetupRequired(): Boolean {
         return userRepository.count() == 0L
     }
 
     fun setup(request: SetupRequest): SetupResponse {
-        // Check if user already exists
-        if (userRepository.count() > 0) {
-            throw ConflictException("初期セットアップは既に完了しています")
-        }
-
         validateCredentials(request.username, request.password)
 
         val passwordHash = BCrypt.hashpw(request.password, BCrypt.gensalt(AppConstants.BCRYPT_COST_FACTOR))
-        val user = userRepository.create(request.username.trim(), passwordHash)
+
+        // count() チェックと create() の間で並行リクエストが両方 0 を観測する競合を避けるため、
+        // 単一トランザクション内で再チェック → 作成を行う。
+        // ユーザー名 UNIQUE 制約があるため別々のユーザー名で 2 件同時挿入は理論上可能だが、
+        // 同時セットアップは認証前のレートリミットでも抑止する。
+        val user = transaction {
+            if (userRepository.count() > 0) {
+                throw ConflictException("初期セットアップは既に完了しています")
+            }
+            userRepository.create(request.username.trim(), passwordHash)
+        }
 
         return SetupResponse(
             user = UserResponse(user.id.toString(), user.username)
@@ -39,7 +54,13 @@ class AuthService(
 
     fun login(request: LoginRequest): LoginResponse {
         val user = userRepository.findByUsername(request.username)
-            ?: throw UnauthorizedException("ユーザー名またはパスワードが正しくありません")
+
+        if (user == null) {
+            // ユーザー名列挙のタイミング攻撃対策として、ユーザーが存在しない場合でも
+            // BCrypt 計算を実行し、認証応答時間を「正しいユーザー名」と同程度にする。
+            BCrypt.checkpw(request.password, DUMMY_BCRYPT_HASH)
+            throw UnauthorizedException("ユーザー名またはパスワードが正しくありません")
+        }
 
         // Check if account is locked
         if (user.lockedUntil != null && user.lockedUntil.isAfter(OffsetDateTime.now())) {

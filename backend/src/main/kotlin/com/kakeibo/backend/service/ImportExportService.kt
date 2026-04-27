@@ -50,6 +50,10 @@ class ImportExportService(
     companion object {
         private val MAX_IMPORT_FILE_SIZE = ValidationRules.MAX_IMPORT_FILE_SIZE
         private val MAX_IMPORT_ROWS = ValidationRules.MAX_IMPORT_ROWS
+        // 単発バックアップで許容する最大エラー件数。これを超えたらロールバックする。
+        // 個別行の型変換失敗が散発的に出るのは許容するが、
+        // 大量に発生する＝ファイルが破損している可能性が高いとみなす。
+        private const val RESTORE_ERROR_THRESHOLD = 50
     }
 
     /**
@@ -345,6 +349,11 @@ class ImportExportService(
     /**
      * Restore data from JSON backup
      * @param mode "overwrite" = truncate all tables first, "merge" = upsert (newer wins)
+     *
+     * 行単位エラーは捕捉して `errors` に蓄積するが、エラーが閾値 (RESTORE_ERROR_THRESHOLD) を
+     * 超えた時点で例外を投げてトランザクションをロールバックする。これにより
+     * 不正な / 破損したバックアップで「一部だけ復元され、本来のデータも上書きで消滅」
+     * という最悪ケースを避ける（特に overwrite モードで重要）。
      */
     fun restoreBackup(backupData: BackupData, mode: String = "overwrite"): List<String> {
         if (backupData.schema_version != 1) {
@@ -356,42 +365,55 @@ class ImportExportService(
         val allErrors = mutableListOf<String>()
         val merge = mode == "merge"
 
-        transaction {
-            if (!merge) {
-                // Overwrite: delete child tables first to avoid FK violations
-                Notifications.deleteAll()
-                TransactionHistory.deleteAll()
-                TransactionTags.deleteAll()
-                TemplateTags.deleteAll()
-                RecurringTransactionTags.deleteAll()
-                Transactions.deleteAll()
-                Templates.deleteAll()
-                RecurringTransactions.deleteAll()
-                Budgets.deleteAll()
-                Transfers.deleteAll()
-                InputPatterns.deleteAll()
-                NotificationSettings.deleteAll()
-                Tags.deleteAll()
-                Categories.deleteAll()
-                Accounts.deleteAll()
-            }
+        try {
+            transaction {
+                if (!merge) {
+                    // Overwrite: delete child tables first to avoid FK violations
+                    Notifications.deleteAll()
+                    TransactionHistory.deleteAll()
+                    TransactionTags.deleteAll()
+                    TemplateTags.deleteAll()
+                    RecurringTransactionTags.deleteAll()
+                    Transactions.deleteAll()
+                    Templates.deleteAll()
+                    RecurringTransactions.deleteAll()
+                    Budgets.deleteAll()
+                    Transfers.deleteAll()
+                    InputPatterns.deleteAll()
+                    NotificationSettings.deleteAll()
+                    Tags.deleteAll()
+                    Categories.deleteAll()
+                    Accounts.deleteAll()
+                }
 
-            // Restore in dependency order
-            allErrors += restoreTable(Accounts, backupData.data.accounts, merge)
-            allErrors += restoreTable(Categories, backupData.data.categories, merge)
-            allErrors += restoreTable(Tags, backupData.data.tags, merge)
-            allErrors += restoreTable(Transactions, backupData.data.transactions, merge)
-            allErrors += restoreTable(TransactionTags, backupData.data.transaction_tags, merge)
-            allErrors += restoreTable(Templates, backupData.data.templates, merge)
-            allErrors += restoreTable(TemplateTags, backupData.data.template_tags, merge)
-            allErrors += restoreTable(RecurringTransactions, backupData.data.recurring_transactions, merge)
-            allErrors += restoreTable(RecurringTransactionTags, backupData.data.recurring_transaction_tags, merge)
-            allErrors += restoreTable(Budgets, backupData.data.budgets, merge)
-            allErrors += restoreTable(Transfers, backupData.data.transfers, merge)
-            allErrors += restoreTable(NotificationSettings, backupData.data.notification_settings, merge)
-            allErrors += restoreTable(InputPatterns, backupData.data.input_patterns, merge)
-            allErrors += restoreTable(TransactionHistory, backupData.data.transaction_history, merge)
-            allErrors += restoreTable(Notifications, backupData.data.notifications, merge)
+                // Restore in dependency order
+                allErrors += restoreTable(Accounts, backupData.data.accounts, merge)
+                allErrors += restoreTable(Categories, backupData.data.categories, merge)
+                allErrors += restoreTable(Tags, backupData.data.tags, merge)
+                allErrors += restoreTable(Transactions, backupData.data.transactions, merge)
+                allErrors += restoreTable(TransactionTags, backupData.data.transaction_tags, merge)
+                allErrors += restoreTable(Templates, backupData.data.templates, merge)
+                allErrors += restoreTable(TemplateTags, backupData.data.template_tags, merge)
+                allErrors += restoreTable(RecurringTransactions, backupData.data.recurring_transactions, merge)
+                allErrors += restoreTable(RecurringTransactionTags, backupData.data.recurring_transaction_tags, merge)
+                allErrors += restoreTable(Budgets, backupData.data.budgets, merge)
+                allErrors += restoreTable(Transfers, backupData.data.transfers, merge)
+                allErrors += restoreTable(NotificationSettings, backupData.data.notification_settings, merge)
+                allErrors += restoreTable(InputPatterns, backupData.data.input_patterns, merge)
+                allErrors += restoreTable(TransactionHistory, backupData.data.transaction_history, merge)
+                allErrors += restoreTable(Notifications, backupData.data.notifications, merge)
+
+                // 閾値超過: 中身が壊れているとみなしてロールバック
+                if (allErrors.size > RESTORE_ERROR_THRESHOLD) {
+                    throw BackupRestoreFailedException(
+                        "バックアップ内のエラーが多すぎます (${allErrors.size}件 > 閾値${RESTORE_ERROR_THRESHOLD})。" +
+                            "ファイルの整合性を確認してください。"
+                    )
+                }
+            }
+        } catch (e: BackupRestoreFailedException) {
+            logger.warn("バックアップ復元をロールバック: ${e.message}")
+            throw UnprocessableEntityException(e.message ?: "バックアップ復元に失敗しました")
         }
         if (allErrors.isEmpty()) {
             logger.info("バックアップからの復元が完了しました（モード: $mode）")
@@ -400,6 +422,8 @@ class ImportExportService(
         }
         return allErrors
     }
+
+    private class BackupRestoreFailedException(message: String) : RuntimeException(message)
 
     @Suppress("UNCHECKED_CAST")
     private fun restoreTable(table: Table, rows: List<JsonObject>, merge: Boolean = false): List<String> {

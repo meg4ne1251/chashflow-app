@@ -75,7 +75,8 @@ class AuthRoutesTest {
             }
             routing {
                 route("/api/v1") {
-                    authRoutes(authService, accountService)
+                    // テストでは Origin チェックの許可リストに http://localhost を含める
+                    authRoutes(authService, accountService, setOf("http://localhost"))
                 }
             }
         }
@@ -172,11 +173,49 @@ class AuthRoutesTest {
 
         val response = client.post("/api/v1/auth/refresh") {
             contentType(ContentType.Application.Json)
+            // Origin ヘッダーは CSRF 対策として AuthRoutes 側で検証される
+            header(HttpHeaders.Origin, "http://localhost")
             // Token is now read from cookie
             cookie("refresh_token", "valid-token")
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `POST refresh - returns 403 when Origin missing`() = testApplication {
+        configureTestApp()
+        every { authService.refresh(any()) } returns LoginResponse(
+            access_token = "new-access-token",
+            refresh_token = "new-refresh-token",
+            expires_in = 900
+        )
+
+        val response = client.post("/api/v1/auth/refresh") {
+            contentType(ContentType.Application.Json)
+            cookie("refresh_token", "valid-token")
+            // Origin/Referer なし → CSRF として 403
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `POST refresh - returns 403 when Origin not allowed`() = testApplication {
+        configureTestApp()
+        every { authService.refresh(any()) } returns LoginResponse(
+            access_token = "new-access-token",
+            refresh_token = "new-refresh-token",
+            expires_in = 900
+        )
+
+        val response = client.post("/api/v1/auth/refresh") {
+            contentType(ContentType.Application.Json)
+            header(HttpHeaders.Origin, "https://evil.example.com")
+            cookie("refresh_token", "valid-token")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
     }
 
     // ===========================

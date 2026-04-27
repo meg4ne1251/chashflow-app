@@ -36,6 +36,55 @@ private fun isLocalhostOrigin(origin: String): Boolean {
     }
 }
 
+/**
+ * リクエストの Origin / Referer が許可された一覧と一致するか検証する。
+ * 不一致時は 403 を返し true を返す（呼び出し側はそのまま return すること）。
+ * 一致または検証不要な GET/HEAD/OPTIONS の場合は false を返す。
+ *
+ * 認証エンドポイント側 (login/setup/refresh など) でも軽量に CSRF を防御するために
+ * ルート関数から直接呼び出せるユーティリティ。
+ */
+suspend fun validateOriginOrFail(
+    call: io.ktor.server.application.ApplicationCall,
+    allowedOrigins: Set<String>
+): Boolean {
+    val method = call.request.httpMethod
+    if (method in listOf(HttpMethod.Get, HttpMethod.Head, HttpMethod.Options)) {
+        return false
+    }
+
+    val origin = call.request.header(HttpHeaders.Origin)
+    val referer = call.request.header(HttpHeaders.Referrer)
+
+    val requestOrigin = origin ?: referer?.let {
+        try {
+            val url = java.net.URI(it)
+            "${url.scheme}://${url.host}" + (if (url.port != -1) ":${url.port}" else "")
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    if (requestOrigin == null) {
+        csrfLogger.warn("CSRF: No Origin/Referer header for ${method.value} ${call.request.path()}")
+        call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Origin header required"))
+        return true
+    }
+
+    val isAllowed = allowedOrigins.any { allowed ->
+        requestOrigin == allowed ||
+            (isLocalhostOrigin(allowed) && isLocalhostOrigin(requestOrigin))
+    }
+
+    if (!isAllowed) {
+        csrfLogger.warn("CSRF: Invalid origin '$requestOrigin' for ${method.value} ${call.request.path()}. Allowed: $allowedOrigins")
+        call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Invalid origin"))
+        return true
+    }
+
+    return false
+}
+
 val CsrfProtection = createRouteScopedPlugin(
     name = "CsrfProtection",
     createConfiguration = ::CsrfProtectionConfig
