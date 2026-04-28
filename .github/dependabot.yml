@@ -1,0 +1,71 @@
+version: 2
+updates:
+  # Backend (Gradle)
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    labels:
+      - dependencies
+      - backend
+    commit-message:
+      prefix: "deps(backend):"
+    open-pull-requests-limit: 10
+
+  # Frontend (npm)
+  - package-ecosystem: npm
+    directory: "/web"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    labels:
+      - dependencies
+      - frontend
+    commit-message:
+      prefix: "deps(web):"
+    open-pull-requests-limit: 10
+
+  # Discord Bot (pip)
+  - package-ecosystem: pip
+    directory: "/bot"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    labels:
+      - dependencies
+      - bot
+    commit-message:
+      prefix: "deps(bot):"
+    open-pull-requests-limit: 5
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: "deps(actions):"
+    open-pull-requests-limit: 5
+
+  # Docker
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    labels:
+      - dependencies
+      - docker
+    commit-message:
+      prefix: "deps(docker):"
+    open-pull-requests-limit: 5
