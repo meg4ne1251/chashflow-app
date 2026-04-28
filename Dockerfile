@@ -1,7 +1,7 @@
 # ============================================
 # Stage 1: Build backend (Kotlin/Ktor Fat JAR)
 # ============================================
-FROM eclipse-temurin:21-jdk-alpine AS backend-build
+FROM eclipse-temurin:25-jdk-alpine AS backend-build
 
 WORKDIR /build
 
@@ -20,7 +20,7 @@ RUN ./gradlew :backend:jar --no-daemon
 # ============================================
 # Stage 2: Production runtime
 # ============================================
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 
 RUN apk add --no-cache curl tini font-noto-cjk \
     && addgroup -S app \
