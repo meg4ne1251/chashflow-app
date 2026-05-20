@@ -170,10 +170,12 @@ class RecurringTransactionService(
                     )
                     val updatedRows = recurringTransactionRepository.updateNextExecutionDate(rtId, nextDate, row[RecurringTransactions.version])
                     if (updatedRows == 0) {
-                        logger.warn("定期取引 {} の次回実行日の更新に失敗しました（バージョン競合の可能性）", rtId)
+                        throw ConflictException("定期取引 ${rtId} の次回実行日の更新に失敗しました（バージョン競合の可能性）")
                     }
                     created++
                 }
+            } catch (e: ConflictException) {
+                logger.warn("定期取引の自動生成をスキップしました（既に別のプロセスで実行済みと考えられます）: ${row[RecurringTransactions.id]} - ${e.message}")
             } catch (e: Exception) {
                 logger.error("定期取引の自動生成に失敗: ${row[RecurringTransactions.id]}", e)
             }
