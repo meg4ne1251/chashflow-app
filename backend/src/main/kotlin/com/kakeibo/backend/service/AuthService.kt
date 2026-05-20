@@ -31,7 +31,17 @@ class AuthService(
         return userRepository.count() == 0L
     }
 
-    fun setup(request: SetupRequest): SetupResponse {
+    /**
+     * 初期セットアップを実行。
+     *
+     * @param postSetup ユーザー作成と同一トランザクション内で実行する追加処理。
+     *   既定アカウントの作成など、ユーザーと不可分にしたい初期化に使う。
+     *   ここで例外が投げられるとユーザー作成ごとロールバックされる (atomic setup)。
+     */
+    fun setup(
+        request: SetupRequest,
+        postSetup: () -> Unit = {}
+    ): SetupResponse {
         validateCredentials(request.username, request.password)
 
         val passwordHash = BCrypt.hashpw(request.password, BCrypt.gensalt(AppConstants.BCRYPT_COST_FACTOR))
@@ -40,11 +50,15 @@ class AuthService(
         // 単一トランザクション内で再チェック → 作成を行う。
         // ユーザー名 UNIQUE 制約があるため別々のユーザー名で 2 件同時挿入は理論上可能だが、
         // 同時セットアップは認証前のレートリミットでも抑止する。
+        // postSetup もこの transaction 内で実行することで、既定アカウント作成失敗時に
+        // ユーザー作成ごとロールバックされる (アカウント無しでユーザーだけ残る片付け状態を回避)。
         val user = transaction {
             if (userRepository.count() > 0) {
                 throw ConflictException("初期セットアップは既に完了しています")
             }
-            userRepository.create(request.username.trim(), passwordHash)
+            val created = userRepository.create(request.username.trim(), passwordHash)
+            postSetup()
+            created
         }
 
         return SetupResponse(

@@ -94,9 +94,12 @@ class AuthRoutesTest {
     @Test
     fun `POST setup - returns 201 on success`() = testApplication {
         configureTestApp()
-        every { authService.setup(any()) } returns SetupResponse(
-            user = UserResponse("user-id-1", "testuser")
-        )
+        // authService.setup は 2引数 (request, postSetup) を受け取る。
+        // postSetup は実際に invoke してデフォルトアカウント作成も走らせる。
+        every { authService.setup(any(), captureLambda()) } answers {
+            lambda<() -> Unit>().captured.invoke()
+            SetupResponse(user = UserResponse("user-id-1", "testuser"))
+        }
 
         val response = client.post("/api/v1/auth/setup") {
             contentType(ContentType.Application.Json)
@@ -111,7 +114,7 @@ class AuthRoutesTest {
     @Test
     fun `POST setup - returns 409 when already set up`() = testApplication {
         configureTestApp()
-        every { authService.setup(any()) } throws ConflictException("初期セットアップは既に完了しています")
+        every { authService.setup(any(), any()) } throws ConflictException("初期セットアップは既に完了しています")
 
         val response = client.post("/api/v1/auth/setup") {
             contentType(ContentType.Application.Json)

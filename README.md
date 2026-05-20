@@ -120,13 +120,15 @@ server {
 
 公開前に以下を必ず確認してください。
 
-- [ ] `JWT_SECRET` を `openssl rand -base64 48` で生成した強い値に設定（32 文字以上）
-- [ ] `POSTGRES_PASSWORD` をデフォルト値 `kakeibo` 以外に変更
-- [ ] `CORS_ALLOWED_ORIGINS` を本番ドメインに限定（カンマ区切りで複数指定可）
-- [ ] `KTOR_ENV=production` を設定（Cookie `Secure` 属性が有効化される）
-- [ ] HTTPS 終端を構成し、HSTS を有効化
+- [ ] `JWT_SECRET` を `openssl rand -base64 48` で生成した強い値に設定（32 文字以上、`change-me` / `dev_jwt` 等のプレースホルダーは本番起動時に拒否されます）
+- [ ] `POSTGRES_PASSWORD` をデフォルト値 `kakeibo` 以外に変更（12 文字以上必須）
+- [ ] `CORS_ALLOWED_ORIGINS` を本番ドメインに限定（カンマ区切りで複数指定可）。**`localhost` を含めない**こと（含まれているとローカル任意ポートが許可される）
+- [ ] `KTOR_ENV=production` を設定（Cookie `Secure` 属性、JWT/DB のプレースホルダー検査が有効化される）
+- [ ] **HTTPS 終端を構成**（Cookie `Secure` 属性は HTTPS でしか配送されないため、HTTP のままだとログインが機能しない）
+- [ ] HSTS を有効化（Cloudflare ダッシュボード または Let's Encrypt 終端側で）
 - [ ] PostgreSQL の論理バックアップ運用を確立（`pg_dump` の cron + リストア手順書）
-- [ ] `/api/v1/metrics` が外部からアクセス不可であることを確認
+- [ ] `/api/v1/metrics` が外部からアクセス不可であることを確認（nginx 側で `deny all` 済み + アプリ層でループバック/トークン検査の多層防御）
+- [ ] Prometheus を外部に公開する場合は `METRICS_TOKEN` 環境変数を設定し、Bearer トークン認証を有効化
 - [ ] 初回セットアップ後、`/auth/setup` が再度通過しないことを確認
 
 ## 開発

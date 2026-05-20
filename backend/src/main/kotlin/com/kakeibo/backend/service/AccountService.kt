@@ -23,9 +23,24 @@ class AccountService(
             .let { if (excludeSavings) it.filter { row -> row[Accounts.type] != "savings" } else it }
         if (accounts.isEmpty()) return emptyList()
 
-        // Batch-calculate balances to avoid N+1 queries
-        val accountIds = accounts.map { it[Accounts.id] }
-        val balanceMap = transaction {
+        val initialBalances = accounts.associate { it[Accounts.id] to it[Accounts.initialBalance] }
+        val balanceMap = calculateBalances(initialBalances)
+
+        return accounts.map { it.toResponse(balanceMap[it[Accounts.id]] ?: it[Accounts.initialBalance]) }
+    }
+
+    /**
+     * 指定された口座群の実残高 (初期残高 + 収入 - 支出 + 振替IN - 振替OUT) を 1 トランザクション・
+     * 各集計 1 クエリのバッチ計算で返す。N+1 を避ける目的で公開している。
+     *
+     * @param initialBalances 集計対象の口座 ID → 初期残高 のマップ。初期残高をクエリし直さないため呼び出し側で渡す。
+     * @return 各口座 ID に対する計算済み残高。空入力なら空マップ。
+     */
+    fun calculateBalances(initialBalances: Map<UUID, Long>): Map<UUID, Long> {
+        if (initialBalances.isEmpty()) return emptyMap()
+        val accountIds = initialBalances.keys.toList()
+
+        return transaction {
             val incomeMap = mutableMapOf<UUID, Long>()
             val expenseMap = mutableMapOf<UUID, Long>()
             val transferInMap = mutableMapOf<UUID, Long>()
@@ -34,7 +49,6 @@ class AccountService(
             val txAmountSum = Transactions.amount.sum()
             val trAmountSum = Transfers.amount.sum()
 
-            // Income by account
             Transactions.select(Transactions.accountId, txAmountSum)
                 .where { (Transactions.type eq "income") and Transactions.deletedAt.isNull() and (Transactions.accountId inList accountIds) }
                 .groupBy(Transactions.accountId)
@@ -42,7 +56,6 @@ class AccountService(
                     row[Transactions.accountId]?.let { incomeMap[it] = row[txAmountSum] ?: 0L }
                 }
 
-            // Expense by account
             Transactions.select(Transactions.accountId, txAmountSum)
                 .where { (Transactions.type eq "expense") and Transactions.deletedAt.isNull() and (Transactions.accountId inList accountIds) }
                 .groupBy(Transactions.accountId)
@@ -50,7 +63,6 @@ class AccountService(
                     row[Transactions.accountId]?.let { expenseMap[it] = row[txAmountSum] ?: 0L }
                 }
 
-            // Transfer in
             Transfers.select(Transfers.toAccountId, trAmountSum)
                 .where { Transfers.deletedAt.isNull() and (Transfers.toAccountId inList accountIds) }
                 .groupBy(Transfers.toAccountId)
@@ -58,7 +70,6 @@ class AccountService(
                     transferInMap[row[Transfers.toAccountId]] = row[trAmountSum] ?: 0L
                 }
 
-            // Transfer out
             Transfers.select(Transfers.fromAccountId, trAmountSum)
                 .where { Transfers.deletedAt.isNull() and (Transfers.fromAccountId inList accountIds) }
                 .groupBy(Transfers.fromAccountId)
@@ -67,13 +78,13 @@ class AccountService(
                 }
 
             accountIds.associateWith { id ->
-                val initialBalance = accounts.first { it[Accounts.id] == id }[Accounts.initialBalance]
-                initialBalance + (incomeMap[id] ?: 0L) - (expenseMap[id] ?: 0L) +
-                    (transferInMap[id] ?: 0L) - (transferOutMap[id] ?: 0L)
+                (initialBalances[id] ?: 0L) +
+                    (incomeMap[id] ?: 0L) -
+                    (expenseMap[id] ?: 0L) +
+                    (transferInMap[id] ?: 0L) -
+                    (transferOutMap[id] ?: 0L)
             }
         }
-
-        return accounts.map { it.toResponse(balanceMap[it[Accounts.id]] ?: it[Accounts.initialBalance]) }
     }
 
     fun create(request: AccountRequest): AccountResponse {

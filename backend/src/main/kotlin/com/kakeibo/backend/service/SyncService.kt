@@ -24,7 +24,8 @@ class SyncService(
     private val budgetRepository: BudgetRepository,
     private val transferRepository: TransferRepository,
     private val notificationSettingRepository: NotificationSettingRepository,
-    private val inputPatternRepository: InputPatternRepository
+    private val inputPatternRepository: InputPatternRepository,
+    private val accountService: AccountService
 ) {
     companion object {
         private const val MAX_BATCH_SIZE = 100
@@ -98,6 +99,15 @@ class SyncService(
         val notificationSettings = notificationSettingRepository.findUpdatedSince(sinceTime, PULL_LIMIT)
         val inputPatterns = inputPatternRepository.findUpdatedSince(sinceTime, PULL_LIMIT)
 
+        // 同期で返す口座の残高は、initial_balance ではなく実際の残高 (収入-支出+振替) を返す。
+        // クライアント側でトランザクションログから再計算しなくても済むようにするため。
+        val accountBalanceMap = if (accounts.isNotEmpty()) {
+            val initialBalances = accounts.associate {
+                it[Accounts.id] to it[Accounts.initialBalance]
+            }
+            accountService.calculateBalances(initialBalances)
+        } else emptyMap()
+
         // Any single entity type hitting its limit indicates more data may be available
         val hasMore = transactions.size >= PULL_LIMIT || categories.size >= PULL_LIMIT ||
                 accounts.size >= PULL_LIMIT || tags.size >= PULL_LIMIT ||
@@ -109,7 +119,7 @@ class SyncService(
             data = SyncData(
                 transactions = transactions.map { it.toTransactionResponse() },
                 categories = categories.map { it.toCategoryResponse() },
-                accounts = accounts.map { it.toAccountResponse() },
+                accounts = accounts.map { it.toAccountResponse(accountBalanceMap) },
                 tags = tags.map { it.toTagResponse() },
                 templates = templates.map { it.toTemplateResponse() },
                 recurring_transactions = recurringTransactions.map { it.toRecurringTransactionResponse() },
@@ -313,19 +323,23 @@ class SyncService(
         deleted_at = this[Categories.deletedAt]?.toString()
     )
 
-    private fun ResultRow.toAccountResponse() = AccountResponse(
-        id = this[Accounts.id].toString(),
-        name = this[Accounts.name],
-        type = this[Accounts.type],
-        initial_balance = this[Accounts.initialBalance],
-        currency = this[Accounts.currency],
-        sort_order = this[Accounts.sortOrder],
-        balance = this[Accounts.initialBalance], // simplified for sync
-        version = this[Accounts.version],
-        created_at = this[Accounts.createdAt].toString(),
-        updated_at = this[Accounts.updatedAt].toString(),
-        deleted_at = this[Accounts.deletedAt]?.toString()
-    )
+    private fun ResultRow.toAccountResponse(balanceMap: Map<UUID, Long> = emptyMap()): AccountResponse {
+        val accountId = this[Accounts.id]
+        val initialBalance = this[Accounts.initialBalance]
+        return AccountResponse(
+            id = accountId.toString(),
+            name = this[Accounts.name],
+            type = this[Accounts.type],
+            initial_balance = initialBalance,
+            currency = this[Accounts.currency],
+            sort_order = this[Accounts.sortOrder],
+            balance = balanceMap[accountId] ?: initialBalance,
+            version = this[Accounts.version],
+            created_at = this[Accounts.createdAt].toString(),
+            updated_at = this[Accounts.updatedAt].toString(),
+            deleted_at = this[Accounts.deletedAt]?.toString()
+        )
+    }
 
     private fun ResultRow.toTagResponse() = TagResponse(
         id = this[Tags.id].toString(),

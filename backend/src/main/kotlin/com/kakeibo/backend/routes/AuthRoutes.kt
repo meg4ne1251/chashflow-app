@@ -15,9 +15,6 @@ import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.slf4j.LoggerFactory
-
-private val logger = LoggerFactory.getLogger("AuthRoutes")
 
 // モジュールロード時に一度だけ環境判定を行う（ホットパスでの env 読み取りを避ける）
 private val IS_PRODUCTION: Boolean = System.getenv("KTOR_ENV") == "production"
@@ -73,19 +70,19 @@ fun Route.authRoutes(
         rateLimit(RateLimitName("auth-setup")) {
             post("/setup") {
                 val request = call.receive<SetupRequest>()
-                val response = authService.setup(request)
 
-                // Create default accounts
+                // 既定アカウントの作成はユーザー作成と同じトランザクション内で行い、
+                // どこかで失敗した場合はユーザー作成ごとロールバックする。
+                // 「ユーザーだけ存在してアカウントが無い」中途半端な状態は再セットアップで
+                // 修復できないので、atomic に倒す方が安全。
                 val defaultAccounts = listOf(
                     AccountRequest(name = "現金", type = "cash", initial_balance = 0, currency = "JPY", sort_order = 1),
                     AccountRequest(name = "銀行口座", type = "bank", initial_balance = 0, currency = "JPY", sort_order = 2),
                     AccountRequest(name = "クレジットカード", type = "credit_card", initial_balance = 0, currency = "JPY", sort_order = 3),
                 )
-                for (account in defaultAccounts) {
-                    try {
+                val response = authService.setup(request) {
+                    for (account in defaultAccounts) {
                         accountService.create(account)
-                    } catch (e: Exception) {
-                        logger.warn("Failed to create default account '${account.name}': ${e.message}")
                     }
                 }
 

@@ -22,6 +22,7 @@ import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.forwardedheaders.*
+import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -89,7 +90,7 @@ fun Application.module() {
         transactionRepository, categoryRepository, accountRepository,
         tagRepository, templateRepository, recurringTransactionRepository,
         budgetRepository, transferRepository, notificationSettingRepository,
-        inputPatternRepository
+        inputPatternRepository, accountService
     )
     val importExportService = ImportExportService(
         transactionRepository, transactionTagRepository, categoryRepository,
@@ -260,21 +261,28 @@ fun Application.module() {
                     this.allowedOrigins = parsedAllowedOrigins
                 }
 
-                accountRoutes(accountService)
-                categoryRoutes(categoryService)
-                tagRoutes(tagService)
-                transactionRoutes(transactionService)
-                transferRoutes(transferService)
-                templateRoutes(templateService)
-                recurringTransactionRoutes(recurringTransactionService)
-                budgetRoutes(budgetService)
-                savingsGoalRoutes(savingsGoalService)
-                analyticsRoutes(analyticsService)
-                syncRoutes(syncService)
-                importExportRoutes(importExportService)
-                suggestionRoutes(suggestionService)
-                notificationRoutes(notificationService)
-                notificationSettingRoutes(notificationSettingService)
+                // 認証済みエンドポイントには既定で `api-general` (60 req/min) を巻く。
+                // sync (10/min) や import-export (5/min) はサブルート側で更に厳しい
+                // RateLimitName を重ねており、Ktor の rate-limit はネストすると
+                // 「すべてのバケットに対する制限」の AND として評価されるため、
+                // この外側ラップを足しても sync/import-export 側の上限は崩れない。
+                rateLimit(RateLimitName("api-general")) {
+                    accountRoutes(accountService)
+                    categoryRoutes(categoryService)
+                    tagRoutes(tagService)
+                    transactionRoutes(transactionService)
+                    transferRoutes(transferService)
+                    templateRoutes(templateService)
+                    recurringTransactionRoutes(recurringTransactionService)
+                    budgetRoutes(budgetService)
+                    savingsGoalRoutes(savingsGoalService)
+                    analyticsRoutes(analyticsService)
+                    syncRoutes(syncService)
+                    importExportRoutes(importExportService)
+                    suggestionRoutes(suggestionService)
+                    notificationRoutes(notificationService)
+                    notificationSettingRoutes(notificationSettingService)
+                }
             }
         }
     }
