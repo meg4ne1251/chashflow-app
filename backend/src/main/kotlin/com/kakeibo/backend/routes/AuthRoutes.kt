@@ -2,7 +2,7 @@ package com.kakeibo.backend.routes
 
 import com.kakeibo.backend.middleware.getUserId
 import com.kakeibo.backend.middleware.UnauthorizedException
-import com.kakeibo.backend.middleware.validateOriginOrFail
+import com.kakeibo.backend.middleware.validateOriginOrThrow
 import com.kakeibo.backend.service.AccountService
 import com.kakeibo.backend.service.AuthService
 import com.kakeibo.shared.constants.AppConstants
@@ -115,7 +115,7 @@ fun Route.authRoutes(
                 // /auth/refresh は Cookie 経由で実行されるため、悪意あるサイトからの
                 // 自動トリガーを防ぐ Origin チェックを実施する。
                 // SameSite=Strict (本番) でも root navigation 経由での発火を多層防御する。
-                if (validateOriginOrFail(call, allowedOrigins)) return@post
+                validateOriginOrThrow(call, allowedOrigins)
 
                 // Cookieからリフレッシュトークンを取得
                 val refreshToken = call.request.cookies["refresh_token"]
