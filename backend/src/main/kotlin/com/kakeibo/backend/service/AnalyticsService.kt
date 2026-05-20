@@ -52,11 +52,29 @@ class AnalyticsService(
         // yearMonthを含むキーを正確に無効化する
         // "2024-01" が "2024-01-2025" などに誤マッチしないよう、
         // キーの区切り文字を考慮してマッチングする
+        val ym = try {
+            YearMonth.parse(yearMonth)
+        } catch (_: Exception) {
+            null
+        }
+
         cache.keys.removeIf { key ->
-            // "dashboard:2024-01", "breakdown:2024-01:expense", "comparison:2024-01",
-            // "yearly:2024" (年単位キーはyearMonthの年部分で無効化)
             val segments = key.split(":")
-            segments.any { it == yearMonth } || segments.any { it == yearMonth.substringBefore("-") }
+            
+            // "trends:2023-12:2024-02" などの範囲キャッシュの無効化対応
+            if (segments.firstOrNull() == "trends" && segments.size >= 3 && ym != null) {
+                try {
+                    val fromYm = YearMonth.parse(segments[1])
+                    val toYm = YearMonth.parse(segments[2])
+                    !ym.isBefore(fromYm) && !ym.isAfter(toYm)
+                } catch (_: Exception) {
+                    true // パース失敗時は安全のためキャッシュ削除
+                }
+            } else {
+                // "dashboard:2024-01", "breakdown:2024-01:expense", "comparison:2024-01",
+                // "yearly:2024" (年単位キーはyearMonthの年部分で無効化)
+                segments.any { it == yearMonth } || segments.any { it == yearMonth.substringBefore("-") }
+            }
         }
     }
 
