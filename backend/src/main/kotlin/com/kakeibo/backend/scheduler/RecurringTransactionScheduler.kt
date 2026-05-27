@@ -69,7 +69,8 @@ class RecurringTransactionScheduler(
 
     fun isExecuting(): Boolean = executionInProgress
 
-    private suspend fun executeWithRetry() {
+    // visible for testing: 成功/リトライ/クリーンアップの各分岐をテストから直接検証できるようにする
+    internal suspend fun executeWithRetry() {
         // Prevent concurrent execution
         if (executionInProgress) {
             logger.warn("前回の実行がまだ進行中のため、今回の実行をスキップします")
@@ -112,7 +113,8 @@ class RecurringTransactionScheduler(
         }
     }
 
-    private fun calculateDelayUntilNextExecution(): Long {
+    // visible for testing
+    internal fun calculateDelayUntilNextExecution(): Long {
         val now = ZonedDateTime.now(TARGET_ZONE)
         var nextExecution = ZonedDateTime.of(now.toLocalDate(), TARGET_TIME, TARGET_ZONE)
         if (now.isAfter(nextExecution)) {

@@ -82,6 +82,9 @@ object RouteTestHelper {
     ): String {
         val builder = com.auth0.jwt.JWT.create()
             .withIssuer(testIssuer)
+            // 本番トークン (JwtConfig.generateAccessToken) は snake_case の user_id を使う。
+            // getUserId() はこの user_id クレームを読むため、両方を付与しておく。
+            .withClaim("user_id", userId.toString())
             .withClaim("userId", userId.toString())
             .withClaim("username", username)
         
