@@ -43,6 +43,16 @@ web/.vite/
 !.env.example
 
 # ===========================
+# Python / Bot
+# ===========================
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.python-version
+
+# ===========================
 # Logs
 # ===========================
 *.log

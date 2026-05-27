@@ -103,6 +103,21 @@ Ready: cashflow-bot (id=XXXX)
 
 ---
 
+## テスト
+
+純粋関数・API クライアント・コマンド検証ロジックを `pytest` でテストします（実 HTTP / Discord ゲートウェイには接続しません）。
+
+```bash
+cd bot
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/python -m pytest
+```
+
+テストは `bot/tests/` にあり、`conftest.py` がダミー環境変数を設定するため、実際の Bot Token は不要です。
+
+---
+
 ## 環境変数一覧
 
 | 変数名 | 必須 | 説明 |

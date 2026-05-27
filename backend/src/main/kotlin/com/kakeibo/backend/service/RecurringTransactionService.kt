@@ -166,7 +166,8 @@ class RecurringTransactionService(
                         dayOfWeek = row[RecurringTransactions.dayOfWeek],
                         dayOfMonth = row[RecurringTransactions.dayOfMonth],
                         monthOfYear = row[RecurringTransactions.monthOfYear],
-                        fromDate = row[RecurringTransactions.nextExecutionDate]
+                        fromDate = row[RecurringTransactions.nextExecutionDate],
+                        anchorDate = row[RecurringTransactions.startDate]
                     )
                     val updatedRows = recurringTransactionRepository.updateNextExecutionDate(rtId, nextDate, row[RecurringTransactions.version])
                     if (updatedRows == 0) {
@@ -187,10 +188,18 @@ class RecurringTransactionService(
         return created
     }
 
+    /**
+     * 次回実行日を計算する。
+     *
+     * monthly/yearly で day_of_month / month_of_year が未指定の場合、[anchorDate]（通常は開始日）
+     * の日付・月を基準にする。これにより「毎月31日」のような取引が一度2月で28日に丸められても、
+     * 翌月以降は再び31日に戻る（28日に固定されてドリフトしない）。
+     */
     fun calculateNextExecutionDate(
         frequency: String, interval: Int,
         dayOfWeek: Int?, dayOfMonth: Int?, monthOfYear: Int?,
-        fromDate: LocalDate
+        fromDate: LocalDate,
+        anchorDate: LocalDate = fromDate
     ): LocalDate {
         return when (frequency) {
             "daily" -> fromDate.plusDays(interval.toLong())
@@ -203,7 +212,7 @@ class RecurringTransactionService(
                 next
             }
             "monthly" -> {
-                val targetDay = dayOfMonth ?: fromDate.dayOfMonth
+                val targetDay = dayOfMonth ?: anchorDate.dayOfMonth
                 var next = fromDate
                 repeat(interval) {
                     next = next.plusMonths(1)
@@ -213,8 +222,8 @@ class RecurringTransactionService(
                 LocalDate.of(next.year, next.month, adjustedDay)
             }
             "yearly" -> {
-                val targetMonth = monthOfYear ?: fromDate.monthValue
-                val targetDay = dayOfMonth ?: fromDate.dayOfMonth
+                val targetMonth = monthOfYear ?: anchorDate.monthValue
+                val targetDay = dayOfMonth ?: anchorDate.dayOfMonth
                 var next = fromDate.plusYears(interval.toLong())
                 val yearMonth = YearMonth.of(next.year, targetMonth)
                 val adjustedDay = minOf(targetDay, yearMonth.lengthOfMonth())
