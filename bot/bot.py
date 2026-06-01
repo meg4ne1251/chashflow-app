@@ -271,9 +271,12 @@ async def fetch_dashboard(session: aiohttp.ClientSession) -> dict:
 
 async def fetch_transactions(session: aiohttp.ClientSession,
                              count: int = 5) -> list[dict]:
+    # sort は API 規約どおり "<field>,<dir>" 形式で送る（Web フロントと同一）。
+    # "date_desc" でも現状は else 分岐で日付降順になるが、将来 sort 値が厳格化されると
+    # 壊れるため正規形式に揃えておく。
     result = await api_request(
         session, "GET",
-        f"/api/v1/transactions?size={count}&sort=date_desc"
+        f"/api/v1/transactions?size={count}&sort=date,desc"
     )
     # ページネーションされたレスポンスの場合、content フィールドを取得
     if isinstance(result, dict):
@@ -360,19 +363,27 @@ async def _execute(interaction: discord.Interaction,
     """取引作成 → テンプレート使用カウント更新 → 結果を返答"""
     try:
         await post_transaction(session, template, amount)
-        await mark_template_used(session, template["id"])
-
-        embed = _make_success_embed(template, amount)
-        await interaction.followup.send(embed=embed, ephemeral=True)
-
     except aiohttp.ClientResponseError as e:
         logger.error("API error: status=%s, message=%s", e.status, str(e))
         embed = _make_error_embed(f"APIエラーが発生しました (HTTP {e.status})")
         await interaction.followup.send(embed=embed, ephemeral=True)
+        return
     except Exception:
         logger.exception("Unexpected error during transaction creation")
         embed = _make_error_embed("予期しないエラーが発生しました。")
         await interaction.followup.send(embed=embed, ephemeral=True)
+        return
+
+    # 使用回数の更新は付随的な処理。ここで失敗しても取引登録自体は成功しているため、
+    # ユーザーにエラーを見せると「失敗したと思って再登録 → 二重計上」を招く。
+    # 失敗はログのみに留め、成功 Embed を返す。
+    try:
+        await mark_template_used(session, template["id"])
+    except Exception:
+        logger.warning("Failed to mark template %s as used", template.get("id"))
+
+    embed = _make_success_embed(template, amount)
+    await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 class AmountModal(discord.ui.Modal, title="金額を入力"):

@@ -92,6 +92,19 @@ val CsrfProtection = createRouteScopedPlugin(
             return@onCall
         }
 
+        // CSRF はブラウザが Cookie を「自動送信」することを悪用する攻撃。
+        // access_token Cookie を伴わないリクエスト（Authorization: Bearer ヘッダーで
+        // 認証する Discord Bot / モバイルなどの非ブラウザクライアント）は、攻撃者が
+        // 被害者のクレデンシャルを横取りして送らせることが原理的に不可能なため、
+        // Origin 検証の対象外とする。
+        // JWT 認証は Cookie を優先し、無ければ Authorization ヘッダーへフォールバックする
+        // （Application.kt の authHeader 参照）。よって Cookie が無いリクエストは
+        // 必ずヘッダー認証であり、CSRF 非該当として扱える。
+        // Cookie 認証フロー（Web フロントエンド）は引き続き厳格に Origin を検証する。
+        if (call.request.cookies["access_token"] == null) {
+            return@onCall
+        }
+
         validateOriginOrThrow(call, allowedOrigins)
     }
 }
