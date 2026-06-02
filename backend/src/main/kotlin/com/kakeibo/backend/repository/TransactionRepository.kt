@@ -5,6 +5,7 @@ import com.kakeibo.backend.db.TransactionTags
 import com.kakeibo.backend.db.Categories
 import com.kakeibo.backend.db.Accounts
 import com.kakeibo.backend.db.Tags
+import com.kakeibo.backend.db.Transfers
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.javatime.month
 import org.jetbrains.exposed.sql.javatime.year
@@ -444,19 +445,26 @@ class TransactionRepository {
     /**
      * Batch calculate balances for multiple accounts in a single grouped query.
      *
-     * N+1 を回避するため、income / expense の集計をそれぞれ 1 クエリで行い、
+     * N+1 を回避するため、income / expense / 振替IN / 振替OUT の集計をそれぞれ 1 クエリで行い、
      * 初期残高と合算する。
      *
+     * 残高式は AccountService.calculateBalances と完全に一致させること
+     * (initialBalance + Σincome - Σexpense + Σ振替IN - Σ振替OUT)。
+     * 振替を含めないと、口座ページの残高と取引一覧に埋め込まれる口座残高が食い違う。
+     *
      * @param accountBalances 口座ID → 初期残高
-     * @return 口座ID → 実残高 (initialBalance + Σincome - Σexpense)
+     * @return 口座ID → 実残高
      */
     fun calculateAccountBalances(accountBalances: Map<UUID, Long>): Map<UUID, Long> = transaction {
         if (accountBalances.isEmpty()) return@transaction emptyMap()
 
         val accountIds = accountBalances.keys.toList()
         val amountSum = Transactions.amount.sum()
+        val transferSum = Transfers.amount.sum()
         val incomeMap = mutableMapOf<UUID, Long>()
         val expenseMap = mutableMapOf<UUID, Long>()
+        val transferInMap = mutableMapOf<UUID, Long>()
+        val transferOutMap = mutableMapOf<UUID, Long>()
 
         Transactions.select(Transactions.accountId, amountSum)
             .where {
@@ -480,8 +488,22 @@ class TransactionRepository {
                 row[Transactions.accountId]?.let { expenseMap[it] = row[amountSum] ?: 0L }
             }
 
+        Transfers.select(Transfers.toAccountId, transferSum)
+            .where { (Transfers.toAccountId inList accountIds) and Transfers.deletedAt.isNull() }
+            .groupBy(Transfers.toAccountId)
+            .forEach { row -> transferInMap[row[Transfers.toAccountId]] = row[transferSum] ?: 0L }
+
+        Transfers.select(Transfers.fromAccountId, transferSum)
+            .where { (Transfers.fromAccountId inList accountIds) and Transfers.deletedAt.isNull() }
+            .groupBy(Transfers.fromAccountId)
+            .forEach { row -> transferOutMap[row[Transfers.fromAccountId]] = row[transferSum] ?: 0L }
+
         accountBalances.mapValues { (accountId, initialBalance) ->
-            initialBalance + (incomeMap[accountId] ?: 0L) - (expenseMap[accountId] ?: 0L)
+            initialBalance +
+                (incomeMap[accountId] ?: 0L) -
+                (expenseMap[accountId] ?: 0L) +
+                (transferInMap[accountId] ?: 0L) -
+                (transferOutMap[accountId] ?: 0L)
         }
     }
 }

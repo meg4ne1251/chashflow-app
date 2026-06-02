@@ -63,19 +63,19 @@ export default function TransferListPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: TransferFormData) => transferApi.create({ ...data, memo: data.memo || undefined }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['transfers'] }); queryClient.invalidateQueries({ queryKey: ['accounts'] }); setDialogOpen(false); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['transfers'] }); queryClient.invalidateQueries({ queryKey: ['accounts'] }); queryClient.invalidateQueries({ queryKey: ['dashboard'] }); setDialogOpen(false); },
     onError: () => setError('振替の作成に失敗しました'),
   });
 
   const updateMutation = useMutation({
     mutationFn: (data: TransferFormData) => transferApi.update(editing!.id, { ...data, memo: data.memo || undefined, version: editing!.version }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['transfers'] }); queryClient.invalidateQueries({ queryKey: ['accounts'] }); setDialogOpen(false); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['transfers'] }); queryClient.invalidateQueries({ queryKey: ['accounts'] }); queryClient.invalidateQueries({ queryKey: ['dashboard'] }); setDialogOpen(false); },
     onError: () => setError('振替の更新に失敗しました'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (t: TransferResponse) => transferApi.delete(t.id, t.version),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['transfers'] }); queryClient.invalidateQueries({ queryKey: ['accounts'] }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['transfers'] }); queryClient.invalidateQueries({ queryKey: ['accounts'] }); queryClient.invalidateQueries({ queryKey: ['dashboard'] }); },
     onError: () => setError('振替の削除に失敗しました'),
   });
 
@@ -93,7 +93,7 @@ export default function TransferListPage() {
     try {
       await transferApi.restore(t.id);
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] }); queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err) {
       logger.error('Failed to restore transfer', err, { transferId: t.id });
       setError('振替の復元に失敗しました');

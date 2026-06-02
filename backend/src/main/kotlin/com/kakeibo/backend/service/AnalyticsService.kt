@@ -29,6 +29,21 @@ class AnalyticsService(
     /** Holds aggregated income and expense totals for a category within a period. */
     private data class CategoryTotals(val name: String, val income: Long, val expense: Long)
 
+    /**
+     * Dashboard の「月次集計」部分のみを保持するキャッシュ単位。
+     * 収支・予算消化・前月比較・最近の取引は取引 (transactions) の作成/更新/削除でのみ
+     * 変動し、TransactionService がその月のダッシュボードキャッシュを無効化する。
+     * 口座残高・貯蓄目標は振替/積立や過去月の取引編集でも変動し、月キーのキャッシュでは
+     * 取りこぼすため、ここには含めずキャッシュ外で都度算出する。
+     */
+    private data class DashboardCachedPart(
+        val income: Long,
+        val expense: Long,
+        val budgetConsumption: List<BudgetConsumption>,
+        val monthOverMonth: MonthComparison,
+        val recentTransactions: List<TransactionResponse>
+    )
+
     // In-memory cache with TTL and bounded size
     private data class CacheEntry<T>(val data: T, val expireAt: Long)
     private val cache = ConcurrentHashMap<String, CacheEntry<*>>()
@@ -119,7 +134,8 @@ class AnalyticsService(
         val now = LocalDate.now()
         val yearMonth = String.format("%04d-%02d", now.year, now.monthValue)
 
-        return cached("dashboard:$yearMonth") {
+        // 月次集計部分のみキャッシュする (取引の増減で TransactionService が当月分を無効化)。
+        val part = cached("dashboard:$yearMonth") {
             val (income, expense) = transactionRepository.getMonthlySummary(now.year, now.monthValue)
 
             // Batch-load all category expense sums for the month (eliminates N+1)
@@ -197,28 +213,36 @@ class AnalyticsService(
                 )
             }
 
-            // Account balances
-            val accountBalances = accountService.getAll()
-
-            // Active savings goals
-            val savingsGoals = savingsGoalService?.getActiveSummaries() ?: emptyList()
-
-            DashboardResponse(
-                income_total = income,
-                expense_total = expense,
-                balance = income - expense,
-                budget_consumption = budgetConsumptions,
-                month_over_month = MonthComparison(
+            DashboardCachedPart(
+                income = income,
+                expense = expense,
+                budgetConsumption = budgetConsumptions,
+                monthOverMonth = MonthComparison(
                     income_change = incomeChange,
                     expense_change = expenseChange,
                     income_change_rate = incomeChangeRate,
                     expense_change_rate = expenseChangeRate
                 ),
-                recent_transactions = recentTxs,
-                account_balances = accountBalances,
-                savings_goals = savingsGoals
+                recentTransactions = recentTxs
             )
         }
+
+        // 口座残高・貯蓄目標は振替/積立や過去月の取引編集でも変動し、月キーの
+        // ダッシュボードキャッシュでは無効化を取りこぼす。キャッシュ外で都度算出して
+        // 常に最新値を返す (これらは安価な集計クエリで、単一ユーザー想定では負荷も軽微)。
+        val accountBalances = accountService.getAll()
+        val savingsGoals = savingsGoalService?.getActiveSummaries() ?: emptyList()
+
+        return DashboardResponse(
+            income_total = part.income,
+            expense_total = part.expense,
+            balance = part.income - part.expense,
+            budget_consumption = part.budgetConsumption,
+            month_over_month = part.monthOverMonth,
+            recent_transactions = part.recentTransactions,
+            account_balances = accountBalances,
+            savings_goals = savingsGoals
+        )
     }
 
     fun getCategoryBreakdown(yearMonth: String, type: String?): CategoryBreakdownResponse {
