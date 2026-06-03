@@ -35,6 +35,7 @@ class TransactionService(
 
     private companion object {
         val VALID_TRANSACTION_TYPES: Set<String> = TransactionType.entries.map { it.value }.toSet()
+        const val MAX_TAGS_PER_TRANSACTION = 20
     }
     fun getAll(
         dateFrom: String?, dateTo: String?, type: String?,
@@ -128,6 +129,7 @@ class TransactionService(
 
     fun create(request: TransactionRequest, userId: String): TransactionResponse {
         validateRequest(request)
+        validateReferences(request)
         val id = if (request.id != null) UUID.fromString(request.id) else UUID.randomUUID()
 
         val row = transaction {
@@ -179,6 +181,7 @@ class TransactionService(
 
         val existing = transactionRepository.findById(uuid)
             ?: throw NotFoundException("取引が見つかりません")
+        validateReferences(request)
         val existingDate = existing[Transactions.date].toString()
 
         val row = transaction {
@@ -418,6 +421,35 @@ class TransactionService(
                 errors.add(FieldError("memo", "メモは${ValidationRules.MEMO_MAX_LENGTH}文字以下で入力してください"))
         }
 
+        if (request.tag_ids.size > MAX_TAGS_PER_TRANSACTION)
+            errors.add(FieldError("tag_ids", "タグは${MAX_TAGS_PER_TRANSACTION}個まで指定できます"))
+        request.tag_ids.forEach {
+            if (!ValidationRules.validateUuid(it))
+                errors.add(FieldError("tag_ids", "タグIDの形式が不正です"))
+        }
+
         if (errors.isNotEmpty()) throw ValidationException("入力内容にエラーがあります", errors)
+    }
+
+    /**
+     * category_id / account_id / tag_ids が実在するかを検証する。
+     * 形式は validateRequest で検証済みである前提。
+     * 存在しない参照は FK 違反による 500 ではなく 404 として返す。
+     */
+    private fun validateReferences(request: TransactionRequest) {
+        request.category_id?.let {
+            if (categoryRepository.findActiveById(UUID.fromString(it)) == null)
+                throw NotFoundException("指定されたカテゴリが見つかりません")
+        }
+        request.account_id?.let {
+            if (accountRepository.findActiveById(UUID.fromString(it)) == null)
+                throw NotFoundException("指定された決済手段が見つかりません")
+        }
+        if (request.tag_ids.isNotEmpty()) {
+            val tagUuids = request.tag_ids.map { UUID.fromString(it) }.distinct()
+            val found = tagRepository.findByIds(tagUuids)
+            if (found.size != tagUuids.size)
+                throw NotFoundException("指定されたタグが見つかりません")
+        }
     }
 }

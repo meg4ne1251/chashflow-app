@@ -1,7 +1,9 @@
 package com.kakeibo.backend.service
 
+import com.kakeibo.backend.db.Accounts
 import com.kakeibo.backend.db.Transfers
 import com.kakeibo.backend.middleware.*
+import com.kakeibo.backend.repository.AccountRepository
 import com.kakeibo.backend.repository.TransferRepository
 import com.kakeibo.shared.model.*
 import com.kakeibo.shared.validation.ValidationRules
@@ -11,7 +13,8 @@ import java.time.format.DateTimeParseException
 import java.util.*
 
 class TransferService(
-    private val transferRepository: TransferRepository
+    private val transferRepository: TransferRepository,
+    private val accountRepository: AccountRepository
 ) {
     private fun parseDateParam(value: String, fieldName: String): LocalDate {
         return try {
@@ -54,6 +57,7 @@ class TransferService(
 
     fun create(request: TransferRequest): TransferResponse {
         validateRequest(request)
+        validateAccounts(request)
         val id = if (request.id != null) UUID.fromString(request.id) else UUID.randomUUID()
 
         val row = transferRepository.create(
@@ -70,6 +74,7 @@ class TransferService(
 
     fun update(id: String, request: TransferRequest): TransferResponse {
         validateRequest(request)
+        validateAccounts(request)
         val uuid = UUID.fromString(id)
         val currentVersion = request.version
             ?: throw ValidationException("バージョンを指定してください", listOf(FieldError("version", "version は必須です")))
@@ -118,6 +123,26 @@ class TransferService(
         updated_at = this[Transfers.updatedAt].toString(),
         deleted_at = this[Transfers.deletedAt]?.toString()
     )
+
+    /**
+     * 出金元・入金先の決済手段が実在しアクティブであることを検証する。
+     * また、貯蓄口座への入出金は貯蓄目標（SavingsGoalService）経由に限定するため、
+     * 通常の振替で savings 口座を指定することを禁止する。
+     * 形式は validateRequest で検証済みである前提。
+     */
+    private fun validateAccounts(request: TransferRequest) {
+        val from = accountRepository.findActiveById(UUID.fromString(request.from_account_id))
+            ?: throw NotFoundException("出金元の決済手段が見つかりません")
+        val to = accountRepository.findActiveById(UUID.fromString(request.to_account_id))
+            ?: throw NotFoundException("入金先の決済手段が見つかりません")
+
+        if (from[Accounts.type] == "savings" || to[Accounts.type] == "savings") {
+            throw ValidationException(
+                "貯蓄口座への入出金は貯蓄目標から行ってください",
+                listOf(FieldError("account_id", "貯蓄口座は通常の振替では指定できません"))
+            )
+        }
+    }
 
     private fun validateRequest(request: TransferRequest) {
         val errors = mutableListOf<FieldError>()

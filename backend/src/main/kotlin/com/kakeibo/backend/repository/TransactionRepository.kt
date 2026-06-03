@@ -433,16 +433,6 @@ class TransactionRepository {
     }
 
     /**
-     * Calculate the actual balance for an account.
-     * Balance = initialBalance + income - expense (non-deleted transactions only)
-     */
-    fun calculateAccountBalance(accountId: UUID, initialBalance: Long): Long = transaction {
-        val income = sumByAccountAndType(accountId, "income")
-        val expense = sumByAccountAndType(accountId, "expense")
-        initialBalance + income - expense
-    }
-
-    /**
      * Batch calculate balances for multiple accounts in a single grouped query.
      *
      * N+1 を回避するため、income / expense / 振替IN / 振替OUT の集計をそれぞれ 1 クエリで行い、

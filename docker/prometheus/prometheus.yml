@@ -8,6 +8,15 @@ scrape_configs:
       - targets: ['app:8080']
     metrics_path: '/api/v1/metrics'
     scrape_interval: 10s
+    # /metrics はループバック以外からのアクセスにトークン認証を要求する。
+    # Prometheus はコンテナ間ネットワーク経由 (= 非ループバック) でスクレイプするため、
+    # アプリ側に METRICS_TOKEN を設定し、ここでも同じトークンを送る必要がある。
+    # トークンを平文で書かず、ファイル経由で渡す:
+    #   1. echo -n "$METRICS_TOKEN" > docker/prometheus/metrics_token
+    #   2. 下記をアンコメントし、そのファイルを prometheus コンテナへマウントする
+    # authorization:
+    #   type: Bearer
+    #   credentials_file: /etc/prometheus/metrics_token
 
   # Prometheus自身のメトリクス
   - job_name: 'prometheus'

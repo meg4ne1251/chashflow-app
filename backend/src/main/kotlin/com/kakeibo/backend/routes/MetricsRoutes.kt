@@ -30,7 +30,7 @@ fun Route.metricsRoutes(registry: PrometheusMeterRegistry) {
         if (!isMetricsAccessAllowed(call, expectedToken)) {
             metricsLogger.warn(
                 "Metrics access denied from {}",
-                call.request.origin.remoteHost
+                call.request.local.remoteHost
             )
             call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Forbidden"))
             return@get
@@ -43,8 +43,12 @@ fun Route.metricsRoutes(registry: PrometheusMeterRegistry) {
 }
 
 private fun isMetricsAccessAllowed(call: ApplicationCall, expectedToken: String?): Boolean {
-    // 1. ループバック接続は常に許可
-    val remoteHost = call.request.origin.remoteHost
+    // 1. ループバック接続は常に許可。
+    //    XForwardedHeaders により origin.remoteHost は X-Forwarded-For で偽装可能なため、
+    //    ここでは転送ヘッダの影響を受けない実ソケットの接続元 (request.local) を使う。
+    //    これにより攻撃者が `X-Forwarded-For: 127.0.0.1` を送ってループバック判定を
+    //    すり抜けることを防ぐ。
+    val remoteHost = call.request.local.remoteHost
     if (isLoopbackHost(remoteHost)) return true
 
     // 2. トークンが設定されていれば Bearer 認証を許可

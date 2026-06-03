@@ -24,8 +24,9 @@ def make_interaction(user_id: int = 1):
 
 
 @pytest.fixture(autouse=True)
-def allow_everyone(monkeypatch):
-    monkeypatch.setattr(bot, "ALLOWED_USER_ID", None)
+def allow_default_user(monkeypatch):
+    # make_interaction の既定ユーザー (id=1) を許可ユーザーにしておく。
+    monkeypatch.setattr(bot, "ALLOWED_USER_ID", 1)
 
 
 @pytest.fixture(autouse=True)

@@ -1,7 +1,9 @@
 package com.kakeibo.backend.service
 
+import com.kakeibo.backend.db.Accounts
 import com.kakeibo.backend.db.Transfers
 import com.kakeibo.backend.middleware.*
+import com.kakeibo.backend.repository.AccountRepository
 import com.kakeibo.backend.repository.TransferRepository
 import com.kakeibo.shared.model.*
 import io.mockk.*
@@ -13,12 +15,23 @@ import kotlin.test.*
 
 class TransferServiceTest {
     private lateinit var transferRepository: TransferRepository
+    private lateinit var accountRepository: AccountRepository
     private lateinit var sut: TransferService
 
     @BeforeTest
     fun setUp() {
         transferRepository = mockk(relaxed = true)
-        sut = TransferService(transferRepository)
+        accountRepository = mockk(relaxed = true)
+        // 既定では from/to ともに通常口座 (cash) が存在するものとする。
+        // 個別テストで savings/不在を検証する場合は上書きする。
+        every { accountRepository.findActiveById(any()) } returns mockAccountRow("cash")
+        sut = TransferService(transferRepository, accountRepository)
+    }
+
+    private fun mockAccountRow(type: String): ResultRow {
+        val row = mockk<ResultRow>(relaxed = true)
+        every { row[Accounts.type] } returns type
+        return row
     }
 
     // ===========================
@@ -156,6 +169,46 @@ class TransferServiceTest {
         assertEquals(fromAccountId.toString(), result.from_account_id)
         assertEquals(toAccountId.toString(), result.to_account_id)
         assertEquals(1000, result.amount)
+    }
+
+    @Test
+    fun `create - should throw NotFoundException when from account does not exist`() {
+        val fromId = UUID.randomUUID()
+        val toId = UUID.randomUUID()
+        every { accountRepository.findActiveById(fromId) } returns null
+        every { accountRepository.findActiveById(toId) } returns mockAccountRow("bank")
+
+        val request = TransferRequest(
+            from_account_id = fromId.toString(),
+            to_account_id = toId.toString(),
+            amount = 1000,
+            currency = "JPY",
+            date = "2024-01-15"
+        )
+
+        assertFailsWith<NotFoundException> {
+            sut.create(request)
+        }
+    }
+
+    @Test
+    fun `create - should reject transfer involving a savings account`() {
+        val fromId = UUID.randomUUID()
+        val toId = UUID.randomUUID()
+        every { accountRepository.findActiveById(fromId) } returns mockAccountRow("cash")
+        every { accountRepository.findActiveById(toId) } returns mockAccountRow("savings")
+
+        val request = TransferRequest(
+            from_account_id = fromId.toString(),
+            to_account_id = toId.toString(),
+            amount = 1000,
+            currency = "JPY",
+            date = "2024-01-15"
+        )
+
+        assertFailsWith<ValidationException> {
+            sut.create(request)
+        }
     }
 
     // ===========================

@@ -30,7 +30,7 @@ class TransferIntegrationTest {
         TestHelper.cleanDatabase()
 
         val accountRepository = AccountRepository()
-        transferService = TransferService(TransferRepository())
+        transferService = TransferService(TransferRepository(), accountRepository)
 
         transaction {
             fromAccountId = accountRepository.create(

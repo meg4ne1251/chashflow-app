@@ -79,7 +79,7 @@ CASHFLOW_USERNAME=（cashflow-app のログインユーザー名）
 CASHFLOW_PASSWORD=（cashflow-app のログインパスワード）
 ```
 
-`DISCORD_ALLOWED_USER_ID` は任意です。設定するとそのユーザーだけがコマンドを使えます。空欄にするとサーバーの全員が使用できます。
+`DISCORD_ALLOWED_USER_ID` は **必須** です。指定したユーザーだけがコマンドを使えます（家計簿は単一ユーザー前提のため、未設定だと起動しません）。自分の Discord User ID を設定してください。
 
 ### 4. 起動する
 
@@ -124,7 +124,7 @@ python3 -m venv .venv
 |--------|------|------|
 | `DISCORD_BOT_TOKEN` | 必須 | Discord Developer Portal で取得した Bot Token |
 | `DISCORD_GUILD_ID` | 必須 | Botを動作させる Discord サーバーの Guild ID |
-| `DISCORD_ALLOWED_USER_ID` | 任意 | Botを使用できるユーザーの Discord User ID（未設定 = 全員許可） |
+| `DISCORD_ALLOWED_USER_ID` | 必須 | Botを使用できるユーザーの Discord User ID（このユーザーのみ許可） |
 | `CASHFLOW_USERNAME` | 必須 | cashflow-app のログインユーザー名 |
 | `CASHFLOW_PASSWORD` | 必須 | cashflow-app のログインパスワード |
 | `API_BASE_URL` | 不要 | デフォルト `http://app:8080`（Docker内部通信） |

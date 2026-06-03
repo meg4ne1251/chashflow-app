@@ -13,5 +13,6 @@ os.environ.setdefault("DISCORD_BOT_TOKEN", "test-token")
 os.environ.setdefault("DISCORD_GUILD_ID", "123456789")
 os.environ.setdefault("CASHFLOW_USERNAME", "tester")
 os.environ.setdefault("CASHFLOW_PASSWORD", "secret")
-# ALLOWED_USER_ID はデフォルト未設定（= 全員許可）にしておく
-os.environ.pop("DISCORD_ALLOWED_USER_ID", None)
+# DISCORD_ALLOWED_USER_ID は必須（未設定だと import 時に sys.exit）。
+# import を成功させるためダミー値を設定する。各テストは monkeypatch で上書きする。
+os.environ.setdefault("DISCORD_ALLOWED_USER_ID", "1")

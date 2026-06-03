@@ -46,9 +46,11 @@ class TestTemplateLabel:
 
 
 class TestIsAllowed:
-    def test_allows_everyone_when_unset(self, monkeypatch):
-        monkeypatch.setattr(bot, "ALLOWED_USER_ID", None)
-        assert bot._is_allowed(999) is True
+    def test_only_configured_user_is_allowed(self, monkeypatch):
+        # 許可ユーザーは1人のみ。他ユーザーはすべて拒否（フェイルセーフ）。
+        monkeypatch.setattr(bot, "ALLOWED_USER_ID", 42)
+        assert bot._is_allowed(42) is True
+        assert bot._is_allowed(999) is False
 
     def test_allows_matching_user(self, monkeypatch):
         monkeypatch.setattr(bot, "ALLOWED_USER_ID", 42)

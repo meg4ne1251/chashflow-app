@@ -4,6 +4,7 @@ import com.kakeibo.backend.db.*
 import com.kakeibo.backend.middleware.*
 import com.kakeibo.backend.repository.*
 import com.kakeibo.shared.model.*
+import com.kakeibo.shared.validation.ValidationRules
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -142,7 +143,10 @@ class SyncService(
 
         return when (change.operation) {
             "create", "update" -> {
-                transaction {
+                // 各エンティティ分岐は「既存レコードの更新だったか」を返す。
+                // create は新規行 version=1、update は version+1 を返すことで、
+                // クライアントの client_version に依存せず実際の保存値と一致させる。
+                val wasUpdate = transaction {
                     when (change.entity_type) {
                         "transaction" -> {
                             val existing = transactionRepository.findById(uuid)
@@ -160,8 +164,12 @@ class SyncService(
                             val accountId = change.data.optionalString("account_id")?.let { UUID.fromString(it) }
                             val isBalanceAdjustment = change.data["is_balance_adjustment"]?.jsonPrimitive?.booleanOrNull ?: false
 
-                            if (change.operation == "update" && existing != null) {
-                                val serverVersion = existing[Transactions.version]
+                            // ビジネス検証（push はサービス層を経由しないため、ここで明示的に検証する）
+                            validateTransactionFields(type, amount, name, memo)
+
+                            val isUpdate = change.operation == "update" && existing != null
+                            if (isUpdate) {
+                                val serverVersion = existing!![Transactions.version]
                                 if (serverVersion != version) throw ConflictException("バージョン競合")
                                 transactionRepository.update(
                                     id = uuid, type = type, amount = amount, currency = currency,
@@ -176,6 +184,7 @@ class SyncService(
                                     name = name, isBalanceAdjustment = isBalanceAdjustment
                                 )
                             }
+                            isUpdate
                         }
                         "category" -> {
                             val existing = categoryRepository.findById(uuid)
@@ -185,8 +194,13 @@ class SyncService(
                             val color = change.data.optionalString("color")
                             val sortOrder = change.data.optionalInt("sort_order") ?: 0
 
-                            if (change.operation == "update" && existing != null) {
-                                val serverVersion = existing[Categories.version]
+                            validateName(name, ValidationRules.CATEGORY_NAME_MAX_LENGTH, "カテゴリ名")
+                            if (type !in setOf("income", "expense"))
+                                throw ValidationException("種別が不正です", listOf(FieldError("type", "income または expense を指定してください")))
+
+                            val isUpdate = change.operation == "update" && existing != null
+                            if (isUpdate) {
+                                val serverVersion = existing!![Categories.version]
                                 if (serverVersion != version) throw ConflictException("バージョン競合")
                                 categoryRepository.update(
                                     id = uuid, name = name, type = type, icon = icon,
@@ -198,6 +212,7 @@ class SyncService(
                                     color = color, sortOrder = sortOrder
                                 )
                             }
+                            isUpdate
                         }
                         "account" -> {
                             val existing = accountRepository.findById(uuid)
@@ -207,8 +222,11 @@ class SyncService(
                             val currency = change.data.optionalString("currency") ?: "JPY"
                             val sortOrder = change.data.optionalInt("sort_order") ?: 0
 
-                            if (change.operation == "update" && existing != null) {
-                                val serverVersion = existing[Accounts.version]
+                            validateName(name, ValidationRules.ACCOUNT_NAME_MAX_LENGTH, "決済手段名")
+
+                            val isUpdate = change.operation == "update" && existing != null
+                            if (isUpdate) {
+                                val serverVersion = existing!![Accounts.version]
                                 if (serverVersion != version) throw ConflictException("バージョン競合")
                                 accountRepository.update(
                                     id = uuid, name = name, type = type, initialBalance = initialBalance,
@@ -220,14 +238,18 @@ class SyncService(
                                     currency = currency, sortOrder = sortOrder
                                 )
                             }
+                            isUpdate
                         }
                         "tag" -> {
                             val existing = tagRepository.findById(uuid)
                             val name = change.data.requireString("name")
                             val color = change.data.optionalString("color")
 
-                            if (change.operation == "update" && existing != null) {
-                                val serverVersion = existing[Tags.version]
+                            validateName(name, ValidationRules.TAG_NAME_MAX_LENGTH, "タグ名")
+
+                            val isUpdate = change.operation == "update" && existing != null
+                            if (isUpdate) {
+                                val serverVersion = existing!![Tags.version]
                                 if (serverVersion != version) throw ConflictException("バージョン競合")
                                 tagRepository.update(
                                     id = uuid, name = name, color = color, currentVersion = version
@@ -235,6 +257,7 @@ class SyncService(
                             } else {
                                 tagRepository.create(id = uuid, name = name, color = color)
                             }
+                            isUpdate
                         }
                         else -> throw ValidationException(
                             "未対応のエンティティ種別です: ${change.entity_type}",
@@ -246,7 +269,7 @@ class SyncService(
                     entity_type = change.entity_type,
                     id = id,
                     status = "accepted",
-                    server_version = version + 1,
+                    server_version = if (wasUpdate) version + 1 else 1,
                     server_data = null
                 )
             }
@@ -442,6 +465,36 @@ class SyncService(
         hit_count = this[InputPatterns.hitCount],
         last_used_at = this[InputPatterns.lastUsedAt].toString()
     )
+
+    // ===== Validation Helpers =====
+
+    private fun validateTransactionFields(type: String, amount: Long, name: String?, memo: String?) {
+        if (type !in setOf("income", "expense"))
+            throw ValidationException("種別が不正です", listOf(FieldError("type", "income または expense を指定してください")))
+        ValidationRules.validateAmount(amount)?.let {
+            throw ValidationException(it, listOf(FieldError("amount", it)))
+        }
+        if (name != null && name.length > ValidationRules.TRANSACTION_NAME_MAX_LENGTH)
+            throw ValidationException(
+                "名前が長すぎます",
+                listOf(FieldError("name", "${ValidationRules.TRANSACTION_NAME_MAX_LENGTH}文字以下で入力してください"))
+            )
+        if (memo != null && memo.length > ValidationRules.MEMO_MAX_LENGTH)
+            throw ValidationException(
+                "メモが長すぎます",
+                listOf(FieldError("memo", "${ValidationRules.MEMO_MAX_LENGTH}文字以下で入力してください"))
+            )
+    }
+
+    private fun validateName(name: String, maxLength: Int, fieldLabel: String) {
+        if (name.isBlank())
+            throw ValidationException("${fieldLabel}を入力してください", listOf(FieldError("name", "${fieldLabel}は必須です")))
+        if (name.length > maxLength)
+            throw ValidationException(
+                "${fieldLabel}が長すぎます",
+                listOf(FieldError("name", "${maxLength}文字以下で入力してください"))
+            )
+    }
 
     // ===== Safe JSON Field Access Helpers =====
 

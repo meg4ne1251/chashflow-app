@@ -67,16 +67,19 @@ API_BASE_URL = os.environ.get("API_BASE_URL", "http://app:8080")
 API_USERNAME = _get_required_env("CASHFLOW_USERNAME")
 API_PASSWORD = _get_required_env("CASHFLOW_PASSWORD")
 
-# ALLOWED_USER_ID: None = 全員許可、int = 特定ユーザーのみ許可
-_allowed_user_raw = os.environ.get("DISCORD_ALLOWED_USER_ID")
-if _allowed_user_raw:
+# DISCORD_ALLOWED_USER_ID は必須。
+# 未設定だとギルド内の全メンバーがオーナーの家計データを読み書きできてしまう
+# （家計簿は単一ユーザー前提）。フェイルセーフのため、許可ユーザーを明示的に
+# 指定させ、指定された 1 ユーザーのみコマンドを実行できるようにする。
+def _get_allowed_user_id() -> int:
+    raw = _get_required_env("DISCORD_ALLOWED_USER_ID")
     try:
-        ALLOWED_USER_ID: Optional[int] = int(_allowed_user_raw)
+        return int(raw)
     except ValueError:
-        logger.critical("DISCORD_ALLOWED_USER_ID must be a valid integer: %s", _allowed_user_raw)
+        logger.critical("DISCORD_ALLOWED_USER_ID must be a valid integer: %s", raw)
         sys.exit(1)
-else:
-    ALLOWED_USER_ID: Optional[int] = None
+
+ALLOWED_USER_ID: int = _get_allowed_user_id()
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -311,7 +314,8 @@ def _template_label(t: dict) -> str:
 
 
 def _is_allowed(user_id: int) -> bool:
-    return ALLOWED_USER_ID is None or user_id == ALLOWED_USER_ID
+    # 許可ユーザーは1人のみ（DISCORD_ALLOWED_USER_ID で必須指定）。
+    return user_id == ALLOWED_USER_ID
 
 
 def _make_success_embed(template: dict, amount: int) -> discord.Embed:

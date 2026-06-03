@@ -39,6 +39,10 @@ services:
       # DB パスワード強度の検証を有効化する。
       # ローカルで非 HTTPS 開発する場合は KTOR_ENV=development を上書き。
       KTOR_ENV: ${KTOR_ENV:-production}
+      # /metrics をループバック以外 (Prometheus コンテナ等) からスクレイプする場合に必須。
+      # 設定すると Authorization: Bearer <token> での認証が有効になる。
+      # 未設定なら /metrics はループバックからのみアクセス可能。
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
       PORT: 8080
     # Do not expose port directly; nginx proxies requests
     # ports:
