@@ -64,8 +64,8 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
     // PDF generation
-    implementation("com.itextpdf:itext-core:8.0.5")
-    implementation("com.itextpdf:font-asian:8.0.5")
+    implementation("com.itextpdf:itext-core:9.7.0")
+    implementation("com.itextpdf:font-asian:9.7.0")
 
     // Test
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
